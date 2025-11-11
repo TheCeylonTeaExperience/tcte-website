@@ -195,12 +195,15 @@ export default function BookNow() {
       <Header />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-primary text-primary-foreground py-12">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-4">
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-16 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-4 drop-shadow-lg">
               Book Your Experience
             </h1>
-            <p className="text-lg opacity-90">
+            <p className="text-lg opacity-95 drop-shadow">
               Fill in your details to reserve your tea tour
             </p>
           </div>

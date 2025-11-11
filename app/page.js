@@ -1,12 +1,47 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaLeaf, FaClock, FaUsers, FaStar } from "react-icons/fa";
+import { FaLeaf, FaClock, FaUsers, FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 export default function Home() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const heroImages = [
+    {
+      url: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1920&q=80",
+      alt: "Lush tea fields at sunrise",
+    },
+    
+    {
+      url: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=1920&q=80",
+      alt: "Green tea plantation",
+    },
+    {
+      url: "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?w=1920&q=80",
+      alt: "Tea tasting session",
+    },
+  ];
+
+  // Auto-advance slider
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [heroImages.length]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  };
   const features = [
     {
       icon: FaLeaf,
@@ -34,48 +69,112 @@ export default function Home() {
     <>
       <Header />
       <main>
-        {/* Hero Section */}
-        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-          {/* Background Image Placeholder */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 -z-10" />
-          
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-primary mb-6 max-w-4xl mx-auto leading-tight">
-              Discover the Art of Tea in Paradise
-            </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-              Immerse yourself in authentic tea tourism experiences. From plucking
-              to tasting, journey through the world of premium tea in our scenic
-              estates.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button asChild size="lg" className="text-lg px-8 py-6">
-                <Link href="/book">Book Now</Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-6"
+        {/* Hero Section with Image Slider */}
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+          {/* Image Slider Background */}
+          <div className="absolute inset-0 -z-10">
+            {heroImages.map((image, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentSlide ? "opacity-100" : "opacity-0"
+                }`}
               >
-                <Link href="/gallery">View Gallery</Link>
-              </Button>
+                <img
+                  src={image.url}
+                  alt={image.alt}
+                  className="w-full h-full object-cover"
+                />
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+              </div>
+            ))}
+          </div>
+
+          {/* Slider Controls */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all duration-300 hover:scale-110"
+            aria-label="Previous slide"
+          >
+            <FaChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all duration-300 hover:scale-110"
+            aria-label="Next slide"
+          >
+            <FaChevronRight className="h-6 w-6" />
+          </button>
+
+          {/* Slider Indicators */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentSlide
+                    ? "bg-white w-8"
+                    : "bg-white/50 hover:bg-white/75"
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Hero Content */}
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center relative z-10">
+            <div className="animate-fade-in">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-6 max-w-4xl mx-auto leading-tight drop-shadow-lg">
+                Discover the Art of Tea in Paradise
+              </h1>
+              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-12 max-w-2xl mx-auto drop-shadow-md">
+                Immerse yourself in authentic tea tourism experiences. From plucking
+                to tasting, journey through the world of premium tea in our scenic
+                estates.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                >
+                  <Link href="/book">Book Now</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="text-lg px-8 py-6 bg-white/10 hover:bg-white/20 text-white border-white/50 backdrop-blur-sm shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                >
+                  <Link href="/gallery">View Gallery</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20 bg-card">
+        <section className="py-20 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-center mb-12 text-primary">
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-center mb-4 text-primary">
               Why Choose Reviva Tea Tours
             </h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              Experience the finest tea tourism with our expertly curated programs
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="border-2 hover:border-primary transition-colors">
+                <Card 
+                  key={index} 
+                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/80 backdrop-blur-sm group"
+                >
                   <CardContent className="pt-6 text-center">
-                    <feature.icon className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <h3 className="font-serif font-bold text-xl mb-2">
+                    <div className="bg-gradient-to-br from-primary to-primary/70 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                      <feature.icon className="h-10 w-10 text-white" />
+                    </div>
+                    <h3 className="font-serif font-bold text-xl mb-2 text-primary">
                       {feature.title}
                     </h3>
                     <p className="text-muted-foreground">{feature.description}</p>
@@ -87,7 +186,7 @@ export default function Home() {
         </section>
 
         {/* Quick Services Preview */}
-        <section className="py-20">
+        <section className="py-20 bg-white">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
@@ -100,21 +199,52 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                "Plucking Tour",
-                "Black Tea Experience",
-                "Green Tea Experience",
-                "Tea Tasting Session",
+                {
+                  name: "Plucking Tour",
+                  image: "https://images.unsplash.com/photo-1545033702-79061161f11a?w=600&q=80",
+                  price: "From $45"
+                },
+                {
+                  name: "Black Tea Experience",
+                  image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80",
+                  price: "From $55"
+                },
+                {
+                  name: "Green Tea Experience",
+                  image: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=600&q=80",
+                  price: "From $55"
+                },
+                {
+                  name: "Tea Tasting Session",
+                  image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&q=80",
+                  price: "From $35"
+                },
               ].map((service, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="pt-6">
-                    <h3 className="font-serif font-bold text-lg mb-2">
-                      {service}
-                    </h3>
+                <Card 
+                  key={index} 
+                  className="group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                >
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={service.image}
+                      alt={service.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <p className="text-white font-bold text-lg">{service.name}</p>
+                      <p className="text-secondary text-sm font-semibold">{service.price}</p>
+                    </div>
+                  </div>
+                  <CardContent className="pt-4">
                     <p className="text-muted-foreground text-sm mb-4">
                       Discover the unique journey of tea production
                     </p>
-                    <Button asChild variant="link" className="p-0">
-                      <Link href="/services">Learn More →</Link>
+                    <Button asChild variant="link" className="p-0 h-auto text-primary font-semibold group-hover:gap-2 transition-all">
+                      <Link href="/services">
+                        Learn More 
+                        <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+                      </Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -124,23 +254,45 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-primary text-primary-foreground">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-6">
-              Ready to Begin Your Tea Journey?
-            </h2>
-            <p className="text-lg mb-8 opacity-90 max-w-2xl mx-auto">
-              Book your authentic tea tourism experience today and create
-              unforgettable memories in our scenic tea estates.
-            </p>
-            <Button
-              asChild
-              size="lg"
-              variant="secondary"
-              className="text-lg px-8 py-6"
-            >
-              <Link href="/book">Book Your Experience</Link>
-            </Button>
+        <section className="py-20 bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground relative overflow-hidden">
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-6 drop-shadow-lg">
+                Ready to Begin Your Tea Journey?
+              </h2>
+              <p className="text-lg md:text-xl mb-8 opacity-95 drop-shadow">
+                Book your authentic tea tourism experience today and create
+                unforgettable memories in our scenic tea estates.
+              </p>
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="text-lg px-10 py-7 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 bg-white text-primary hover:bg-white/90 font-semibold"
+              >
+                <Link href="/book">Book Your Experience</Link>
+              </Button>
+              
+              {/* Trust Indicators */}
+              <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm opacity-90">
+                <div className="flex items-center gap-2">
+                  <FaStar className="text-secondary" />
+                  <span>5-Star Rated</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaUsers className="text-secondary" />
+                  <span>1000+ Happy Guests</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaLeaf className="text-secondary" />
+                  <span>100% Organic</span>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>

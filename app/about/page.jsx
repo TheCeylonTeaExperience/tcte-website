@@ -53,12 +53,15 @@ export default function About() {
       <Header />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-primary text-primary-foreground py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6">
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Our Story
             </h1>
-            <p className="text-lg sm:text-xl opacity-90 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
               A journey of passion, tradition, and the perfect cup of tea
             </p>
           </div>
@@ -108,10 +111,12 @@ export default function About() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {values.map((value, index) => (
-                <Card key={index} className="text-center">
+                <Card key={index} className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary">
                   <CardContent className="pt-6">
-                    <value.icon className="h-12 w-12 text-primary mx-auto mb-4" />
-                    <h3 className="font-serif font-bold text-xl mb-2">
+                    <div className="bg-gradient-to-br from-primary to-primary/70 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <value.icon className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="font-serif font-bold text-xl mb-2 text-primary">
                       {value.title}
                     </h3>
                     <p className="text-muted-foreground">{value.description}</p>
@@ -158,16 +163,16 @@ export default function About() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {team.map((member, index) => (
-                <div key={index} className="text-center">
-                  <div className="relative w-48 h-48 mx-auto mb-4 rounded-full overflow-hidden border-4 border-primary/20">
+                <div key={index} className="text-center group">
+                  <div className="relative w-48 h-48 mx-auto mb-4 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary transition-all duration-300 group-hover:scale-105 shadow-lg group-hover:shadow-xl">
                     <img
                       src={member.image}
                       alt={member.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       loading="lazy"
                     />
                   </div>
-                  <h3 className="font-serif font-bold text-lg">{member.name}</h3>
+                  <h3 className="font-serif font-bold text-lg text-primary">{member.name}</h3>
                   <p className="text-muted-foreground">{member.role}</p>
                 </div>
               ))}

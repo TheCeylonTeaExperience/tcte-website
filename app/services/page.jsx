@@ -82,33 +82,40 @@ export default function Services() {
       <Header />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-primary text-primary-foreground py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6">
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Our Tea Experiences
             </h1>
-            <p className="text-lg sm:text-xl opacity-90 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
               Choose from our curated programs designed for every tea enthusiast
             </p>
           </div>
         </section>
 
         {/* Services Grid */}
-        <section className="py-16">
+        <section className="py-16 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {services.map((service) => (
+              {services.map((service, index) => (
                 <Card
                   key={service.id}
-                  className="overflow-hidden hover:shadow-xl transition-shadow"
+                  className="overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary"
+                  style={{
+                    animationDelay: `${index * 0.1}s`,
+                  }}
                 >
                   <div className="relative h-64 overflow-hidden">
                     <img
                       src={service.image}
                       alt={service.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                       loading="lazy"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </div>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between mb-4">

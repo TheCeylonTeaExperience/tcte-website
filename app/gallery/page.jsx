@@ -72,12 +72,15 @@ export default function Gallery() {
       <Header />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-primary text-primary-foreground py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6">
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Gallery
             </h1>
-            <p className="text-lg sm:text-xl opacity-90 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
               Explore the beauty of our tea estates and experiences through these
               curated moments
             </p>
@@ -85,25 +88,28 @@ export default function Gallery() {
         </section>
 
         {/* Gallery Grid */}
-        <section className="py-16">
+        <section className="py-16 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {images.map((image) => (
+              {images.map((image, index) => (
                 <Card
                   key={image.id}
-                  className="group overflow-hidden cursor-pointer hover:shadow-xl transition-shadow"
+                  className="group overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary"
                   onClick={() => setSelectedImage(image)}
+                  style={{
+                    animationDelay: `${index * 0.1}s`,
+                  }}
                 >
                   <div className="relative aspect-square overflow-hidden">
                     <img
                       src={image.src}
                       alt={image.alt}
-                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/20 transition-colors" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                      <p className="text-white text-sm font-medium">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                      <p className="text-white text-sm font-semibold bg-primary/80 backdrop-blur-sm px-3 py-1 rounded-full inline-block">
                         {image.category}
                       </p>
                     </div>
