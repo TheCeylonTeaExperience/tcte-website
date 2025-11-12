@@ -14,7 +14,7 @@ export default function Services() {
       groupSize: "2-8 people",
       description:
         "Experience the art of tea plucking firsthand in our pristine tea gardens. Learn the traditional 'two leaves and a bud' technique from our expert pluckers.",
-      image: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=1200&q=80",
+      image: "/image/PluckingTour.jpg",
       features: [
         "Hands-on tea plucking experience",
         "Traditional plucking techniques training",

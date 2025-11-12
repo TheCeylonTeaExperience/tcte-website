@@ -8,61 +8,78 @@ import { FaTimes } from "react-icons/fa";
 export default function Gallery() {
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Placeholder images - replace with actual tea estate images
   const images = [
     {
       id: 1,
-      src: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&q=80",
+      src: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=1200&q=80",
       alt: "Tea fields at sunrise",
       category: "Tea Fields",
     },
     {
       id: 2,
-      src: "https://images.unsplash.com/photo-1545033702-79061161f11a?w=800&q=80",
-      alt: "Tea plucking experience",
+      src: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=1200&q=80",
+      alt: "Guided tea plucking tour",
       category: "Plucking Tour",
     },
     {
       id: 3,
-      src: "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?w=800&q=80",
-      alt: "Tea tasting session",
+      src: "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?auto=format&fit=crop&w=1200&q=80",
+      alt: "Tea tasting setup with cups",
       category: "Tasting Session",
     },
     {
       id: 4,
-      src: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&q=80",
-      alt: "Green tea plantation",
+      src: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&w=1200&q=80",
+      alt: "Rolling hills of green tea",
       category: "Tea Fields",
     },
     {
       id: 5,
-      src: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80",
-      alt: "Black tea processing",
+      src: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=1200&q=80",
+      alt: "Processing fresh black tea leaves",
       category: "Processing",
     },
     {
       id: 6,
-      src: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=800&q=80",
-      alt: "Tea cups arrangement",
+      src: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=1200&q=80",
+      alt: "Elegant tea cup arrangement",
       category: "Tasting Session",
     },
     {
       id: 7,
-      src: "https://images.unsplash.com/photo-1597318130702-690dd509c0cc?w=800&q=80",
-      alt: "Tea leaves close up",
+      src: "https://images.unsplash.com/photo-1597318130702-690dd509c0cc?auto=format&fit=crop&w=1200&q=80",
+      alt: "Fresh tea leaves close-up",
       category: "Tea Fields",
     },
     {
       id: 8,
-      src: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&q=80",
-      alt: "Tea ceremony setup",
+      src: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=1200&q=80",
+      alt: "Tea ceremony setup with kettle",
       category: "Tasting Session",
     },
     {
       id: 9,
-      src: "https://images.unsplash.com/photo-1563822249366-163bd08f49fe?w=800&q=80",
+      src: "https://images.unsplash.com/photo-1563822249366-163bd08f49fe?auto=format&fit=crop&w=1200&q=80",
       alt: "Panoramic tea estate view",
       category: "Tea Fields",
+    },
+    {
+      id: 10,
+      src: "https://images.unsplash.com/photo-1573875376991-9625d31b7a03?auto=format&fit=crop&w=1200&q=80",
+      alt: "Traditional wooden tea house",
+      category: "Heritage",
+    },
+    {
+      id: 11,
+      src: "https://images.unsplash.com/photo-1505731132160-eca3da39b807?auto=format&fit=crop&w=1200&q=80",
+      alt: "Tea plantation workers harvesting",
+      category: "Plucking Tour",
+    },
+    {
+      id: 12,
+      src: "https://images.unsplash.com/photo-1464306208223-e0b4495a5553?auto=format&fit=crop&w=1200&q=80",
+      alt: "Assortment of loose leaf teas",
+      category: "Tea Varietals",
     },
   ];
 

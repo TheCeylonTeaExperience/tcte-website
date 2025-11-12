@@ -204,7 +204,7 @@ export default function Home() {
               {[
                 {
                   name: "Plucking Tour",
-                  image: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=800&q=80",
+                  image: "/image/PluckingTour.jpg",
                   price: "From $45"
                 },
                 {
