@@ -197,11 +197,14 @@ export default function Home() {
                 enthusiast
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div
+              className="grid gap-6"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+            >
               {[
                 {
                   name: "Plucking Tour",
-                  image: "https://images.unsplash.com/photo-1545033702-79061161f11a?w=600&q=80",
+                  image: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=800&q=80",
                   price: "From $45"
                 },
                 {
@@ -220,34 +223,34 @@ export default function Home() {
                   price: "From $35"
                 },
               ].map((service, index) => (
-                <Card 
-                  key={index} 
-                  className="group overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                <div
+                  key={index}
+                  className="group overflow-hidden rounded-2xl border-4 border-primary/30 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-primary/60 hover:shadow-2xl"
                 >
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={service.image}
                       alt={service.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-white font-bold text-lg">{service.name}</p>
-                      <p className="text-secondary text-sm font-semibold">{service.price}</p>
+                      <p className="text-lg font-bold text-white drop-shadow-sm">{service.name}</p>
+                      <p className="text-sm font-semibold text-secondary drop-shadow">{service.price}</p>
                     </div>
                   </div>
-                  <CardContent className="pt-4">
-                    <p className="text-muted-foreground text-sm mb-4">
+                  <div className="pt-4 px-6 pb-6">
+                    <p className="text-sm text-muted-foreground mb-4">
                       Discover the unique journey of tea production
                     </p>
-                    <Button asChild variant="link" className="p-0 h-auto text-primary font-semibold group-hover:gap-2 transition-all">
+                    <Button asChild variant="link" className="h-auto p-0 text-primary font-semibold group-hover:gap-2 transition-all">
                       <Link href="/services">
-                        Learn More 
-                        <span className="inline-block group-hover:translate-x-1 transition-transform">→</span>
+                        Learn More
+                        <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
                       </Link>
                     </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

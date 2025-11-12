@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Card } from "@/components/ui/card";
 import { FaTimes } from "react-icons/fa";
 
 export default function Gallery() {
@@ -90,11 +89,14 @@ export default function Gallery() {
         {/* Gallery Grid */}
         <section className="py-16 bg-gradient-to-b from-background to-secondary/10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              className="grid gap-6"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+            >
               {images.map((image, index) => (
-                <Card
+                <div
                   key={image.id}
-                  className="group overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary"
+                  className="group relative cursor-pointer overflow-hidden rounded-2xl border-4 border-primary/30 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-primary/60 hover:shadow-2xl"
                   onClick={() => setSelectedImage(image)}
                   style={{
                     animationDelay: `${index * 0.1}s`,
@@ -104,17 +106,17 @@ export default function Gallery() {
                     <img
                       src={image.src}
                       alt={image.alt}
-                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                      <p className="text-white text-sm font-semibold bg-primary/80 backdrop-blur-sm px-3 py-1 rounded-full inline-block">
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 translate-y-full p-4 transition-transform duration-300 group-hover:translate-y-0">
+                      <p className="inline-block rounded-full bg-primary/85 px-3 py-1 text-sm font-semibold text-white shadow-sm backdrop-blur">
                         {image.category}
                       </p>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </div>
