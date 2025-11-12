@@ -1,5 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ParticleEffect from "@/components/ParticleEffect";
+import LoadingScreen from "@/components/LoadingScreen";
+import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +17,8 @@ import {
 } from "react-icons/fa";
 
 export default function Contact() {
+  const [isLoading, setIsLoading] = useState(true);
+
   const contactInfo = [
     {
       icon: FaMapMarkerAlt,
@@ -44,12 +52,15 @@ export default function Contact() {
 
   return (
     <>
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       <Header />
+      <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <ParticleEffect particleCount={20} color="rgba(255, 255, 255, 0.1)" size={2} speed={0.3} />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 morph" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 morph" />
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">

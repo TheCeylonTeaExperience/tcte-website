@@ -1,9 +1,15 @@
+"use client";
+
+import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import LoadingScreen from "@/components/LoadingScreen";
+import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Card, CardContent } from "@/components/ui/card";
 import { FaMapMarkerAlt, FaHeart, FaLeaf } from "react-icons/fa";
 
 export default function About() {
+  const [isLoading, setIsLoading] = useState(true);
   const team = [
     {
       name: "Rajesh Kumar",
@@ -50,7 +56,9 @@ export default function About() {
 
   return (
     <>
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       <Header />
+      <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">

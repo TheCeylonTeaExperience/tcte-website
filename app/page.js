@@ -4,12 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ParticleEffect from "@/components/ParticleEffect";
+import LoadingScreen from "@/components/LoadingScreen";
+import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FaLeaf, FaClock, FaUsers, FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const heroImages = [
     {
@@ -67,10 +71,15 @@ export default function Home() {
 
   return (
     <>
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       <Header />
+      <FloatingActionButtons />
       <main>
         {/* Hero Section with Image Slider */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+          {/* Particle Effect Background */}
+          <ParticleEffect particleCount={25} color="rgba(255, 255, 255, 0.1)" size={2} speed={0.4} />
+          
           {/* Image Slider Background */}
           <div className="absolute inset-0 -z-10">
             {heroImages.map((image, index) => (
@@ -125,20 +134,22 @@ export default function Home() {
 
           {/* Hero Content */}
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center relative z-10">
-            <div className="animate-fade-in">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-6 max-w-4xl mx-auto leading-tight drop-shadow-lg">
-                Discover the Art of Tea in Paradise
-              </h1>
-              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-12 max-w-2xl mx-auto drop-shadow-md">
+            <div className="space-y-8">
+              <div className="animate-text-reveal overflow-hidden">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-6 max-w-4xl mx-auto leading-tight drop-shadow-lg animate-fade-in-up">
+                  Discover the Art of <span className="gradient-text bg-gradient-to-r from-secondary to-yellow-300 bg-clip-text text-transparent">Tea</span> in Paradise
+                </h1>
+              </div>
+              <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-12 max-w-2xl mx-auto drop-shadow-md animate-fade-in-up" style={{animationDelay: "0.3s"}}>
                 Immerse yourself in authentic tea tourism experiences. From plucking
                 to tasting, journey through the world of premium tea in our scenic
                 estates.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up" style={{animationDelay: "0.6s"}}>
                 <Button 
                   asChild 
                   size="lg" 
-                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 animate-pulse-glow hover-lift liquid-btn magnetic ripple"
                 >
                   <Link href="/book">Book Now</Link>
                 </Button>
@@ -146,7 +157,7 @@ export default function Home() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="text-lg px-8 py-6 bg-white/10 hover:bg-white/20 text-white border-white/50 backdrop-blur-sm shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  className="text-lg px-8 py-6 bg-white/10 hover:bg-white/20 text-white border-white/50 backdrop-blur-sm shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 hover-glow"
                 >
                   <Link href="/gallery">View Gallery</Link>
                 </Button>
@@ -156,28 +167,32 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-20 bg-gradient-to-b from-background to-secondary/10">
+        <section className="py-20 bg-gradient-to-b from-background to-secondary/10 overflow-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-center mb-4 text-primary">
-              Why Choose Reviva Tea Tours
-            </h2>
-            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-              Experience the finest tea tourism with our expertly curated programs
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center mb-16 animate-fade-in-up">
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary gradient-text">
+                Why Choose Reviva Tea Tours
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Experience the finest tea tourism with our expertly curated programs
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 stagger-children">
               {features.map((feature, index) => (
                 <Card 
                   key={index} 
-                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/80 backdrop-blur-sm group"
+                  className="border-2 hover:border-primary transition-all duration-500 hover:shadow-xl hover:-translate-y-4 bg-white/90 backdrop-blur-sm group animate-bounce-in hover-lift relative overflow-hidden"
+                  style={{animationDelay: `${index * 0.2}s`}}
                 >
-                  <CardContent className="pt-6 text-center">
-                    <div className="bg-gradient-to-br from-primary to-primary/70 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <CardContent className="pt-8 text-center relative z-10">
+                    <div className="bg-gradient-to-br from-primary via-primary/80 to-primary/60 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 shadow-xl animate-float hover-glow">
                       <feature.icon className="h-10 w-10 text-white" />
                     </div>
-                    <h3 className="font-serif font-bold text-xl mb-2 text-primary">
+                    <h3 className="font-serif font-bold text-xl mb-3 text-primary group-hover:text-primary/80 transition-colors">
                       {feature.title}
                     </h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <p className="text-muted-foreground group-hover:text-foreground/80 transition-colors">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -186,10 +201,14 @@ export default function Home() {
         </section>
 
         {/* Quick Services Preview */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
+        <section className="py-20 bg-gradient-to-br from-white via-secondary/5 to-primary/5 relative overflow-hidden">
+          {/* Decorative Background Elements */}
+          <div className="absolute top-10 right-10 w-32 h-32 bg-primary/10 rounded-full animate-float" />
+          <div className="absolute bottom-10 left-10 w-24 h-24 bg-secondary/20 rounded-full animate-float" style={{animationDelay: "1s"}} />
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-16 animate-fade-in-up">
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary gradient-text">
                 Our Tea Experiences
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -198,13 +217,13 @@ export default function Home() {
               </p>
             </div>
             <div
-              className="grid gap-6"
-              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
+              className="grid gap-8 stagger-children"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}
             >
               {[
                 {
                   name: "Plucking Tour",
-                  image: "/image/PluckingTour.jpg",
+                  image: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=800&q=80",
                   price: "From $45"
                 },
                 {
@@ -225,28 +244,30 @@ export default function Home() {
               ].map((service, index) => (
                 <div
                   key={index}
-                  className="group overflow-hidden rounded-2xl border-4 border-primary/30 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:border-primary/60 hover:shadow-2xl"
+                  className="group overflow-hidden rounded-3xl border-4 border-primary/20 bg-white/95 backdrop-blur-sm shadow-lg transition-all duration-500 hover:-translate-y-6 hover:border-primary/50 hover:shadow-2xl animate-scale-in hover-lift perspective-card glowing-border magnetic bounce-in relative"
+                  style={{animationDelay: `${index * 0.15}s`}}
                 >
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-3xl" />
+                  <div className="relative h-56 overflow-hidden">
                     <img
                       src={service.image}
                       alt={service.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="h-full w-full object-cover transition-all duration-700 group-hover:scale-125 group-hover:rotate-2"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <p className="text-lg font-bold text-white drop-shadow-sm">{service.name}</p>
-                      <p className="text-sm font-semibold text-secondary drop-shadow">{service.price}</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-primary/60 transition-all duration-300" />
+                    <div className="absolute bottom-4 left-4 right-4 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                      <p className="text-xl font-bold text-white drop-shadow-lg mb-1">{service.name}</p>
+                      <p className="text-sm font-semibold text-secondary drop-shadow bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full inline-block">{service.price}</p>
                     </div>
                   </div>
-                  <div className="pt-4 px-6 pb-6">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Discover the unique journey of tea production
+                  <div className="pt-6 px-6 pb-6 relative z-10">
+                    <p className="text-sm text-muted-foreground mb-6 group-hover:text-foreground/80 transition-colors">
+                      Discover the unique journey of tea production with expert guides
                     </p>
-                    <Button asChild variant="link" className="h-auto p-0 text-primary font-semibold group-hover:gap-2 transition-all">
-                      <Link href="/services">
+                    <Button asChild variant="link" className="h-auto p-0 text-primary font-semibold group-hover:gap-2 transition-all hover:text-primary/80">
+                      <Link href="/services" className="flex items-center gap-1">
                         Learn More
-                        <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+                        <span className="inline-block transition-transform group-hover:translate-x-2 group-hover:scale-110">→</span>
                       </Link>
                     </Button>
                   </div>
@@ -257,42 +278,49 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground relative overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <section className="py-24 bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground relative overflow-hidden">
+          {/* Enhanced Decorative Elements */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 animate-float" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 animate-float" style={{animationDelay: "2s"}} />
+          <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-secondary/30 rounded-full animate-float" style={{animationDelay: "1s"}} />
+          <div className="absolute top-1/4 right-1/4 w-12 h-12 bg-white/20 rounded-full animate-float" style={{animationDelay: "3s"}} />
           
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <div className="max-w-3xl mx-auto">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-6 drop-shadow-lg">
-                Ready to Begin Your Tea Journey?
-              </h2>
-              <p className="text-lg md:text-xl mb-8 opacity-95 drop-shadow">
+            <div className="max-w-4xl mx-auto space-y-8">
+              <div className="animate-fade-in-up">
+                <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6 drop-shadow-xl gradient-text bg-gradient-to-r from-white to-secondary/80 bg-clip-text text-transparent">
+                  Ready to Begin Your Tea Journey?
+                </h2>
+              </div>
+              <p className="text-lg md:text-2xl mb-12 opacity-95 drop-shadow-lg animate-fade-in-up max-w-3xl mx-auto" style={{animationDelay: "0.3s"}}>
                 Book your authentic tea tourism experience today and create
                 unforgettable memories in our scenic tea estates.
               </p>
-              <Button
-                asChild
-                size="lg"
-                variant="secondary"
-                className="text-lg px-10 py-7 shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 bg-white text-primary hover:bg-white/90 font-semibold"
-              >
-                <Link href="/book">Book Your Experience</Link>
-              </Button>
               
-              {/* Trust Indicators */}
-              <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm opacity-90">
-                <div className="flex items-center gap-2">
-                  <FaStar className="text-secondary" />
-                  <span>5-Star Rated</span>
+              <div className="animate-bounce-in" style={{animationDelay: "0.6s"}}>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="secondary"
+                  className="text-xl px-12 py-8 shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-500 bg-white text-primary hover:bg-white/90 font-bold rounded-full animate-pulse-glow hover-lift"
+                >
+                  <Link href="/book">Book Your Experience</Link>
+                </Button>
+              </div>
+              
+              {/* Enhanced Trust Indicators */}
+              <div className="mt-16 flex flex-wrap justify-center gap-12 text-base opacity-95 animate-fade-in-up stagger-children" style={{animationDelay: "0.9s"}}>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/20 transition-all duration-300 animate-scale-in hover-glow">
+                  <FaStar className="text-secondary text-xl animate-rotate-in" />
+                  <span className="font-semibold">5-Star Rated</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <FaUsers className="text-secondary" />
-                  <span>1000+ Happy Guests</span>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/20 transition-all duration-300 animate-scale-in hover-glow">
+                  <FaUsers className="text-secondary text-xl animate-rotate-in" />
+                  <span className="font-semibold">1000+ Happy Guests</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <FaLeaf className="text-secondary" />
-                  <span>100% Organic</span>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/20 transition-all duration-300 animate-scale-in hover-glow">
+                  <FaLeaf className="text-secondary text-xl animate-rotate-in" />
+                  <span className="font-semibold">100% Organic</span>
                 </div>
               </div>
             </div>

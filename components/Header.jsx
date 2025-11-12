@@ -26,40 +26,42 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      className={`sticky top-0 z-50 w-full transition-all duration-500 ${
         isScrolled
-          ? "bg-background/95 backdrop-blur-sm shadow-md"
-          : "bg-background"
+          ? "bg-background/95 backdrop-blur-md shadow-xl border-b border-primary/20"
+          : "bg-background/80 backdrop-blur-sm"
       }`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-serif font-bold text-primary">
+          {/* Enhanced Logo */}
+          <Link href="/" className="flex items-center space-x-2 group animate-fade-in-up hover-glow">
+            <span className="text-2xl font-serif font-bold text-primary transition-all duration-300 group-hover:scale-110 gradient-text">
               Reviva
             </span>
-            <span className="text-sm text-muted-foreground hidden sm:inline">
+            <span className="text-sm text-muted-foreground hidden sm:inline transition-all duration-300 group-hover:text-primary">
               Tea Tours
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
+          {/* Enhanced Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8 animate-fade-in-up stagger-children" style={{animationDelay: "0.2s"}}>
+            {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                className="relative text-sm font-medium text-foreground hover:text-primary transition-all duration-300 hover:scale-105 hover-glow group"
+                style={{animationDelay: `${0.1 + index * 0.05}s`}}
               >
                 {link.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-secondary transition-all duration-300 group-hover:w-full"></span>
               </Link>
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <Button asChild>
+          {/* Enhanced CTA Button */}
+          <div className="hidden md:block animate-fade-in-up" style={{animationDelay: "0.4s"}}>
+            <Button asChild className="animate-pulse-glow hover-lift transition-all duration-300 hover:scale-105">
               <Link href="/book">Book Now</Link>
             </Button>
           </div>

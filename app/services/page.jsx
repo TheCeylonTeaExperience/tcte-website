@@ -1,10 +1,16 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import LoadingScreen from "@/components/LoadingScreen";
+import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Button } from "@/components/ui/button";
 import { FaLeaf, FaClock, FaUsers, FaCheck } from "react-icons/fa";
 
 export default function Services() {
+  const [isLoading, setIsLoading] = useState(true);
   const services = [
     {
       id: "plucking-tour",
@@ -78,7 +84,9 @@ export default function Services() {
 
   return (
     <>
+      {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
       <Header />
+      <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
