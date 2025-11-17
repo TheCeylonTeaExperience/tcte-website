@@ -22,6 +22,86 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { FaCheckCircle, FaWhatsapp } from "react-icons/fa";
 
+// Dummy availability data until the API layer is ready
+const SEASON_AVAILABILITY = {
+  "2025-11-20": [
+    {
+      id: "N1",
+      window: "08:00 - 10:00",
+      activities: [
+        { name: "Plucking", available: 2, capacity: 8 },
+        { name: "Making", available: 4, capacity: 10 },
+        { name: "Tasting", available: 1, capacity: 6 },
+      ],
+    },
+    {
+      id: "N2",
+      window: "10:30 - 12:30",
+      activities: [
+        { name: "Plucking", available: 3, capacity: 8 },
+        { name: "Making", available: 2, capacity: 10 },
+        { name: "Tasting", available: 2, capacity: 6 },
+      ],
+    },
+    {
+      id: "N3",
+      window: "14:00 - 16:00",
+      activities: [
+        { name: "Plucking", available: 4, capacity: 8 },
+        { name: "Making", available: 1, capacity: 10 },
+        { name: "Tasting", available: 3, capacity: 6 },
+      ],
+    },
+    {
+      id: "N4",
+      window: "16:30 - 18:30",
+      activities: [
+        { name: "Plucking", available: 1, capacity: 8 },
+        { name: "Making", available: 5, capacity: 10 },
+        { name: "Tasting", available: 2, capacity: 6 },
+      ],
+    },
+  ],
+  fallback: [
+    {
+      id: "N1",
+      window: "08:00 - 10:00",
+      activities: [
+        { name: "Plucking", available: 5, capacity: 8 },
+        { name: "Making", available: 6, capacity: 10 },
+        { name: "Tasting", available: 4, capacity: 6 },
+      ],
+    },
+    {
+      id: "N2",
+      window: "10:30 - 12:30",
+      activities: [
+        { name: "Plucking", available: 4, capacity: 8 },
+        { name: "Making", available: 5, capacity: 10 },
+        { name: "Tasting", available: 3, capacity: 6 },
+      ],
+    },
+    {
+      id: "N3",
+      window: "14:00 - 16:00",
+      activities: [
+        { name: "Plucking", available: 6, capacity: 8 },
+        { name: "Making", available: 4, capacity: 10 },
+        { name: "Tasting", available: 5, capacity: 6 },
+      ],
+    },
+    {
+      id: "N4",
+      window: "16:30 - 18:30",
+      activities: [
+        { name: "Plucking", available: 3, capacity: 8 },
+        { name: "Making", available: 7, capacity: 10 },
+        { name: "Tasting", available: 4, capacity: 6 },
+      ],
+    },
+  ],
+};
+
 export default function BookNow() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState();
@@ -31,28 +111,166 @@ export default function BookNow() {
     countryCode: "+1",
     phone: "",
     location: "",
-    session: "",
     programs: [],
     packs: 1,
     payment: "",
     notes: "",
   });
+  const [seasonSelections, setSeasonSelections] = useState({});
+  const [useGlobalSeatCount, setUseGlobalSeatCount] = useState(false);
+  const [globalSeatCount, setGlobalSeatCount] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [referenceCode, setReferenceCode] = useState("");
+
+  const selectedDateKey = selectedDate
+    ? format(selectedDate, "yyyy-MM-dd")
+    : null;
+  const availabilityForDate = selectedDateKey
+    ? SEASON_AVAILABILITY[selectedDateKey] ?? SEASON_AVAILABILITY.fallback
+    : null;
+
+  const getSeasonAvailabilityTotal = (seasonId) => {
+    if (!availabilityForDate) {
+      return 0;
+    }
+
+    const season = availabilityForDate.find((entry) => entry.id === seasonId);
+    return season
+      ? season.activities.reduce((acc, activity) => acc + activity.available, 0)
+      : 0;
+  };
+
+  const clampSeatRequest = (requested, seasonId) => {
+    const totalAvailable = getSeasonAvailabilityTotal(seasonId);
+    if (totalAvailable <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(requested, totalAvailable));
+  };
+
+  const handleSeasonToggle = (seasonId) => {
+    setSeasonSelections((prev) => {
+      if (prev[seasonId]) {
+        const { [seasonId]: _removed, ...rest } = prev;
+        return rest;
+      }
+
+      const totalAvailable = getSeasonAvailabilityTotal(seasonId);
+      const initialSeats = useGlobalSeatCount
+        ? clampSeatRequest(globalSeatCount, seasonId)
+        : clampSeatRequest(totalAvailable > 0 ? 1 : 0, seasonId);
+
+      return {
+        ...prev,
+        [seasonId]: {
+          seatsRequested: initialSeats,
+          activities: {},
+        },
+      };
+    });
+  };
+
+  const handleActivityToggle = (seasonId, activityName) => {
+    setSeasonSelections((prev) => {
+      const existing = prev[seasonId] ?? {
+        seatsRequested: useGlobalSeatCount
+          ? clampSeatRequest(globalSeatCount, seasonId)
+          : clampSeatRequest(1, seasonId),
+        activities: {},
+      };
+
+      const activities = { ...existing.activities };
+      if (activities[activityName]) {
+        delete activities[activityName];
+      } else {
+        activities[activityName] = true;
+      }
+
+      return {
+        ...prev,
+        [seasonId]: {
+          ...existing,
+          activities,
+        },
+      };
+    });
+  };
+
+  const handleSeatsChange = (seasonId, nextValue) => {
+    setSeasonSelections((prev) => {
+      if (!prev[seasonId]) {
+        return prev;
+      }
+
+      const sanitized = clampSeatRequest(nextValue, seasonId);
+      return {
+        ...prev,
+        [seasonId]: {
+          ...prev[seasonId],
+          seatsRequested: sanitized,
+        },
+      };
+    });
+  };
+
+  const handleGlobalSeatToggle = (checked) => {
+    setUseGlobalSeatCount(Boolean(checked));
+    if (checked) {
+      setSeasonSelections((prev) => {
+        const next = {};
+        Object.entries(prev).forEach(([seasonId, payload]) => {
+          next[seasonId] = {
+            ...payload,
+            seatsRequested: clampSeatRequest(globalSeatCount, seasonId),
+          };
+        });
+        return next;
+      });
+    }
+  };
+
+  const handleGlobalSeatCountChange = (value) => {
+    const numericValue = Number.parseInt(value, 10);
+    const sanitized = Number.isNaN(numericValue) ? 0 : Math.max(0, numericValue);
+    setGlobalSeatCount(sanitized);
+    if (useGlobalSeatCount) {
+      setSeasonSelections((prev) => {
+        const next = {};
+        Object.entries(prev).forEach(([seasonId, payload]) => {
+          next[seasonId] = {
+            ...payload,
+            seatsRequested: clampSeatRequest(sanitized, seasonId),
+          };
+        });
+        return next;
+      });
+    }
+  };
+
+  const hasValidSeasonSelection =
+    Object.keys(seasonSelections).length > 0 &&
+    Object.values(seasonSelections).every(
+      (entry) =>
+        entry.seatsRequested > 0 &&
+        Object.keys(entry.activities).length > 0
+    );
+
+  const seasonSelectionSummary = Object.entries(seasonSelections).map(
+    ([seasonId, details]) => {
+      const activities = Object.keys(details.activities);
+      const activityList = activities.length
+        ? activities.join(", ")
+        : "No activities selected";
+      return `${seasonId}: ${details.seatsRequested} seats (${activityList})`;
+    }
+  );
 
   const programs = [
     "Plucking Tour",
     "Black Tea Experience",
     "Green Tea Experience",
     "Tea Tasting Session",
-  ];
-
-  const sessions = [
-    "9:30 AM - 11:30 AM",
-    "10:30 AM - 12:30 PM",
-    "2:30 PM - 4:30 PM",
-    "3:30 PM - 5:30 PM",
   ];
 
   const locations = [
@@ -85,9 +303,15 @@ export default function BookNow() {
     setIsSubmitting(true);
 
     try {
+      if (!hasValidSeasonSelection) {
+        alert("Select at least one season, choose activities, and set the seats needed before booking.");
+        return;
+      }
+
       const bookingData = {
         ...formData,
         date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
+        seasonSelections,
       };
 
       const response = await fetch("/api/booking", {
@@ -116,7 +340,7 @@ export default function BookNow() {
 
   if (bookingConfirmed) {
     const whatsappMessage = encodeURIComponent(
-      `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${formData.name}\nDate: ${format(selectedDate, "PPP")}\nSession: ${formData.session}\nPrograms: ${formData.programs.join(", ")}`
+  `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${formData.name}\nDate: ${format(selectedDate, "PPP")}\nSeasons: ${seasonSelectionSummary.join(" | ")}\nPrograms: ${formData.programs.join(", ")}`
     );
     const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -150,7 +374,7 @@ export default function BookNow() {
                       <strong>Date:</strong> {format(selectedDate, "PPP")}
                     </p>
                     <p>
-                      <strong>Session:</strong> {formData.session}
+                      <strong>Seasons:</strong> {seasonSelectionSummary.join(" | ")}
                     </p>
                     <p>
                       <strong>Programs:</strong> {formData.programs.join(", ")}
@@ -327,27 +551,217 @@ export default function BookNow() {
                       />
                     </div>
 
-                    <div>
-                      <Label htmlFor="session">Select Session *</Label>
-                      <Select
-                        value={formData.session}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, session: value })
-                        }
-                        required
-                      >
-                        <SelectTrigger id="session">
-                          <SelectValue placeholder="Choose a time slot" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sessions.map((sess) => (
-                            <SelectItem key={sess} value={sess}>
-                              {sess}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {selectedDate && (
+                      <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <h3 className="text-lg font-semibold text-primary">
+                            Availability Overview
+                          </h3>
+                          <span className="text-sm text-muted-foreground">
+                            {format(selectedDate, "PPP")} • Seasons & Activities
+                          </span>
+                        </div>
+                        {availabilityForDate ? (
+                          <div className="space-y-4">
+                            <div className="rounded-md border border-muted-foreground/20 bg-background/70 p-4">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    id="use-global-seats"
+                                    checked={useGlobalSeatCount}
+                                    onCheckedChange={(checked) => handleGlobalSeatToggle(checked)}
+                                  />
+                                  <label
+                                    htmlFor="use-global-seats"
+                                    className="cursor-pointer text-sm text-foreground"
+                                  >
+                                    Use the same seat count for every selected season
+                                  </label>
+                                </div>
+                                {useGlobalSeatCount && (
+                                  <div className="flex items-center gap-2">
+                                    <Label
+                                      htmlFor="global-seat-count"
+                                      className="text-xs uppercase tracking-wide text-muted-foreground"
+                                    >
+                                      Seats per season
+                                    </Label>
+                                    <Input
+                                      id="global-seat-count"
+                                      type="number"
+                                      min="0"
+                                      className="w-24"
+                                      value={Number.isNaN(globalSeatCount) ? "" : globalSeatCount}
+                                      onChange={(e) => handleGlobalSeatCountChange(e.target.value)}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              {!useGlobalSeatCount && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                  Adjust seat counts individually inside each season card below.
+                                </p>
+                              )}
+                            </div>
+                            <div className="grid gap-3">
+                              {availabilityForDate.map((season) => {
+                                const totalAvailable = getSeasonAvailabilityTotal(season.id);
+                                const seasonSelection = seasonSelections[season.id];
+                                const isSelected = Boolean(seasonSelection);
+                                const seatValue = isSelected && typeof seasonSelection.seatsRequested === "number"
+                                  ? String(seasonSelection.seatsRequested)
+                                  : "";
+                                const seatInputId = `seats-${season.id}`;
+
+                                return (
+                                  <div
+                                    key={season.id}
+                                    className="rounded-md border bg-background px-4 py-3 shadow-sm"
+                                  >
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                      <div className="flex items-start gap-3">
+                                        <Checkbox
+                                          id={`season-${season.id}`}
+                                          checked={isSelected}
+                                          onCheckedChange={() => handleSeasonToggle(season.id)}
+                                          aria-label={`Select ${season.id}`}
+                                        />
+                                        <label
+                                          htmlFor={`season-${season.id}`}
+                                          className="cursor-pointer"
+                                        >
+                                          <p className="font-medium text-primary">
+                                            {season.id} • {season.window}
+                                          </p>
+                                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                            {totalAvailable} seats left today
+                                          </p>
+                                        </label>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Label
+                                          htmlFor={seatInputId}
+                                          className="text-xs uppercase tracking-wide text-muted-foreground"
+                                        >
+                                          Seats needed
+                                        </Label>
+                                        <Input
+                                          id={seatInputId}
+                                          type="number"
+                                          min="0"
+                                          max={totalAvailable}
+                                          className="w-24"
+                                          value={isSelected ? seatValue : ""}
+                                          onChange={(e) =>
+                                            handleSeatsChange(
+                                              season.id,
+                                              Number.parseInt(e.target.value, 10) || 0
+                                            )
+                                          }
+                                          disabled={!isSelected}
+                                          placeholder="0"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                                      {season.activities.map((activity) => {
+                                        const seatsTaken = Math.max(
+                                          0,
+                                          activity.capacity - activity.available
+                                        );
+                                        const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
+                                        const fillPercent = activity.capacity
+                                          ? Math.round((seatsTaken / activity.capacity) * 100)
+                                          : 0;
+                                        const normalizedActivityId = activity.name
+                                          .replace(/\s+/g, "-")
+                                          .toLowerCase();
+                                        const activityCheckboxId = `activity-${season.id}-${normalizedActivityId}`;
+                                        const activitySelected = Boolean(
+                                          seasonSelection?.activities?.[activity.name]
+                                        );
+                                        return (
+                                          <div
+                                            key={activity.name}
+                                            className={`rounded border p-3 transition-colors ${
+                                              activitySelected
+                                                ? "border-primary bg-primary/5"
+                                                : "border-muted-foreground/20 bg-muted/40"
+                                            }`}
+                                          >
+                                            <div className="flex items-start justify-between gap-2">
+                                              <label
+                                                htmlFor={activityCheckboxId}
+                                                className={`flex items-center gap-2 text-sm font-semibold ${
+                                                  isSelected
+                                                    ? "text-foreground"
+                                                    : "text-muted-foreground"
+                                                }`}
+                                              >
+                                                <Checkbox
+                                                  id={activityCheckboxId}
+                                                  checked={activitySelected}
+                                                  disabled={!isSelected}
+                                                  onCheckedChange={() =>
+                                                    handleActivityToggle(season.id, activity.name)
+                                                  }
+                                                />
+                                                {activity.name}
+                                              </label>
+                                              <span className="text-xs text-muted-foreground">
+                                                {capacityLabel}
+                                              </span>
+                                            </div>
+                                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
+                                              <div
+                                                className={`h-full rounded ${
+                                                  activitySelected ? "bg-primary" : "bg-primary/40"
+                                                }`}
+                                                style={{
+                                                  width: `${Math.min(100, Math.max(0, fillPercent))}%`,
+                                                }}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            Availability information will appear once slots are published for this date.
+                          </p>
+                        )}
+                        {Object.keys(seasonSelections).length > 0 && !hasValidSeasonSelection && (
+                          <p className="text-sm text-amber-600">
+                            Select at least one activity and enter the seats needed for each chosen season.
+                          </p>
+                        )}
+                        {seasonSelectionSummary.length > 0 && (
+                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+                            <p className="font-medium text-primary">Your selections</p>
+                            <ul className="mt-2 space-y-1 text-muted-foreground">
+                              {Object.entries(seasonSelections).map(([seasonId, details]) => {
+                                const activities = Object.keys(details.activities);
+                                const activityList = activities.length
+                                  ? activities.join(", ")
+                                  : "No activities selected";
+                                return (
+                                  <li key={seasonId}>
+                                    <span className="font-medium text-foreground">{seasonId}:</span>{" "}
+                                    {details.seatsRequested} seats • {activityList}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div>
                       <Label>Select Programs * (Select one or more)</Label>
@@ -434,7 +848,12 @@ export default function BookNow() {
                     type="submit"
                     size="lg"
                     className="w-full"
-                    disabled={isSubmitting || !selectedDate || formData.programs.length === 0}
+                    disabled={
+                      isSubmitting ||
+                      !selectedDate ||
+                      formData.programs.length === 0 ||
+                      !hasValidSeasonSelection
+                    }
                   >
                     {isSubmitting ? "Processing..." : "Confirm Booking"}
                   </Button>
