@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import SessionForm from "@/components/sessions/SessionForm";
 import {
@@ -60,15 +60,7 @@ export default function SessionList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
 
-  useEffect(() => {
-    fetchPrograms();
-  }, []);
-
-  useEffect(() => {
-    fetchSessions();
-  }, [programFilter]);
-
-  async function fetchPrograms() {
+  const fetchPrograms = useCallback(async () => {
     try {
       const response = await fetchWithAuth(
         "/api/programs?includeLocation=true"
@@ -83,42 +75,53 @@ export default function SessionList() {
       console.error("Failed to fetch programs:", err);
       console.error(message);
     }
-  }
+  }, []);
 
-  async function fetchSessions({ silent = false } = {}) {
-    if (!silent) {
-      setLoading(true);
-      setError("");
-    }
-
-    try {
-      const url = programFilter
-        ? `/api/sessions?programId=${programFilter}`
-        : "/api/sessions";
-      const response = await fetchWithAuth(url);
-      const data = await response.json();
-
-      if (response.ok) {
-        setSessions(data.sessions);
-      } else if (!silent) {
-        setError(data.error || "Failed to fetch sessions");
-      }
-    } catch (err) {
-      const message =
-        err instanceof AuthError
-          ? err.message
-          : "Network error. Please try again.";
+  const fetchSessions = useCallback(
+    async ({ silent = false } = {}) => {
       if (!silent) {
-        setError(message);
-      } else {
-        console.error("Fetch sessions error:", err);
+        setLoading(true);
+        setError("");
       }
-    } finally {
-      if (!silent) {
-        setLoading(false);
+
+      try {
+        const url = programFilter
+          ? `/api/sessions?programId=${programFilter}`
+          : "/api/sessions";
+        const response = await fetchWithAuth(url);
+        const data = await response.json();
+
+        if (response.ok) {
+          setSessions(data.sessions);
+        } else if (!silent) {
+          setError(data.error || "Failed to fetch sessions");
+        }
+      } catch (err) {
+        const message =
+          err instanceof AuthError
+            ? err.message
+            : "Network error. Please try again.";
+        if (!silent) {
+          setError(message);
+        } else {
+          console.error("Fetch sessions error:", err);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
-    }
-  }
+    },
+    [programFilter]
+  );
+
+  useEffect(() => {
+    fetchPrograms();
+  }, [fetchPrograms]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   async function handleDelete(id) {
     if (!confirm("Are you sure you want to delete this session?")) return;

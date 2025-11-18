@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import SessionTypeForm from "@/components/sessionTypes/SessionTypeForm";
 import {
@@ -45,15 +45,7 @@ export default function SessionTypeList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSessionType, setEditingSessionType] = useState(null);
 
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  useEffect(() => {
-    fetchSessionTypes();
-  }, [sessionFilter]);
-
-  async function fetchSessions() {
+  const fetchSessions = useCallback(async () => {
     try {
       const response = await fetchWithAuth("/api/sessions");
       const data = await response.json();
@@ -66,42 +58,53 @@ export default function SessionTypeList() {
       console.error("Failed to fetch sessions:", err);
       console.error(message);
     }
-  }
+  }, []);
 
-  async function fetchSessionTypes({ silent = false } = {}) {
-    if (!silent) {
-      setLoading(true);
-      setError("");
-    }
-
-    try {
-      const url = sessionFilter
-        ? `/api/session-types?sessionId=${sessionFilter}`
-        : "/api/session-types";
-      const response = await fetchWithAuth(url);
-      const data = await response.json();
-
-      if (response.ok) {
-        setSessionTypes(data.sessionTypes);
-      } else if (!silent) {
-        setError(data.error || "Failed to fetch session types");
-      }
-    } catch (err) {
-      const message =
-        err instanceof AuthError
-          ? err.message
-          : "Network error. Please try again.";
+  const fetchSessionTypes = useCallback(
+    async ({ silent = false } = {}) => {
       if (!silent) {
-        setError(message);
-      } else {
-        console.error("Fetch session types error:", err);
+        setLoading(true);
+        setError("");
       }
-    } finally {
-      if (!silent) {
-        setLoading(false);
+
+      try {
+        const url = sessionFilter
+          ? `/api/session-types?sessionId=${sessionFilter}`
+          : "/api/session-types";
+        const response = await fetchWithAuth(url);
+        const data = await response.json();
+
+        if (response.ok) {
+          setSessionTypes(data.sessionTypes);
+        } else if (!silent) {
+          setError(data.error || "Failed to fetch session types");
+        }
+      } catch (err) {
+        const message =
+          err instanceof AuthError
+            ? err.message
+            : "Network error. Please try again.";
+        if (!silent) {
+          setError(message);
+        } else {
+          console.error("Fetch session types error:", err);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
-    }
-  }
+    },
+    [sessionFilter]
+  );
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  useEffect(() => {
+    fetchSessionTypes();
+  }, [fetchSessionTypes]);
 
   async function handleDelete(id) {
     if (!confirm("Are you sure you want to delete this session type?")) return;

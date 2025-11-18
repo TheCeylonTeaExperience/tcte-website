@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -68,36 +68,17 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState(() => {
-    const initialState = {};
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  const autoExpandedGroups = useMemo(() => {
+    const groups = {};
     sidebarLinks.forEach((link) => {
-      if (link.children) {
-        initialState[link.label] = link.children.some((child) =>
-          pathname.startsWith(child.href)
-        );
-      }
+      if (!link.children) return;
+      groups[link.label] = link.children.some((child) =>
+        pathname.startsWith(child.href)
+      );
     });
-    return initialState;
-  });
-
-  useEffect(() => {
-    setExpandedGroups((prev) => {
-      const next = { ...prev };
-      let changed = false;
-
-      sidebarLinks.forEach((link) => {
-        if (!link.children) return;
-        const shouldOpen = link.children.some((child) =>
-          pathname.startsWith(child.href)
-        );
-        if (next[link.label] !== shouldOpen) {
-          next[link.label] = shouldOpen;
-          changed = true;
-        }
-      });
-
-      return changed ? next : prev;
-    });
+    return groups;
   }, [pathname]);
 
   return (
@@ -201,7 +182,10 @@ export default function Sidebar({
                     pathname.startsWith(child.href)
                   );
                   const isExpanded =
-                    expandedGroups[link.label] ?? isGroupActive ?? false;
+                    expandedGroups[link.label] ??
+                    autoExpandedGroups[link.label] ??
+                    isGroupActive ??
+                    false;
 
                   return (
                     <li key={link.label} className="space-y-1">

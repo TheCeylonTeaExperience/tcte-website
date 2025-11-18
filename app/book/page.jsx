@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -232,7 +233,9 @@ export default function BookNow() {
 
   const handleGlobalSeatCountChange = (value) => {
     const numericValue = Number.parseInt(value, 10);
-    const sanitized = Number.isNaN(numericValue) ? 0 : Math.max(0, numericValue);
+    const sanitized = Number.isNaN(numericValue)
+      ? 0
+      : Math.max(0, numericValue);
     setGlobalSeatCount(sanitized);
     if (useGlobalSeatCount) {
       setSeasonSelections((prev) => {
@@ -252,8 +255,7 @@ export default function BookNow() {
     Object.keys(seasonSelections).length > 0 &&
     Object.values(seasonSelections).every(
       (entry) =>
-        entry.seatsRequested > 0 &&
-        Object.keys(entry.activities).length > 0
+        entry.seatsRequested > 0 && Object.keys(entry.activities).length > 0
     );
 
   const seasonSelectionSummary = Object.entries(seasonSelections).map(
@@ -304,7 +306,9 @@ export default function BookNow() {
 
     try {
       if (!hasValidSeasonSelection) {
-        alert("Select at least one season, choose activities, and set the seats needed before booking.");
+        alert(
+          "Select at least one season, choose activities, and set the seats needed before booking."
+        );
         return;
       }
 
@@ -340,7 +344,14 @@ export default function BookNow() {
 
   if (bookingConfirmed) {
     const whatsappMessage = encodeURIComponent(
-  `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${formData.name}\nDate: ${format(selectedDate, "PPP")}\nSeasons: ${seasonSelectionSummary.join(" | ")}\nPrograms: ${formData.programs.join(", ")}`
+      `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${
+        formData.name
+      }\nDate: ${format(
+        selectedDate,
+        "PPP"
+      )}\nSeasons: ${seasonSelectionSummary.join(
+        " | "
+      )}\nPrograms: ${formData.programs.join(", ")}`
     );
     const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -374,7 +385,8 @@ export default function BookNow() {
                       <strong>Date:</strong> {format(selectedDate, "PPP")}
                     </p>
                     <p>
-                      <strong>Seasons:</strong> {seasonSelectionSummary.join(" | ")}
+                      <strong>Seasons:</strong>{" "}
+                      {seasonSelectionSummary.join(" | ")}
                     </p>
                     <p>
                       <strong>Programs:</strong> {formData.programs.join(", ")}
@@ -385,8 +397,9 @@ export default function BookNow() {
                   </div>
                 </div>
                 <p className="text-muted-foreground mb-6">
-                  A confirmation email has been sent to <strong>{formData.email}</strong>. 
-                  Please check your inbox for complete details and instructions.
+                  A confirmation email has been sent to{" "}
+                  <strong>{formData.email}</strong>. Please check your inbox for
+                  complete details and instructions.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
@@ -405,7 +418,7 @@ export default function BookNow() {
                     </a>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <a href="/">Return to Home</a>
+                    <Link href="/">Return to Home</Link>
                   </Button>
                 </div>
               </CardContent>
@@ -427,7 +440,7 @@ export default function BookNow() {
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-16 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-4 drop-shadow-lg">
               Book Your Experience
@@ -569,13 +582,16 @@ export default function BookNow() {
                                   <Checkbox
                                     id="use-global-seats"
                                     checked={useGlobalSeatCount}
-                                    onCheckedChange={(checked) => handleGlobalSeatToggle(checked)}
+                                    onCheckedChange={(checked) =>
+                                      handleGlobalSeatToggle(checked)
+                                    }
                                   />
                                   <label
                                     htmlFor="use-global-seats"
                                     className="cursor-pointer text-sm text-foreground"
                                   >
-                                    Use the same seat count for every selected season
+                                    Use the same seat count for every selected
+                                    season
                                   </label>
                                 </div>
                                 {useGlobalSeatCount && (
@@ -591,26 +607,40 @@ export default function BookNow() {
                                       type="number"
                                       min="0"
                                       className="w-24"
-                                      value={Number.isNaN(globalSeatCount) ? "" : globalSeatCount}
-                                      onChange={(e) => handleGlobalSeatCountChange(e.target.value)}
+                                      value={
+                                        Number.isNaN(globalSeatCount)
+                                          ? ""
+                                          : globalSeatCount
+                                      }
+                                      onChange={(e) =>
+                                        handleGlobalSeatCountChange(
+                                          e.target.value
+                                        )
+                                      }
                                     />
                                   </div>
                                 )}
                               </div>
                               {!useGlobalSeatCount && (
                                 <p className="mt-2 text-xs text-muted-foreground">
-                                  Adjust seat counts individually inside each season card below.
+                                  Adjust seat counts individually inside each
+                                  season card below.
                                 </p>
                               )}
                             </div>
                             <div className="grid gap-3">
                               {availabilityForDate.map((season) => {
-                                const totalAvailable = getSeasonAvailabilityTotal(season.id);
-                                const seasonSelection = seasonSelections[season.id];
+                                const totalAvailable =
+                                  getSeasonAvailabilityTotal(season.id);
+                                const seasonSelection =
+                                  seasonSelections[season.id];
                                 const isSelected = Boolean(seasonSelection);
-                                const seatValue = isSelected && typeof seasonSelection.seatsRequested === "number"
-                                  ? String(seasonSelection.seatsRequested)
-                                  : "";
+                                const seatValue =
+                                  isSelected &&
+                                  typeof seasonSelection.seatsRequested ===
+                                    "number"
+                                    ? String(seasonSelection.seatsRequested)
+                                    : "";
                                 const seatInputId = `seats-${season.id}`;
 
                                 return (
@@ -623,7 +653,9 @@ export default function BookNow() {
                                         <Checkbox
                                           id={`season-${season.id}`}
                                           checked={isSelected}
-                                          onCheckedChange={() => handleSeasonToggle(season.id)}
+                                          onCheckedChange={() =>
+                                            handleSeasonToggle(season.id)
+                                          }
                                           aria-label={`Select ${season.id}`}
                                         />
                                         <label
@@ -655,7 +687,10 @@ export default function BookNow() {
                                           onChange={(e) =>
                                             handleSeatsChange(
                                               season.id,
-                                              Number.parseInt(e.target.value, 10) || 0
+                                              Number.parseInt(
+                                                e.target.value,
+                                                10
+                                              ) || 0
                                             )
                                           }
                                           disabled={!isSelected}
@@ -671,14 +706,20 @@ export default function BookNow() {
                                         );
                                         const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
                                         const fillPercent = activity.capacity
-                                          ? Math.round((seatsTaken / activity.capacity) * 100)
+                                          ? Math.round(
+                                              (seatsTaken / activity.capacity) *
+                                                100
+                                            )
                                           : 0;
-                                        const normalizedActivityId = activity.name
-                                          .replace(/\s+/g, "-")
-                                          .toLowerCase();
+                                        const normalizedActivityId =
+                                          activity.name
+                                            .replace(/\s+/g, "-")
+                                            .toLowerCase();
                                         const activityCheckboxId = `activity-${season.id}-${normalizedActivityId}`;
                                         const activitySelected = Boolean(
-                                          seasonSelection?.activities?.[activity.name]
+                                          seasonSelection?.activities?.[
+                                            activity.name
+                                          ]
                                         );
                                         return (
                                           <div
@@ -703,7 +744,10 @@ export default function BookNow() {
                                                   checked={activitySelected}
                                                   disabled={!isSelected}
                                                   onCheckedChange={() =>
-                                                    handleActivityToggle(season.id, activity.name)
+                                                    handleActivityToggle(
+                                                      season.id,
+                                                      activity.name
+                                                    )
                                                   }
                                                 />
                                                 {activity.name}
@@ -715,10 +759,15 @@ export default function BookNow() {
                                             <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
                                               <div
                                                 className={`h-full rounded ${
-                                                  activitySelected ? "bg-primary" : "bg-primary/40"
+                                                  activitySelected
+                                                    ? "bg-primary"
+                                                    : "bg-primary/40"
                                                 }`}
                                                 style={{
-                                                  width: `${Math.min(100, Math.max(0, fillPercent))}%`,
+                                                  width: `${Math.min(
+                                                    100,
+                                                    Math.max(0, fillPercent)
+                                                  )}%`,
                                                 }}
                                               />
                                             </div>
@@ -733,30 +782,42 @@ export default function BookNow() {
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            Availability information will appear once slots are published for this date.
+                            Availability information will appear once slots are
+                            published for this date.
                           </p>
                         )}
-                        {Object.keys(seasonSelections).length > 0 && !hasValidSeasonSelection && (
-                          <p className="text-sm text-amber-600">
-                            Select at least one activity and enter the seats needed for each chosen season.
-                          </p>
-                        )}
+                        {Object.keys(seasonSelections).length > 0 &&
+                          !hasValidSeasonSelection && (
+                            <p className="text-sm text-amber-600">
+                              Select at least one activity and enter the seats
+                              needed for each chosen season.
+                            </p>
+                          )}
                         {seasonSelectionSummary.length > 0 && (
                           <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                            <p className="font-medium text-primary">Your selections</p>
+                            <p className="font-medium text-primary">
+                              Your selections
+                            </p>
                             <ul className="mt-2 space-y-1 text-muted-foreground">
-                              {Object.entries(seasonSelections).map(([seasonId, details]) => {
-                                const activities = Object.keys(details.activities);
-                                const activityList = activities.length
-                                  ? activities.join(", ")
-                                  : "No activities selected";
-                                return (
-                                  <li key={seasonId}>
-                                    <span className="font-medium text-foreground">{seasonId}:</span>{" "}
-                                    {details.seatsRequested} seats • {activityList}
-                                  </li>
-                                );
-                              })}
+                              {Object.entries(seasonSelections).map(
+                                ([seasonId, details]) => {
+                                  const activities = Object.keys(
+                                    details.activities
+                                  );
+                                  const activityList = activities.length
+                                    ? activities.join(", ")
+                                    : "No activities selected";
+                                  return (
+                                    <li key={seasonId}>
+                                      <span className="font-medium text-foreground">
+                                        {seasonId}:
+                                      </span>{" "}
+                                      {details.seatsRequested} seats •{" "}
+                                      {activityList}
+                                    </li>
+                                  );
+                                }
+                              )}
                             </ul>
                           </div>
                         )}
@@ -767,11 +828,16 @@ export default function BookNow() {
                       <Label>Select Programs * (Select one or more)</Label>
                       <div className="space-y-3 mt-2">
                         {programs.map((program) => (
-                          <div key={program} className="flex items-center space-x-2">
+                          <div
+                            key={program}
+                            className="flex items-center space-x-2"
+                          >
                             <Checkbox
                               id={program}
                               checked={formData.programs.includes(program)}
-                              onCheckedChange={() => handleProgramToggle(program)}
+                              onCheckedChange={() =>
+                                handleProgramToggle(program)
+                              }
                             />
                             <label
                               htmlFor={program}
@@ -785,9 +851,7 @@ export default function BookNow() {
                     </div>
 
                     <div>
-                      <Label htmlFor="packs">
-                        Number of People (0-8)
-                      </Label>
+                      <Label htmlFor="packs">Number of People (0-8)</Label>
                       <Input
                         id="packs"
                         type="number"
@@ -824,8 +888,8 @@ export default function BookNow() {
                       </Select>
                       {formData.payment === "partial" && (
                         <p className="text-sm text-muted-foreground mt-2">
-                          Note: Partial payment requires at least 25% payment upon
-                          arrival
+                          Note: Partial payment requires at least 25% payment
+                          upon arrival
                         </p>
                       )}
                     </div>

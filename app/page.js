@@ -2,11 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaLeaf, FaClock, FaUsers, FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import {
+  FaLeaf,
+  FaClock,
+  FaUsers,
+  FaStar,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa";
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -16,7 +24,7 @@ export default function Home() {
       url: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1920&q=80",
       alt: "Lush tea fields at sunrise",
     },
-      {
+    {
       url: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1920&q=80",
       alt: "Lush tea fields at sunrise",
     },
@@ -43,7 +51,9 @@ export default function Home() {
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+    setCurrentSlide(
+      (prev) => (prev - 1 + heroImages.length) % heroImages.length
+    );
   };
   const features = [
     {
@@ -81,12 +91,15 @@ export default function Home() {
                 key={index}
                 className={`absolute inset-0 transition-opacity duration-1000 ${
                   index === currentSlide ? "opacity-100" : "opacity-0"
-                }`}
+                } relative`}
               >
-                <img
+                <Image
                   src={image.url}
                   alt={image.alt}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority={index === 0}
+                  sizes="100vw"
+                  className="object-cover"
                 />
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
@@ -131,18 +144,19 @@ export default function Home() {
             <div className="space-y-8 fade-in">
               <div>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-6 max-w-4xl mx-auto leading-tight drop-shadow-lg">
-                  Discover the Art of <span className="text-yellow-300">Tea</span> in Paradise
+                  Discover the Art of{" "}
+                  <span className="text-yellow-300">Tea</span> in Paradise
                 </h1>
               </div>
               <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-12 max-w-2xl mx-auto drop-shadow-md">
-                Immerse yourself in authentic tea tourism experiences. From plucking
-                to tasting, journey through the world of premium tea in our scenic
-                estates.
+                Immerse yourself in authentic tea tourism experiences. From
+                plucking to tasting, journey through the world of premium tea in
+                our scenic estates.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
-                  asChild 
-                  size="lg" 
+                <Button
+                  asChild
+                  size="lg"
                   className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-colors duration-200"
                 >
                   <Link href="/book">Book Now</Link>
@@ -168,13 +182,14 @@ export default function Home() {
                 Why Choose Reviva Tea Tours
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Experience the finest tea tourism with our expertly curated programs
+                Experience the finest tea tourism with our expertly curated
+                programs
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
-                <Card 
-                  key={index} 
+                <Card
+                  key={index}
                   className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg bg-white/90 backdrop-blur-sm group"
                 >
                   <CardContent className="pt-8 text-center">
@@ -184,7 +199,9 @@ export default function Home() {
                     <h3 className="font-serif font-bold text-xl mb-3 text-primary">
                       {feature.title}
                     </h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <p className="text-muted-foreground">
+                      {feature.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -200,34 +217,39 @@ export default function Home() {
                 Our Tea Experiences
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Choose from our curated tea tourism programs designed for every tea
-                enthusiast
+                Choose from our curated tea tourism programs designed for every
+                tea enthusiast
               </p>
             </div>
             <div
               className="grid gap-8"
-              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}
+              style={{
+                gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+              }}
             >
               {[
                 {
                   name: "Plucking Tour",
                   image: "/image/PluckingTour.jpg",
-                  price: "From $45"
+                  price: "From $45",
                 },
                 {
                   name: "Black Tea Experience",
-                  image: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80",
-                  price: "From $55"
+                  image:
+                    "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80",
+                  price: "From $55",
                 },
                 {
                   name: "Green Tea Experience",
-                  image: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=600&q=80",
-                  price: "From $55"
+                  image:
+                    "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=600&q=80",
+                  price: "From $55",
                 },
                 {
                   name: "Tea Tasting Session",
-                  image: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&q=80",
-                  price: "From $35"
+                  image:
+                    "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&q=80",
+                  price: "From $35",
                 },
               ].map((service, index) => (
                 <div
@@ -235,23 +257,37 @@ export default function Home() {
                   className="group overflow-hidden rounded-3xl border-4 border-primary/20 bg-white/95 backdrop-blur-sm shadow-lg transition-all duration-300 hover:border-primary/50 hover:shadow-xl"
                 >
                   <div className="relative h-56 overflow-hidden">
-                    <img
+                    <Image
                       src={service.image}
                       alt={service.name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-xl font-bold text-white drop-shadow-lg mb-1">{service.name}</p>
-                      <p className="text-sm font-semibold text-secondary drop-shadow bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full inline-block">{service.price}</p>
+                      <p className="text-xl font-bold text-white drop-shadow-lg mb-1">
+                        {service.name}
+                      </p>
+                      <p className="text-sm font-semibold text-secondary drop-shadow bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full inline-block">
+                        {service.price}
+                      </p>
                     </div>
                   </div>
                   <div className="pt-6 px-6 pb-6">
                     <p className="text-sm text-muted-foreground mb-6">
-                      Discover the unique journey of tea production with expert guides
+                      Discover the unique journey of tea production with expert
+                      guides
                     </p>
-                    <Button asChild variant="link" className="h-auto p-0 text-primary font-semibold transition-colors duration-200 hover:text-primary/80">
-                      <Link href="/services" className="flex items-center gap-1">
+                    <Button
+                      asChild
+                      variant="link"
+                      className="h-auto p-0 text-primary font-semibold transition-colors duration-200 hover:text-primary/80"
+                    >
+                      <Link
+                        href="/services"
+                        className="flex items-center gap-1"
+                      >
                         Learn More
                         <span>→</span>
                       </Link>
@@ -276,7 +312,7 @@ export default function Home() {
                 Book your authentic tea tourism experience today and create
                 unforgettable memories in our scenic tea estates.
               </p>
-              
+
               <div>
                 <Button
                   asChild
@@ -287,7 +323,7 @@ export default function Home() {
                   <Link href="/book">Book Your Experience</Link>
                 </Button>
               </div>
-              
+
               {/* Trust Indicators */}
               <div className="mt-16 flex flex-wrap justify-center gap-12 text-base opacity-95">
                 <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full hover:bg-white/20 transition-colors duration-200">
