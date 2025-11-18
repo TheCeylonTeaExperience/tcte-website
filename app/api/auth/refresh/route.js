@@ -15,12 +15,24 @@ import {
   setRefreshTokenCookie,
 } from "@/lib/auth";
 
+function buildErrorResponse(message, code, status = 401) {
+  return NextResponse.json(
+    { error: message, code },
+    {
+      status,
+      headers: {
+        "X-Auth-Error": code,
+      },
+    }
+  );
+}
+
 export async function POST() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
 
   if (!refreshToken) {
-    return NextResponse.json({ error: "No refresh token" }, { status: 401 });
+    return buildErrorResponse("No refresh token", "refresh_token_missing");
   }
 
   try {
@@ -31,7 +43,7 @@ export async function POST() {
 
     if (!tokenRecord) {
       await clearRefreshTokenCookie(cookieStore);
-      return NextResponse.json({ error: "Token not found" }, { status: 401 });
+      return buildErrorResponse("Token not found", "refresh_token_not_found");
     }
 
     const matches = await compareRefreshToken(
@@ -40,17 +52,17 @@ export async function POST() {
     );
     if (!matches) {
       await clearRefreshTokenCookie(cookieStore);
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      return buildErrorResponse("Invalid token", "refresh_token_mismatch");
     }
 
     if (tokenRecord.revoked) {
       await clearRefreshTokenCookie(cookieStore);
-      return NextResponse.json({ error: "Token revoked" }, { status: 401 });
+      return buildErrorResponse("Token revoked", "refresh_token_revoked");
     }
 
     if (tokenRecord.expiresAt <= new Date()) {
       await clearRefreshTokenCookie(cookieStore);
-      return NextResponse.json({ error: "Token expired" }, { status: 401 });
+      return buildErrorResponse("Token expired", "refresh_token_expired");
     }
 
     const user = await prisma.user.findUnique({
@@ -58,7 +70,7 @@ export async function POST() {
     });
     if (!user) {
       await clearRefreshTokenCookie(cookieStore);
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return buildErrorResponse("User not found", "user_not_found", 404);
     }
 
     // Token rotation: delete the old token and mint a brand new pair.
@@ -82,10 +94,17 @@ export async function POST() {
 
     const accessToken = generateAccessToken(user.id, user.email, user.role);
 
-    return NextResponse.json({ accessToken });
+    return NextResponse.json(
+      { accessToken },
+      {
+        headers: {
+          "X-Auth-Status": "token_refreshed",
+        },
+      }
+    );
   } catch (error) {
     console.error("Refresh error", error);
     await clearRefreshTokenCookie(cookieStore);
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    return buildErrorResponse("Invalid token", "refresh_token_invalid");
   }
 }

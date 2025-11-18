@@ -38,7 +38,21 @@ export function proxy(request) {
     return NextResponse.next({ request: { headers } });
   } catch (error) {
     console.error("Middleware auth error", error);
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const headers = new Headers();
+    if (error?.name === "TokenExpiredError") {
+      headers.set("X-Auth-Error", "access_token_expired");
+    } else {
+      headers.set("X-Auth-Error", "unauthorized");
+    }
+
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      {
+        status: 401,
+        headers,
+      }
+    );
   }
 }
 

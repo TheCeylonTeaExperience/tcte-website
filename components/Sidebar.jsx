@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Layers3,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -24,6 +26,27 @@ const sidebarLinks = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Program Settings",
+    icon: Settings,
+    children: [
+      {
+        label: "Programs",
+        href: "/dashboard/programs",
+        icon: BookOpen,
+      },
+      {
+        label: "Sessions",
+        href: "/dashboard/sessions",
+        icon: Calendar,
+      },
+      {
+        label: "Session Types",
+        href: "/dashboard/session-types",
+        icon: Layers3,
+      },
+    ],
   },
   {
     label: "Bookings",
@@ -35,16 +58,6 @@ const sidebarLinks = [
     href: "/dashboard/customers",
     icon: Users,
   },
-  {
-    label: "Tours",
-    href: "/dashboard/tours",
-    icon: BookOpen,
-  },
-  {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
 ];
 
 export default function Sidebar({
@@ -55,6 +68,37 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const initialState = {};
+    sidebarLinks.forEach((link) => {
+      if (link.children) {
+        initialState[link.label] = link.children.some((child) =>
+          pathname.startsWith(child.href)
+        );
+      }
+    });
+    return initialState;
+  });
+
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      sidebarLinks.forEach((link) => {
+        if (!link.children) return;
+        const shouldOpen = link.children.some((child) =>
+          pathname.startsWith(child.href)
+        );
+        if (next[link.label] !== shouldOpen) {
+          next[link.label] = shouldOpen;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [pathname]);
 
   return (
     <>
@@ -150,6 +194,89 @@ export default function Sidebar({
             <ul className="space-y-1">
               {sidebarLinks.map((link) => {
                 const Icon = link.icon;
+                const isGroup = Array.isArray(link.children);
+
+                if (isGroup) {
+                  const isGroupActive = link.children.some((child) =>
+                    pathname.startsWith(child.href)
+                  );
+                  const isExpanded =
+                    expandedGroups[link.label] ?? isGroupActive ?? false;
+
+                  return (
+                    <li key={link.label} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedGroups((prev) => ({
+                            ...prev,
+                            [link.label]: !isExpanded,
+                          }))
+                        }
+                        className={cn(
+                          "flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                          isCollapsed ? "justify-center" : "space-x-3",
+                          isGroupActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                        title={isCollapsed ? link.label : undefined}
+                        aria-expanded={isExpanded}
+                      >
+                        <Icon className="h-5 w-5 shrink-0" />
+                        {!isCollapsed && (
+                          <>
+                            <span className="flex-1 text-left">
+                              {link.label}
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-transform",
+                                isExpanded ? "rotate-0" : "-rotate-90"
+                              )}
+                            />
+                          </>
+                        )}
+                      </button>
+
+                      <ul
+                        className={cn(
+                          "space-y-1",
+                          isCollapsed ? "pl-0" : "pl-9",
+                          isExpanded ? "mt-1" : "hidden"
+                        )}
+                      >
+                        {link.children.map((child) => {
+                          const ChildIcon = child.icon;
+                          const isActive =
+                            pathname === child.href ||
+                            pathname.startsWith(`${child.href}/`);
+
+                          return (
+                            <li key={child.href}>
+                              <Link
+                                href={child.href}
+                                onClick={() => setIsMobileOpen(false)}
+                                className={cn(
+                                  "flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
+                                  isCollapsed ? "justify-center" : "space-x-3",
+                                  isActive
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                )}
+                                title={isCollapsed ? child.label : undefined}
+                              >
+                                <ChildIcon className="h-4 w-4 shrink-0" />
+                                {!isCollapsed && <span>{child.label}</span>}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  );
+                }
+
                 const isActive =
                   pathname === link.href ||
                   pathname.startsWith(`${link.href}/`);
