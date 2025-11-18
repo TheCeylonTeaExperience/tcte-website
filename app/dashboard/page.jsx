@@ -10,11 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Sidebar from "@/components/Sidebar";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in
@@ -26,7 +29,12 @@ export default function DashboardPage() {
       return;
     }
 
-    setUser(JSON.parse(userData));
+    // Use setTimeout to avoid setState in effect warning
+    const timer = setTimeout(() => {
+      setUser(JSON.parse(userData));
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [router]);
 
   async function handleLogout() {
@@ -64,80 +72,101 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Welcome back, {user.name || user.email}!
-            </p>
-          </div>
-          <Button variant="outline" onClick={handleLogout} disabled={isLoading}>
-            {isLoading ? "Logging out..." : "Logout"}
-          </Button>
-        </div>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        user={user}
+        onLogout={handleLogout}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
+      <main
+        className={cn(
+          "flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-all duration-300",
+          isSidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        )}
+      >
+        <div className="container mx-auto p-4 md:p-8">
+          <div className="max-w-6xl space-y-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Email
+                <h1 className="text-3xl font-bold">Dashboard</h1>
+                <p className="text-muted-foreground mt-1">
+                  Welcome back, {user.name || user.email}!
                 </p>
-                <p className="text-sm">{user.email}</p>
               </div>
-              {user.name && (
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </p>
-                  <p className="text-sm">{user.name}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Role
-                </p>
-                <p className="text-sm capitalize">{user.role}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Authentication status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                <p className="text-sm">Logged in</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
               <Button
                 variant="outline"
-                className="w-full"
                 onClick={handleLogout}
+                disabled={isLoading}
+                className="hidden md:flex"
               >
-                Sign out
+                {isLoading ? "Logging out..." : "Logout"}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile</CardTitle>
+                  <CardDescription>Your account information</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Email
+                    </p>
+                    <p className="text-sm">{user.email}</p>
+                  </div>
+                  {user.name && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Name
+                      </p>
+                      <p className="text-sm">{user.name}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Role
+                    </p>
+                    <p className="text-sm capitalize">{user.role}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Security</CardTitle>
+                  <CardDescription>Authentication status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                    <p className="text-sm">Logged in</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>Common tasks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleLogout}
+                  >
+                    Sign out
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
