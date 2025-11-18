@@ -1,0 +1,219 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id            String         @id @default(cuid())
+    email         String         @unique
+    password      String
+    name          String?
+    role          String         @default("user")
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    refreshTokens RefreshToken[]
+
+    @@map("users")
+}
+
+model RefreshToken {
+    id          String   @id @default(cuid())
+    hashedToken String   @unique
+    userId      String
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    revoked     Boolean  @default(false)
+    expiresAt   DateTime
+    createdAt   DateTime @default(now())
+
+    @@index([userId])
+    @@index([hashedToken])
+    @@map("refresh_tokens")
+}
+
+model Leader {
+    id          Int       @id @default(autoincrement())
+    name        String
+    email       String    @unique
+    contact     String?
+    promoteCode String?   @unique
+    role        String    @default("user")
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    deletedAt   DateTime?
+
+    customers Customer[]
+    bookings  Booking[]
+
+    @@index([promoteCode])
+    @@map("leaders")
+}
+
+model Customer {
+    id           Int           @id @default(autoincrement())
+    leaderId     Int
+    leader       Leader        @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+    name         String
+    email        String        @unique
+    phone        String?
+    nic          String?
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    deletedAt    DateTime?
+    bookingItems BookingItem[]
+
+    @@map("customers")
+}
+
+model Location {
+    id        Int       @id @default(autoincrement())
+    name      String
+    address   String?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    programs Program[]
+
+    @@map("locations")
+}
+
+model Program {
+    id          Int       @id @default(autoincrement())
+    title       String
+    description String?
+    startTime   DateTime  @db.Time
+    endTime     DateTime  @db.Time
+    locationId  Int
+    location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+    seats       Int
+    isActive    Boolean   @default(true)
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    deletedAt   DateTime?
+
+    sessions Session[]
+
+    @@map("programs")
+}
+
+model Session {
+    id        Int     @id @default(autoincrement())
+    programId Int
+    program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+    name      String
+    startTime DateTime  @db.Time
+    endTime   DateTime  @db.Time
+    price     Float?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    sessionTypes SessionType[]
+    availability Availability[]
+    bookingItems BookingItem[]
+
+    @@map("sessions")
+}
+
+model SessionType {
+    id        Int     @id @default(autoincrement())
+    sessionId Int
+    session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    name      String
+    price     Float
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    bookingItems BookingItem[]
+
+    @@map("session_types")
+}
+
+model Payment {
+    id            Int       @id @default(autoincrement())
+    amount        Float
+    method        String
+    transactionId String    @unique
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+    deletedAt     DateTime?
+
+    bookings Booking[]
+
+    @@map("payments")
+}
+
+model Booking {
+    id          Int           @id @default(autoincrement())
+    leaderId    Int
+    leader      Leader        @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+    bookedDate  DateTime /// The actual date they want to attend (same day for all items)
+    paymentType PaymentType   @default(Full)
+    amount      Float
+    balance     Float
+    paymentId   Int
+    payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+    status      BookingStatus @default(PENDING)
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    deletedAt   DateTime?
+
+    items BookingItem[]
+
+    @@map("bookings")
+}
+
+model BookingItem {
+    id        Int     @id @default(autoincrement())
+    bookingId Int
+    booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+    sessionId Int
+    session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    sessionTypeId Int?
+    sessionType   SessionType? @relation(fields: [sessionTypeId], references: [id])
+
+    customerId Int?
+    customer   Customer? @relation(fields: [customerId], references: [id])
+
+    date DateTime /// same as booking.bookedDate
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("booking_items")
+}
+
+model Availability {
+    id             Int      @id @default(autoincrement())
+    sessionId      Int
+    session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    availableSeats Int
+    date           DateTime
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@map("availability")
+}
+
+enum BookingStatus {
+    PENDING
+    PAID
+    CONFIRMED
+    CANCELLED
+}
+
+enum PaymentType {
+    Full
+    Installment
+}

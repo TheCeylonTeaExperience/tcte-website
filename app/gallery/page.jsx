@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -94,14 +95,14 @@ export default function Gallery() {
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Gallery
             </h1>
             <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
-              Explore the beauty of our tea estates and experiences through these
-              curated moments
+              Explore the beauty of our tea estates and experiences through
+              these curated moments
             </p>
           </div>
         </section>
@@ -114,13 +115,16 @@ export default function Gallery() {
                 Moments Captured in Time
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Every image tells a story of tradition, craftsmanship, and the beauty of tea
+                Every image tells a story of tradition, craftsmanship, and the
+                beauty of tea
               </p>
             </div>
-            
+
             <div
               className="grid gap-8"
-              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+              style={{
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              }}
             >
               {images.map((image, index) => (
                 <div
@@ -128,16 +132,20 @@ export default function Gallery() {
                   className="group relative cursor-pointer overflow-hidden rounded-3xl border-4 border-primary/20 bg-white/90 backdrop-blur-sm shadow-lg"
                 >
                   <div className="relative aspect-square overflow-hidden">
-                    <img
+                    <Image
                       src={image.src}
                       alt={image.alt}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                      priority={index < 3}
                     />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100" />
                     <div className="pointer-events-none absolute bottom-0 left-0 right-0 translate-y-full p-6 group-hover:translate-y-0">
                       <div className="space-y-2">
-                        <p className="text-white font-bold text-lg drop-shadow-lg">{image.alt}</p>
+                        <p className="text-white font-bold text-lg drop-shadow-lg">
+                          {image.alt}
+                        </p>
                         <p className="inline-block rounded-full bg-primary/90 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur border border-white/20">
                           {image.category}
                         </p>
@@ -149,7 +157,6 @@ export default function Gallery() {
             </div>
           </div>
         </section>
-
       </main>
       <Footer />
     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -14,22 +15,26 @@ export default function About() {
     {
       name: "Rajesh Kumar",
       role: "Tea Master",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
     },
     {
       name: "Priya Sharma",
       role: "Tour Coordinator",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
+      image:
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
     },
     {
       name: "Arjun Patel",
       role: "Tea Sommelier",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
+      image:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
     },
     {
       name: "Meera Reddy",
       role: "Heritage Guide",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
     },
   ];
 
@@ -64,7 +69,7 @@ export default function About() {
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Our Story
@@ -81,21 +86,21 @@ export default function About() {
             <div className="max-w-4xl mx-auto">
               <div className="prose prose-lg max-w-none">
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                  Nestled in the misty hills of the tea country, Reviva Tea Tours
-                  was born from a deep love for tea and a desire to share its
-                  magic with the world. For three generations, our family has
-                  nurtured these tea estates, preserving traditional methods while
-                  embracing sustainable practices.
+                  Nestled in the misty hills of the tea country, Reviva Tea
+                  Tours was born from a deep love for tea and a desire to share
+                  its magic with the world. For three generations, our family
+                  has nurtured these tea estates, preserving traditional methods
+                  while embracing sustainable practices.
                 </p>
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6">
                   What started as a small family plantation has blossomed into a
-                  premier destination for tea enthusiasts. We believe that tea is
-                  more than just a beverage—it's a journey, a story, and a
-                  connection to the land and the people who cultivate it.
+                  premier destination for tea enthusiasts. We believe that tea
+                  is more than just a beverage—it&rsquo;s a journey, a story,
+                  and a connection to the land and the people who cultivate it.
                 </p>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Today, we invite you to be part of this story. Walk through our
-                  verdant fields, learn the art of tea plucking, witness the
+                  Today, we invite you to be part of this story. Walk through
+                  our verdant fields, learn the art of tea plucking, witness the
                   transformation from leaf to cup, and savor the fruits of
                   centuries-old wisdom in every sip.
                 </p>
@@ -119,7 +124,10 @@ export default function About() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {values.map((value, index) => (
-                <Card key={index} className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary">
+                <Card
+                  key={index}
+                  className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary"
+                >
                   <CardContent className="pt-6">
                     <div className="bg-gradient-to-br from-primary to-primary/70 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                       <value.icon className="h-8 w-8 text-white" />
@@ -144,14 +152,16 @@ export default function About() {
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Located in the heart of the hill country, our estate spans over
-                200 acres of pristine tea gardens, surrounded by lush forests and
-                breathtaking mountain views. The cool climate and rich soil create
-                the perfect conditions for growing exceptional tea.
+                200 acres of pristine tea gardens, surrounded by lush forests
+                and breathtaking mountain views. The cool climate and rich soil
+                create the perfect conditions for growing exceptional tea.
               </p>
               <div className="bg-secondary/10 p-6 rounded-lg inline-block">
                 <FaMapMarkerAlt className="h-8 w-8 text-primary mx-auto mb-2" />
                 <p className="font-medium">Tea Estate Road, Hill Country</p>
-                <p className="text-muted-foreground">Altitude: 1,500m above sea level</p>
+                <p className="text-muted-foreground">
+                  Altitude: 1,500m above sea level
+                </p>
               </div>
             </div>
           </div>
@@ -165,7 +175,8 @@ export default function About() {
                 Meet Our Team
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Passionate experts dedicated to sharing the art and culture of tea
+                Passionate experts dedicated to sharing the art and culture of
+                tea
               </p>
             </div>
 
@@ -173,14 +184,18 @@ export default function About() {
               {team.map((member, index) => (
                 <div key={index} className="text-center group">
                   <div className="relative w-48 h-48 mx-auto mb-4 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary transition-all duration-300 group-hover:scale-105 shadow-lg group-hover:shadow-xl">
-                    <img
+                    <Image
                       src={member.image}
                       alt={member.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      loading="lazy"
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      sizes="(max-width: 640px) 12rem, 12rem"
+                      priority={false}
                     />
                   </div>
-                  <h3 className="font-serif font-bold text-lg text-primary">{member.name}</h3>
+                  <h3 className="font-serif font-bold text-lg text-primary">
+                    {member.name}
+                  </h3>
                   <p className="text-muted-foreground">{member.role}</p>
                 </div>
               ))}

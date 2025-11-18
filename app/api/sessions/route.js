@@ -1,0 +1,126 @@
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+function parseTimeValue(value) {
+  if (!value) return null;
+
+  const directDate = new Date(value);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate;
+  }
+
+  const timeMatch = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+
+  if (timeMatch) {
+    const [, hours, minutes, seconds] = timeMatch;
+    const date = new Date();
+    date.setHours(parseInt(hours, 10));
+    date.setMinutes(parseInt(minutes || "0", 10));
+    date.setSeconds(parseInt(seconds || "0", 10));
+    date.setMilliseconds(0);
+    return date;
+  }
+
+  return null;
+}
+
+// GET /api/sessions - List all sessions or filter by programId
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const programId = searchParams.get("programId");
+
+    const where = {};
+    if (programId) {
+      where.programId = parseInt(programId);
+    }
+
+    const sessions = await prisma.session.findMany({
+      where,
+      include: {
+        program: {
+          include: {
+            location: true,
+          },
+        },
+        _count: {
+          select: { sessionTypes: true },
+        },
+      },
+      orderBy: {
+        startTime: "asc",
+      },
+    });
+
+    return NextResponse.json({ sessions });
+  } catch (error) {
+    console.error("Get sessions error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch sessions" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/sessions - Create a new session
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { programId, name, startTime, endTime, price } = body;
+
+    // Validation
+    if (!programId || !name || !startTime || !endTime) {
+      return NextResponse.json(
+        {
+          error: "Missing required fields: programId, name, startTime, endTime",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Verify program exists
+    const program = await prisma.program.findUnique({
+      where: { id: parseInt(programId) },
+    });
+
+    if (!program) {
+      return NextResponse.json({ error: "Program not found" }, { status: 404 });
+    }
+
+    // Create session
+    const parsedStartTime = parseTimeValue(startTime);
+    const parsedEndTime = parseTimeValue(endTime);
+
+    if (!parsedStartTime || !parsedEndTime) {
+      return NextResponse.json(
+        { error: "Invalid start or end time format" },
+        { status: 400 }
+      );
+    }
+
+    const session = await prisma.session.create({
+      data: {
+        programId: parseInt(programId),
+        name,
+        startTime: parsedStartTime,
+        endTime: parsedEndTime,
+        price: price ? parseFloat(price) : null,
+      },
+      include: {
+        program: {
+          include: {
+            location: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ session }, { status: 201 });
+  } catch (error) {
+    console.error("Create session error:", error);
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    );
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ParticleEffect from "@/components/ParticleEffect";
@@ -46,7 +47,7 @@ export default function Contact() {
 
   // WhatsApp deep link with pre-filled message
   const whatsappMessage = encodeURIComponent(
-    "Hello! I'm interested in booking a tea tour experience at Reviva Tea Tours."
+    "Hello! I\u2019m interested in booking a tea tour experience at Reviva Tea Tours."
   );
   const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -58,16 +59,21 @@ export default function Contact() {
       <main className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
-          <ParticleEffect particleCount={20} color="rgba(255, 255, 255, 0.1)" size={2} speed={0.3} />
+          <ParticleEffect
+            particleCount={20}
+            color="rgba(255, 255, 255, 0.1)"
+            size={2}
+            speed={0.3}
+          />
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 morph" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 morph" />
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
               Get In Touch
             </h1>
             <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
-              Have questions? We're here to help you plan your perfect tea
+              Have questions? We&rsquo;re here to help you plan your perfect tea
               experience
             </p>
           </div>
@@ -78,12 +84,17 @@ export default function Contact() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
               {contactInfo.map((info, index) => (
-                <Card key={index} className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary">
+                <Card
+                  key={index}
+                  className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary"
+                >
                   <CardContent className="pt-6">
                     <div className="bg-gradient-to-br from-primary to-primary/70 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
                       <info.icon className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="font-bold text-lg mb-3 text-primary">{info.title}</h3>
+                    <h3 className="font-bold text-lg mb-3 text-primary">
+                      {info.title}
+                    </h3>
                     <div className="text-muted-foreground space-y-1">
                       {info.details.map((detail, idx) => (
                         <p key={idx}>
@@ -175,10 +186,10 @@ export default function Contact() {
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg">
-                <a href="/book">Book Your Visit</a>
+                <Link href="/book">Book Your Visit</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <a href="/services">View Our Programs</a>
+                <Link href="/services">View Our Programs</Link>
               </Button>
             </div>
           </div>
