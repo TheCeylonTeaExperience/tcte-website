@@ -38,8 +38,8 @@ function formatTimeForInput(value) {
 
   const dateValue = new Date(value);
   if (!Number.isNaN(dateValue.getTime())) {
-    const hours = String(dateValue.getHours()).padStart(2, "0");
-    const minutes = String(dateValue.getMinutes()).padStart(2, "0");
+    const hours = String(dateValue.getUTCHours()).padStart(2, "0");
+    const minutes = String(dateValue.getUTCMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   }
 
@@ -152,6 +152,7 @@ export default function ProgramForm({
       });
 
       const data = await response.json();
+      console.log("Sending data to backend:", formData);
 
       if (!response.ok) {
         setError(data.error || "Failed to save program");

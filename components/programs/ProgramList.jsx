@@ -25,6 +25,19 @@ import {
   Plus,
 } from "lucide-react";
 
+function formatTime(value) {
+  if (!value) return "—";
+
+  const dateValue = new Date(value);
+  if (Number.isNaN(dateValue.getTime())) {
+    return value;
+  }
+
+  const hours = String(dateValue.getUTCHours()).padStart(2, "0");
+  const minutes = String(dateValue.getUTCMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 export default function ProgramList() {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,15 +322,8 @@ export default function ProgramList() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="h-4 w-4" />
                     <span>
-                      {new Date(program.startTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      -{" "}
-                      {new Date(program.endTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatTime(program.startTime)} -{" "}
+                      {formatTime(program.endTime)}
                     </span>
                   </div>
                 </div>
