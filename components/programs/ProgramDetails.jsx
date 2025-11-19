@@ -22,10 +22,9 @@ function formatTime(value) {
   if (Number.isNaN(dateValue.getTime())) {
     return value;
   }
-  return dateValue.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hours = String(dateValue.getUTCHours()).padStart(2, "0");
+  const minutes = String(dateValue.getUTCMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 export default function ProgramDetails({

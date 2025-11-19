@@ -13,12 +13,21 @@ function parseTimeValue(value) {
 
   if (timeMatch) {
     const [, hours, minutes, seconds] = timeMatch;
-    const date = new Date();
-    date.setHours(parseInt(hours, 10));
-    date.setMinutes(parseInt(minutes || "0", 10));
-    date.setSeconds(parseInt(seconds || "0", 10));
-    date.setMilliseconds(0);
-    return date;
+    const parsedHours = Number.parseInt(hours, 10);
+    const parsedMinutes = Number.parseInt(minutes || "0", 10);
+    const parsedSeconds = Number.parseInt(seconds || "0", 10);
+
+    if (
+      Number.isNaN(parsedHours) ||
+      Number.isNaN(parsedMinutes) ||
+      Number.isNaN(parsedSeconds)
+    ) {
+      return null;
+    }
+
+    return new Date(
+      Date.UTC(1970, 0, 1, parsedHours, parsedMinutes, parsedSeconds)
+    );
   }
 
   return null;
