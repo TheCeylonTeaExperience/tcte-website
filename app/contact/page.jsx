@@ -35,8 +35,8 @@ export default function Contact() {
     {
       icon: FaEnvelope,
       title: "Email",
-      details: ["info@revivatea.com"],
-      link: "mailto:info@revivatea.com",
+      details: ["info@ceylontea.com"],
+      link: "mailto:info@ceylontea.com",
     },
     {
       icon: FaClock,
@@ -47,7 +47,7 @@ export default function Contact() {
 
   // WhatsApp deep link with pre-filled message
   const whatsappMessage = encodeURIComponent(
-    "Hello! I\u2019m interested in booking a tea tour experience at Reviva Tea Tours."
+    "Hello! I'm interested in booking a tea tour experience at THE CEYLON TEA."
   );
   const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -160,7 +160,7 @@ export default function Contact() {
                   allowFullScreen=""
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Reviva Tea Tours Location"
+                  title="THE CEYLON TEA Location"
                 ></iframe>
               </div>
               <div className="mt-6 text-center">

@@ -21,19 +21,19 @@ export default function Home() {
 
   const heroImages = [
     {
-      url: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1920&q=80",
+      url: "/image/PluckingTour.jpg",
       alt: "Lush tea fields at sunrise",
     },
     {
-      url: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1920&q=80",
+      url: "/image/g1.jpg",
       alt: "Lush tea fields at sunrise",
     },
     {
-      url: "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=1920&q=80",
+      url: "/image/g2.jpg",
       alt: "Green tea plantation",
     },
     {
-      url: "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?w=1920&q=80",
+      url: "/image/g3.jpg",
       alt: "Tea tasting session",
     },
   ];
@@ -88,21 +88,24 @@ export default function Home() {
           <div className="absolute inset-0 -z-10">
             {heroImages.map((image, index) => (
               <div
-                key={index}
+                key={image.url}
                 className={`absolute inset-0 transition-opacity duration-1000 ${
                   index === currentSlide ? "opacity-100" : "opacity-0"
-                } relative`}
+                }`}
+                aria-hidden={index !== currentSlide}
               >
-                <Image
-                  src={image.url}
-                  alt={image.alt}
-                  fill
-                  priority={index === 0}
-                  sizes="100vw"
-                  className="object-cover"
-                />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+                <div className="relative h-full w-full">
+                  <Image
+                    src={image.url}
+                    alt={image.alt}
+                    fill
+                    priority={index === 0}
+                    sizes="100vw"
+                    className="object-cover"
+                  />
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+                </div>
               </div>
             ))}
           </div>
@@ -179,7 +182,7 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16 fade-in-up">
               <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
-                Why Choose Reviva Tea Tours
+                Why Choose THE CEYLON TEA
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Experience the finest tea tourism with our expertly curated

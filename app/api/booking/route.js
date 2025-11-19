@@ -23,7 +23,7 @@ async function sendConfirmationEmail(bookingData, referenceCode) {
   });
 
   const emailContent = `
-    <h1>Booking Confirmation - Reviva Tea Tours</h1>
+    <h1>Booking Confirmation - THE CEYLON TEA</h1>
     <p>Dear ${bookingData.name},</p>
     <p>Thank you for booking your tea experience with us!</p>
     
@@ -51,15 +51,15 @@ async function sendConfirmationEmail(bookingData, referenceCode) {
     <p>We look forward to welcoming you!</p>
     <p>For any queries, please contact us at:</p>
     <p>Phone: +1 (234) 567-890<br>
-    Email: info@revivatea.com</p>
+    Email: info@ceylontea.com</p>
     
     <p>Best regards,<br>
-    The Reviva Tea Tours Team</p>
+    THE CEYLON TEA Team</p>
   `;
 
   // Send to customer
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM || "info@revivatea.com",
+    from: process.env.EMAIL_FROM || "info@ceylontea.com",
     to: bookingData.email,
     subject: `Booking Confirmation - ${referenceCode}`,
     html: emailContent,
@@ -67,8 +67,8 @@ async function sendConfirmationEmail(bookingData, referenceCode) {
 
   // Send copy to owner
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM || "info@revivatea.com",
-    to: process.env.OWNER_EMAIL || "owner@revivatea.com",
+    from: process.env.EMAIL_FROM || "info@ceylontea.com",
+    to: process.env.OWNER_EMAIL || "owner@ceylontea.com",
     subject: `New Booking - ${referenceCode}`,
     html: `
       <h1>New Booking Received</h1>

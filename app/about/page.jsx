@@ -86,8 +86,8 @@ export default function About() {
             <div className="max-w-4xl mx-auto">
               <div className="prose prose-lg max-w-none">
                 <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                  Nestled in the misty hills of the tea country, Reviva Tea
-                  Tours was born from a deep love for tea and a desire to share
+                  Nestled in the misty hills of the Ceylon tea country, THE CEYLON TEA
+                  was born from a deep love for Ceylon tea and a desire to share
                   its magic with the world. For three generations, our family
                   has nurtured these tea estates, preserving traditional methods
                   while embracing sustainable practices.

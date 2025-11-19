@@ -89,4 +89,4 @@ Edit `app/globals.css` to change the color scheme.
 
 ## Support
 
-For issues or questions, contact: info@revivatea.com
+For issues or questions, contact: info@ceylontea.com
