@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import Header from "@/components/Header";
@@ -134,12 +134,34 @@ export default function BookNow() {
   const [programsLoading, setProgramsLoading] = useState(false);
   const [programsError, setProgramsError] = useState("");
 
-  const selectedDateKey = selectedDate
-    ? format(selectedDate, "yyyy-MM-dd")
-    : null;
-  const availabilityForDate = selectedDateKey
-    ? SEASON_AVAILABILITY[selectedDateKey] ?? SEASON_AVAILABILITY.fallback
-    : null;
+  const formatTimeRange = useCallback((startIso, endIso) => {
+    try {
+      const startLabel = format(new Date(startIso), "HH:mm");
+      const endLabel = format(new Date(endIso), "HH:mm");
+      return `${startLabel} - ${endLabel}`;
+    } catch (error) {
+      return "";
+    }
+  }, []);
+
+  const availabilityForDate = useMemo(() => {
+    if (!selectedDate || programOptions.length === 0) return null;
+
+    return programOptions.map((program) => ({
+      id: program.title,
+      window: formatTimeRange(program.startTime, program.endTime),
+      activities: program.sessions.map((session) => ({
+        name: session.name,
+        available: program.seats,
+        capacity: program.seats,
+        sessionTypes: session.sessionTypes.map((st) => ({
+          id: st.id,
+          name: st.name,
+          price: st.price,
+        })),
+      })),
+    }));
+  }, [selectedDate, programOptions, formatTimeRange]);
 
   useEffect(() => {
     let isMounted = true;
@@ -205,16 +227,6 @@ export default function BookNow() {
   const locationChoices =
     locationOptions.length > 0 ? locationOptions : FALLBACK_LOCATIONS;
 
-  const formatTimeRange = (startIso, endIso) => {
-    try {
-      const startLabel = format(new Date(startIso), "HH:mm");
-      const endLabel = format(new Date(endIso), "HH:mm");
-      return `${startLabel} - ${endLabel}`;
-    } catch (error) {
-      return "";
-    }
-  };
-
   const formatPrice = (value) => {
     if (value === null || value === undefined) {
       return "Included";
@@ -277,11 +289,45 @@ export default function BookNow() {
       };
 
       const activities = { ...existing.activities };
-      if (activities[activityName]) {
+      if (activities[activityName]?.selected) {
         delete activities[activityName];
       } else {
-        activities[activityName] = true;
+        activities[activityName] = {
+          selected: true,
+          sessionTypes: {},
+        };
       }
+
+      return {
+        ...prev,
+        [seasonId]: {
+          ...existing,
+          activities,
+        },
+      };
+    });
+  };
+
+  const handleSessionTypeToggle = (seasonId, activityName, sessionTypeId) => {
+    setSeasonSelections((prev) => {
+      const existing = prev[seasonId];
+      if (!existing) return prev;
+
+      const activities = { ...existing.activities };
+      const activity = activities[activityName];
+      if (!activity) return prev;
+
+      const sessionTypes = { ...activity.sessionTypes };
+      if (sessionTypes[sessionTypeId]) {
+        delete sessionTypes[sessionTypeId];
+      } else {
+        sessionTypes[sessionTypeId] = true;
+      }
+
+      activities[activityName] = {
+        ...activity,
+        sessionTypes,
+      };
 
       return {
         ...prev,
@@ -350,14 +396,27 @@ export default function BookNow() {
     Object.keys(seasonSelections).length > 0 &&
     Object.values(seasonSelections).every(
       (entry) =>
-        entry.seatsRequested > 0 && Object.keys(entry.activities).length > 0
+        entry.seatsRequested > 0 &&
+        Object.values(entry.activities).some(
+          (act) => act.selected && Object.keys(act.sessionTypes).length > 0
+        )
     );
 
   const seasonSelectionSummary = Object.entries(seasonSelections).map(
     ([seasonId, details]) => {
-      const activities = Object.keys(details.activities);
-      const activityList = activities.length
-        ? activities.join(", ")
+      const selectedActivities = Object.entries(details.activities).filter(
+        ([_, act]) => act.selected
+      );
+      const activityList = selectedActivities.length
+        ? selectedActivities
+            .map(([name, act]) => {
+              const sessionTypeNames = Object.keys(act.sessionTypes);
+              const sessionTypeList = sessionTypeNames.length
+                ? ` (${sessionTypeNames.join(", ")})`
+                : "";
+              return `${name}${sessionTypeList}`;
+            })
+            .join(", ")
         : "No activities selected";
       return `${seasonId}: ${details.seatsRequested} seats (${activityList})`;
     }
@@ -617,6 +676,22 @@ export default function BookNow() {
                         />
                       </div>
                     </div>
+                    <div>
+                      <Label htmlFor="packs">Number of People (0-8)</Label>
+                      <Input
+                        id="packs"
+                        type="number"
+                        min="0"
+                        max="8"
+                        value={formData.packs}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            packs: parseInt(e.target.value) || 0,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   {/* Booking Details */}
@@ -813,7 +888,7 @@ export default function BookNow() {
                                         const activitySelected = Boolean(
                                           seasonSelection?.activities?.[
                                             activity.name
-                                          ]
+                                          ]?.selected
                                         );
                                         return (
                                           <div
@@ -865,6 +940,57 @@ export default function BookNow() {
                                                 }}
                                               />
                                             </div>
+                                            {activitySelected &&
+                                              activity.sessionTypes &&
+                                              activity.sessionTypes.length >
+                                                0 && (
+                                                <div className="mt-3 space-y-2">
+                                                  <p className="text-xs font-medium text-muted-foreground">
+                                                    Select session types:
+                                                  </p>
+                                                  {activity.sessionTypes.map(
+                                                    (st) => {
+                                                      const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
+                                                      const stSelected =
+                                                        seasonSelection
+                                                          ?.activities?.[
+                                                          activity.name
+                                                        ]?.sessionTypes?.[
+                                                          st.id
+                                                        ] || false;
+                                                      return (
+                                                        <div
+                                                          key={st.id}
+                                                          className="flex items-center gap-2"
+                                                        >
+                                                          <Checkbox
+                                                            id={stCheckboxId}
+                                                            checked={stSelected}
+                                                            onCheckedChange={() =>
+                                                              handleSessionTypeToggle(
+                                                                season.id,
+                                                                activity.name,
+                                                                st.id
+                                                              )
+                                                            }
+                                                          />
+                                                          <label
+                                                            htmlFor={
+                                                              stCheckboxId
+                                                            }
+                                                            className="text-xs cursor-pointer"
+                                                          >
+                                                            {st.name} -{" "}
+                                                            {formatPrice(
+                                                              st.price
+                                                            )}
+                                                          </label>
+                                                        </div>
+                                                      );
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
                                           </div>
                                         );
                                       })}
@@ -883,8 +1009,9 @@ export default function BookNow() {
                         {Object.keys(seasonSelections).length > 0 &&
                           !hasValidSeasonSelection && (
                             <p className="text-sm text-amber-600">
-                              Select at least one activity and enter the seats
-                              needed for each chosen season.
+                              Select at least one activity, choose session
+                              types, and enter the seats needed for each chosen
+                              season.
                             </p>
                           )}
                         {seasonSelectionSummary.length > 0 && (
@@ -918,7 +1045,7 @@ export default function BookNow() {
                       </div>
                     )}
 
-                    <div>
+                    {/* <div>
                       <Label>Select Programs * (Select one or more)</Label>
                       <div className="space-y-3 mt-2">
                         {programsLoading ? (
@@ -977,9 +1104,9 @@ export default function BookNow() {
                           })
                         )}
                       </div>
-                    </div>
+                    </div> */}
 
-                    {programOptions.length > 0 && (
+                    {/* {programOptions.length > 0 && (
                       <div className="space-y-3">
                         <h3 className="text-lg font-serif font-bold text-primary">
                           Program Details & Sessions
@@ -1065,24 +1192,7 @@ export default function BookNow() {
                           ))}
                         </div>
                       </div>
-                    )}
-
-                    <div>
-                      <Label htmlFor="packs">Number of People (0-8)</Label>
-                      <Input
-                        id="packs"
-                        type="number"
-                        min="0"
-                        max="8"
-                        value={formData.packs}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            packs: parseInt(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
+                    )} */}
 
                     <div>
                       <Label htmlFor="payment">Payment Option *</Label>
