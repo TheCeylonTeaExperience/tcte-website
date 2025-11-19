@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import Header from "@/components/Header";
@@ -103,6 +103,13 @@ const SEASON_AVAILABILITY = {
   ],
 };
 
+const FALLBACK_LOCATIONS = [
+  "Hill Country Estate",
+  "Mountain View Plantation",
+  "Valley Gardens",
+  "Sunrise Estate",
+];
+
 export default function BookNow() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState();
@@ -112,7 +119,7 @@ export default function BookNow() {
     countryCode: "+1",
     phone: "",
     location: "",
-    programs: [],
+    programIds: [],
     packs: 1,
     payment: "",
     notes: "",
@@ -123,6 +130,9 @@ export default function BookNow() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [referenceCode, setReferenceCode] = useState("");
+  const [programOptions, setProgramOptions] = useState([]);
+  const [programsLoading, setProgramsLoading] = useState(false);
+  const [programsError, setProgramsError] = useState("");
 
   const selectedDateKey = selectedDate
     ? format(selectedDate, "yyyy-MM-dd")
@@ -130,6 +140,91 @@ export default function BookNow() {
   const availabilityForDate = selectedDateKey
     ? SEASON_AVAILABILITY[selectedDateKey] ?? SEASON_AVAILABILITY.fallback
     : null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPrograms = async () => {
+      setProgramsLoading(true);
+      setProgramsError("");
+      try {
+        const response = await fetch("/api/public/programs", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load programs at this time");
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setProgramOptions(Array.isArray(data.programs) ? data.programs : []);
+        }
+      } catch (error) {
+        console.error("Public programs fetch error:", error);
+        if (isMounted) {
+          setProgramsError(
+            error instanceof Error ? error.message : "Failed to load programs"
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setProgramsLoading(false);
+        }
+      }
+    };
+
+    fetchPrograms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const selectedProgramTitles = useMemo(
+    () =>
+      formData.programIds
+        .map(
+          (id) =>
+            programOptions.find((program) => program.id === id)?.title ?? null
+        )
+        .filter(Boolean),
+    [formData.programIds, programOptions]
+  );
+
+  const locationOptions = useMemo(() => {
+    const names = new Set();
+    programOptions.forEach((program) => {
+      if (program?.location?.name) {
+        names.add(program.location.name);
+      }
+    });
+    return Array.from(names);
+  }, [programOptions]);
+
+  const locationChoices =
+    locationOptions.length > 0 ? locationOptions : FALLBACK_LOCATIONS;
+
+  const formatTimeRange = (startIso, endIso) => {
+    try {
+      const startLabel = format(new Date(startIso), "HH:mm");
+      const endLabel = format(new Date(endIso), "HH:mm");
+      return `${startLabel} - ${endLabel}`;
+    } catch (error) {
+      return "";
+    }
+  };
+
+  const formatPrice = (value) => {
+    if (value === null || value === undefined) {
+      return "Included";
+    }
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+      return String(value);
+    }
+    return `LKR ${numeric.toLocaleString()}`;
+  };
 
   const getSeasonAvailabilityTotal = (seasonId) => {
     if (!availabilityForDate) {
@@ -268,20 +363,6 @@ export default function BookNow() {
     }
   );
 
-  const programs = [
-    "Plucking Tour",
-    "Black Tea Experience",
-    "Green Tea Experience",
-    "Tea Tasting Session",
-  ];
-
-  const locations = [
-    "Hill Country Estate",
-    "Mountain View Plantation",
-    "Valley Gardens",
-    "Sunrise Estate",
-  ];
-
   const countryCodes = [
     { code: "+1", country: "US/CA" },
     { code: "+44", country: "UK" },
@@ -291,13 +372,17 @@ export default function BookNow() {
     { code: "+86", country: "CN" },
   ];
 
-  const handleProgramToggle = (program) => {
-    setFormData((prev) => ({
-      ...prev,
-      programs: prev.programs.includes(program)
-        ? prev.programs.filter((p) => p !== program)
-        : [...prev.programs, program],
-    }));
+  const handleProgramToggle = (programId) => {
+    setFormData((prev) => {
+      const nextProgramIds = prev.programIds.includes(programId)
+        ? prev.programIds.filter((id) => id !== programId)
+        : [...prev.programIds, programId];
+
+      return {
+        ...prev,
+        programIds: nextProgramIds,
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -305,15 +390,23 @@ export default function BookNow() {
     setIsSubmitting(true);
 
     try {
+      if (formData.programIds.length === 0) {
+        alert("Select at least one program before booking.");
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!hasValidSeasonSelection) {
         alert(
           "Select at least one season, choose activities, and set the seats needed before booking."
         );
+        setIsSubmitting(false);
         return;
       }
 
       const bookingData = {
         ...formData,
+        programs: selectedProgramTitles,
         date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
         seasonSelections,
       };
@@ -351,7 +444,7 @@ export default function BookNow() {
         "PPP"
       )}\nSeasons: ${seasonSelectionSummary.join(
         " | "
-      )}\nPrograms: ${formData.programs.join(", ")}`
+      )}\nPrograms: ${selectedProgramTitles.join(", ")}`
     );
     const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -389,7 +482,8 @@ export default function BookNow() {
                       {seasonSelectionSummary.join(" | ")}
                     </p>
                     <p>
-                      <strong>Programs:</strong> {formData.programs.join(", ")}
+                      <strong>Programs:</strong>{" "}
+                      {selectedProgramTitles.join(", ")}
                     </p>
                     <p>
                       <strong>Location:</strong> {formData.location}
@@ -544,7 +638,7 @@ export default function BookNow() {
                           <SelectValue placeholder="Choose a location" />
                         </SelectTrigger>
                         <SelectContent>
-                          {locations.map((loc) => (
+                          {locationChoices.map((loc) => (
                             <SelectItem key={loc} value={loc}>
                               {loc}
                             </SelectItem>
@@ -827,28 +921,151 @@ export default function BookNow() {
                     <div>
                       <Label>Select Programs * (Select one or more)</Label>
                       <div className="space-y-3 mt-2">
-                        {programs.map((program) => (
-                          <div
-                            key={program}
-                            className="flex items-center space-x-2"
-                          >
-                            <Checkbox
-                              id={program}
-                              checked={formData.programs.includes(program)}
-                              onCheckedChange={() =>
-                                handleProgramToggle(program)
-                              }
-                            />
-                            <label
-                              htmlFor={program}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {program}
-                            </label>
-                          </div>
-                        ))}
+                        {programsLoading ? (
+                          <p className="text-sm text-muted-foreground">
+                            Loading available programs...
+                          </p>
+                        ) : programsError ? (
+                          <p className="text-sm text-red-600">
+                            {programsError}
+                          </p>
+                        ) : programOptions.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            No programs are available right now. Please check
+                            back later.
+                          </p>
+                        ) : (
+                          programOptions.map((program) => {
+                            const checkboxId = `program-${program.id}`;
+                            const locationName = program.location?.name;
+                            return (
+                              <div
+                                key={program.id}
+                                className="rounded border border-muted-foreground/20 bg-muted/40 p-3"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <Checkbox
+                                    id={checkboxId}
+                                    checked={formData.programIds.includes(
+                                      program.id
+                                    )}
+                                    onCheckedChange={() =>
+                                      handleProgramToggle(program.id)
+                                    }
+                                  />
+                                  <label
+                                    htmlFor={checkboxId}
+                                    className="flex-1 cursor-pointer"
+                                  >
+                                    <p className="text-sm font-semibold text-foreground">
+                                      {program.title}
+                                    </p>
+                                    {locationName && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Location: {locationName}
+                                      </p>
+                                    )}
+                                    {program.description && (
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        {program.description}
+                                      </p>
+                                    )}
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
+
+                    {programOptions.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-serif font-bold text-primary">
+                          Program Details & Sessions
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Review the sessions available in each program before
+                          confirming your booking.
+                        </p>
+                        <div className="space-y-3">
+                          {programOptions.map((program) => (
+                            <div
+                              key={`program-overview-${program.id}`}
+                              className="rounded-md border border-muted-foreground/20 bg-background p-4 shadow-sm"
+                            >
+                              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-base font-semibold text-foreground">
+                                    {program.title}
+                                  </p>
+                                  {program.location?.name && (
+                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                      Location: {program.location.name}
+                                    </p>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  Seats available: {program.seats}
+                                </span>
+                              </div>
+                              {program.description && (
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  {program.description}
+                                </p>
+                              )}
+                              {program.sessions.length > 0 ? (
+                                <div className="mt-3 space-y-3">
+                                  {program.sessions.map((session) => (
+                                    <div
+                                      key={`session-${session.id}`}
+                                      className="rounded border border-muted-foreground/20 bg-muted/30 p-3"
+                                    >
+                                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                        <p className="text-sm font-medium text-foreground">
+                                          {session.name}
+                                        </p>
+                                        <span className="text-xs text-muted-foreground">
+                                          {formatTimeRange(
+                                            session.startTime,
+                                            session.endTime
+                                          )}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        Session price:{" "}
+                                        {formatPrice(session.price)}
+                                      </p>
+                                      {session.sessionTypes.length > 0 && (
+                                        <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                          {session.sessionTypes.map((type) => (
+                                            <li
+                                              key={`session-type-${type.id}`}
+                                              className="flex items-baseline justify-between gap-2"
+                                            >
+                                              <span className="font-medium text-foreground">
+                                                {type.name}
+                                              </span>
+                                              <span>
+                                                {formatPrice(type.price)}
+                                              </span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="mt-3 text-sm text-muted-foreground">
+                                  Session schedule will be announced soon.
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <Label htmlFor="packs">Number of People (0-8)</Label>
@@ -915,7 +1132,7 @@ export default function BookNow() {
                     disabled={
                       isSubmitting ||
                       !selectedDate ||
-                      formData.programs.length === 0 ||
+                      formData.programIds.length === 0 ||
                       !hasValidSeasonSelection
                     }
                   >
