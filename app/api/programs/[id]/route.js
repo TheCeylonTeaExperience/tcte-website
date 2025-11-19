@@ -51,16 +51,22 @@ export async function GET(request, context) {
       );
     }
 
-    const program = await prisma.program.findUnique({
-      where: { id },
+    const program = await prisma.program.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        location: { deletedAt: null },
+      },
       include: {
         location: true,
         sessions: {
+          where: { deletedAt: null },
           include: {
             _count: {
               select: { sessionTypes: true },
             },
             sessionTypes: {
+              where: { deletedAt: null },
               orderBy: {
                 price: "asc",
               },

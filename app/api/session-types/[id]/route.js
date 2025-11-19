@@ -19,8 +19,18 @@ export async function GET(request, context) {
       );
     }
 
-    const sessionType = await prisma.sessionType.findUnique({
-      where: { id },
+    const sessionType = await prisma.sessionType.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        session: {
+          deletedAt: null,
+          program: {
+            deletedAt: null,
+            location: { deletedAt: null },
+          },
+        },
+      },
       include: {
         session: {
           include: {

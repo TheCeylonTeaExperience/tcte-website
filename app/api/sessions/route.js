@@ -39,9 +39,22 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const programId = searchParams.get("programId");
 
-    const where = {};
+    const where = {
+      deletedAt: null,
+      program: {
+        deletedAt: null,
+        location: { deletedAt: null },
+      },
+    };
     if (programId) {
-      where.programId = parseInt(programId);
+      const parsedProgramId = Number.parseInt(programId, 10);
+      if (Number.isNaN(parsedProgramId)) {
+        return NextResponse.json(
+          { error: "Invalid programId" },
+          { status: 400 }
+        );
+      }
+      where.programId = parsedProgramId;
     }
 
     const sessions = await prisma.session.findMany({
