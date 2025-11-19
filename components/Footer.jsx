@@ -17,9 +17,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-serif font-bold">Reviva</h3>
+            <h3 className="text-2xl font-serif font-bold">THE CEYLON TEA</h3>
             <p className="text-sm opacity-90">
-              Experience the authentic journey from tea leaf to cup in our
+              Discover the art of Ceylon tea experience. Experience the authentic journey from tea leaf to cup in our
               scenic tea estates.
             </p>
           </div>
@@ -72,10 +72,10 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:info@revivatea.com"
+                  href="mailto:info@ceylontea.com"
                   className="hover:opacity-100"
                 >
-                  info@revivatea.com
+                  info@ceylontea.com
                 </a>
               </li>
             </ul>
@@ -102,7 +102,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center text-sm opacity-75">
-          <p>&copy; {currentYear} Reviva Tea Tours. All rights reserved.</p>
+          <p>&copy; {currentYear} THE CEYLON TEA. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -14,21 +14,21 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Reviva Tea Tours | Authentic Tea Tourism Experience",
-  description: "Immerse yourself in the world of tea with Reviva Tea Tours. Experience authentic tea plucking, black tea and green tea experiences, and professional tea tasting sessions in our scenic tea estates.",
-  keywords: "tea tourism, tea tours, tea plucking, tea tasting, black tea experience, green tea experience, tea estates",
-  authors: [{ name: "Reviva Tea Tours" }],
+  title: "THE CEYLON TEA | Discover The Art Of Ceylon Tea Experience",
+  description: "Immerse yourself in the world of tea with THE CEYLON TEA. Experience authentic tea plucking, black tea and green tea experiences, and professional tea tasting sessions in our scenic tea estates.",
+  keywords: "ceylon tea, tea tourism, tea tours, tea plucking, tea tasting, black tea experience, green tea experience, tea estates",
+  authors: [{ name: "THE CEYLON TEA" }],
   openGraph: {
-    title: "Reviva Tea Tours | Authentic Tea Tourism Experience",
-    description: "Immerse yourself in the world of tea with authentic tea tourism experiences",
+    title: "THE CEYLON TEA | Discover The Art Of Ceylon Tea Experience",
+    description: "Immerse yourself in the world of tea with authentic Ceylon tea tourism experiences",
     type: "website",
     locale: "en_US",
-    siteName: "Reviva Tea Tours",
+    siteName: "THE CEYLON TEA",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Reviva Tea Tours | Authentic Tea Tourism Experience",
-    description: "Immerse yourself in the world of tea with authentic tea tourism experiences",
+    title: "THE CEYLON TEA | Discover The Art Of Ceylon Tea Experience",
+    description: "Immerse yourself in the world of tea with authentic Ceylon tea tourism experiences",
   },
 };
 

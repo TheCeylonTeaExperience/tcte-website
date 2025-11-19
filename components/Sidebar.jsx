@@ -139,7 +139,7 @@ export default function Sidebar({
             <Link href="/" className="flex items-center space-x-2">
               <Home className="h-6 w-6 text-primary shrink-0" />
               {!isCollapsed && (
-                <span className="text-xl font-bold gradient-text">Reviva</span>
+                <span className="text-xl font-bold gradient-text">THE CEYLON TEA</span>
               )}
             </Link>
           </div>
