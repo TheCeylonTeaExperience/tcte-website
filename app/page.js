@@ -20,10 +20,10 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const heroImages = [
-    {
-      url: "/image/PluckingTour.jpg",
-      alt: "Lush tea fields at sunrise",
-    },
+    // {
+    //   url: "/image/PluckingTour.jpg",
+    //   alt: "Lush tea fields at sunrise",
+    // },
     {
       url: "/image/g1.jpg",
       alt: "Lush tea fields at sunrise",

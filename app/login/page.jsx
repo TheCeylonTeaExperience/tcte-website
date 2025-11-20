@@ -56,17 +56,17 @@ export default function LoginPage() {
   }
 
   const highlights = [
-    "Private tea tastings guided by master brewers",
-    "Curated wellness sessions at our hilltop retreat",
-    "Concierge support for every part of your journey",
+    "Signature tastings hosted by senior tea masters",
+    "Restorative wellness rituals across our hillside sanctuary",
+    "Admin support for every part of your journey",
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fef9ef,_#f0f5f2)] dark:bg-[radial-gradient(circle_at_top,_#0f172a,_#020617)] px-4 py-12">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#fef9ef,_#f0f5f2)] dark:bg-[radial-gradient(circle_at_top,_#0f172a,_#020617)] px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-5xl">
-        <div className="grid overflow-hidden rounded-[32px] border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_25px_70px_rgba(15,23,42,0.15)] dark:bg-slate-900/70 dark:border-slate-800 lg:grid-cols-2">
+        <div className="grid overflow-hidden rounded-[32px] border border-white/60 bg-white/80 backdrop-blur-xl shadow-[0_25px_70px_rgba(15,23,42,0.18)] dark:bg-slate-900/70 dark:border-slate-800 lg:grid-cols-2">
           {/* Story panel */}
-          <div className="relative hidden flex-col justify-between bg-gradient-to-b from-amber-50 via-emerald-100/80 to-emerald-50/80 p-10 text-slate-800 dark:from-emerald-900/60 dark:via-slate-900/60 dark:to-slate-950 lg:flex">
+          <div className="relative flex flex-col justify-between gap-8 bg-gradient-to-b from-amber-50 via-emerald-100/80 to-emerald-50/80 p-8 sm:p-10 text-slate-800 border-b border-white/40 dark:from-emerald-900/60 dark:via-slate-900/60 dark:to-slate-950 dark:border-white/10 lg:border-b-0 lg:border-r lg:border-white/20">
             <div>
               <span className="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Since 1920
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 The Ceylon Tea Experience
               </h2>
               <p className="mt-4 text-base leading-relaxed text-slate-600">
-                We pair heritage teas with mindful rituals to help you slow down, breathe, and reconnect with what matters.
+                We craft restorative tea journeys that invite you to pause, breathe deeply, and rediscover balance.
               </p>
             </div>
             <div className="space-y-4">
@@ -88,16 +88,18 @@ export default function LoginPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-10 text-sm text-slate-500">
-              Open daily | Tailored itineraries | World-class hospitality
+            <div className="text-sm text-slate-500">
+              Open year-round | Custom itineraries | Dedicated hospitality
             </div>
           </div>
 
           {/* Form panel */}
-          <div className="bg-white/95 p-8 sm:p-12 dark:bg-slate-900/90">
+          <div className="bg-white p-6 sm:p-10 dark:bg-slate-900/90">
             <Card className="border-0 bg-transparent shadow-none">
               <CardHeader className="space-y-4 text-center">
-                
+                <div className="flex justify-center">
+                  
+                </div>
                 <div className="space-y-1">
                   <CardTitle className="text-2xl font-semibold">Welcome back</CardTitle>
                   <CardDescription className="text-base">
@@ -153,7 +155,7 @@ export default function LoginPage() {
                     {isLoading ? "Signing in..." : "Sign in"}
                   </Button>
                   <p className="text-center text-sm text-muted-foreground">
-                    New to Reviva? <Link href="/contact" className="font-medium text-primary hover:underline">Chat with our concierge</Link>
+                    New to Reviva? <Link href="/contact" className="font-medium text-primary hover:underline">Chat with our admin team</Link>
                   </p>
                 </form>
               </CardContent>
