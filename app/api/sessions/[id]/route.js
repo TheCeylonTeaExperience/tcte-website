@@ -51,8 +51,15 @@ export async function GET(request, context) {
       );
     }
 
-    const session = await prisma.session.findUnique({
-      where: { id },
+    const session = await prisma.session.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        program: {
+          deletedAt: null,
+          location: { deletedAt: null },
+        },
+      },
       include: {
         program: {
           include: {
@@ -60,6 +67,7 @@ export async function GET(request, context) {
           },
         },
         sessionTypes: {
+          where: { deletedAt: null },
           orderBy: {
             price: "asc",
           },

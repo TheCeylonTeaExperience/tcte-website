@@ -7,9 +7,25 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
 
-    const where = {};
+    const where = {
+      deletedAt: null,
+      session: {
+        deletedAt: null,
+        program: {
+          deletedAt: null,
+          location: { deletedAt: null },
+        },
+      },
+    };
     if (sessionId) {
-      where.sessionId = parseInt(sessionId);
+      const parsedSessionId = Number.parseInt(sessionId, 10);
+      if (Number.isNaN(parsedSessionId)) {
+        return NextResponse.json(
+          { error: "Invalid sessionId" },
+          { status: 400 }
+        );
+      }
+      where.sessionId = parsedSessionId;
     }
 
     const sessionTypes = await prisma.sessionType.findMany({

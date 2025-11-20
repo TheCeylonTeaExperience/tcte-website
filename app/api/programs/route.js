@@ -38,11 +38,14 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const includeLocation = searchParams.get("includeLocation") === "true";
-    const isActive = searchParams.get("isActive");
+    const isActiveParam = searchParams.get("isActive");
 
-    const where = {};
-    if (isActive !== null && isActive !== undefined) {
-      where.isActive = isActive === "true";
+    const where = {
+      deletedAt: null,
+      location: { deletedAt: null },
+    };
+    if (isActiveParam !== null) {
+      where.isActive = isActiveParam === "true";
     }
 
     const programs = await prisma.program.findMany({
@@ -107,8 +110,11 @@ export async function POST(request) {
     }
 
     // Verify location exists
-    const location = await prisma.location.findUnique({
-      where: { id: parseInt(locationId) },
+    const location = await prisma.location.findFirst({
+      where: {
+        id: parseInt(locationId, 10),
+        deletedAt: null,
+      },
     });
 
     if (!location) {

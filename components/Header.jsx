@@ -36,12 +36,14 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Enhanced Logo */}
           <Link href="/" className="flex items-center space-x-2 group animate-fade-in-up hover-glow">
-            <span className="text-2xl font-serif font-bold text-primary transition-all duration-300 group-hover:scale-110 gradient-text">
-              Reviva
-            </span>
-            <span className="text-sm text-muted-foreground hidden sm:inline transition-all duration-300 group-hover:text-primary">
-              Tea Tours
-            </span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-serif font-bold text-primary transition-all duration-300 group-hover:scale-110 gradient-text">
+                THE CEYLON TEA
+              </span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider transition-all duration-300 group-hover:text-primary">
+                DISCOVER THE ART OF CEYLON TEA EXPERIENCE
+              </span>
+            </div>
           </Link>
 
           {/* Enhanced Desktop Navigation */}
