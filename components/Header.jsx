@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -35,15 +36,16 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Enhanced Logo */}
-          <Link href="/" className="flex items-center space-x-2 group animate-fade-in-up hover-glow">
-            <div className="flex flex-col leading-tight">
-              <span className="text-lg font-serif font-bold text-primary transition-all duration-300 group-hover:scale-110 gradient-text">
-                THE CEYLON TEA
-              </span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider transition-all duration-300 group-hover:text-primary">
-                DISCOVER THE ART OF CEYLON TEA EXPERIENCE
-              </span>
-            </div>
+          <Link href="/" className="flex items-center space-x-3 group animate-fade-in-up hover-glow">
+            <Image
+              src="/image/logo/logo.png"
+              alt="Reviva logo"
+              width={70}
+              height={70}
+              className="h-50 w-50 object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-110 filter brightness-0"
+              priority
+            />
+            
           </Link>
 
           {/* Enhanced Desktop Navigation */}

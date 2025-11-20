@@ -17,7 +17,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-serif font-bold">THE CEYLON TEA</h3>
+            <h3 className="text-2xl font-serif font-bold">THE CEYLON TEA EXPERIENCE</h3>
+        
             <p className="text-sm opacity-90">
               Discover the art of Ceylon tea experience. Experience the authentic journey from tea leaf to cup in our
               scenic tea estates.
