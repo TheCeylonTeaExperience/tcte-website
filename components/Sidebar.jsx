@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -135,12 +136,20 @@ export default function Sidebar({
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center border-b border-border px-4 justify-center md:justify-start">
-            <Link href="/" className="flex items-center space-x-2">
-              <Home className="h-6 w-6 text-primary shrink-0" />
-              {!isCollapsed && (
-                <span className="text-xl font-bold gradient-text">THE CEYLON TEA</span>
-              )}
+          <div className="flex h-20 items-center border-b border-border px-4 justify-center md:justify-start">
+            <Link href="/" className={cn("flex items-center", isCollapsed ? "justify-center" : "space-x-3") }>
+              <Image
+                src="/image/logo/logo.png"
+                alt="Reviva logo"
+                width={isCollapsed ? 50 : 66}
+                height={isCollapsed ? 50 : 66}
+                className={cn(
+                  "object-contain filter brightness-0 drop-shadow-sm",
+                  isCollapsed ? "h-40 w-40" : "h-40 w-40"
+                )}
+                priority
+              />
+             
             </Link>
           </div>
 
