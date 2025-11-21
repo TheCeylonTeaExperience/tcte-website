@@ -123,6 +123,7 @@ export default function BookNow() {
     packs: 1,
     payment: "",
     notes: "",
+    promoCode: "",
   });
   const [seasonSelections, setSeasonSelections] = useState({});
   const [useGlobalSeatCount, setUseGlobalSeatCount] = useState(false);
@@ -615,7 +616,23 @@ export default function BookNow() {
                     <h2 className="text-2xl font-serif font-bold text-primary">
                       Personal Information
                     </h2>
-
+ <div>
+                      <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="promoCode"
+                          value={formData.promoCode || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, promoCode: e.target.value })
+                          }
+                          placeholder="Enter promo code if you have one"
+                          className="flex-1"
+                        />
+                        <Button type="button" variant="outline">
+                          Verify
+                        </Button>
+                      </div>
+                    </div>
                     <div>
                       <Label htmlFor="name">Full Name *</Label>
                       <Input
@@ -628,6 +645,8 @@ export default function BookNow() {
                         placeholder="John Doe"
                       />
                     </div>
+
+                   
 
                     <div>
                       <Label htmlFor="email">Email *</Label>
