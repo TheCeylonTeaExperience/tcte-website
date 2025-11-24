@@ -209,10 +209,12 @@ export default function BookNow() {
   const selectedProgramTitles = useMemo(
     () =>
       formData.programIds
-        .map(
-          (id) =>
-            programOptions.find((program) => program.id === id)?.title ?? null
-        )
+        .map((id) => {
+          const matchedProgram = programOptions.find(
+            (program) => (program.id ?? program.title) === id
+          );
+          return matchedProgram?.title ?? null;
+        })
         .filter(Boolean),
     [formData.programIds, programOptions]
   );
@@ -245,7 +247,8 @@ export default function BookNow() {
       const nameValid = Boolean(guest?.name && guest.name.trim());
       const idValid = Boolean(guest?.idNumber && guest.idNumber.trim());
       const phoneValid = Boolean(guest?.phone && guest.phone.trim());
-      return nameValid && idValid && phoneValid;
+      const emailValid = Boolean(guest?.email && guest.email.trim());
+      return nameValid && idValid && phoneValid && emailValid;
     });
   }, [guestDetails]);
 
@@ -270,6 +273,7 @@ export default function BookNow() {
           name: "",
           idNumber: "",
           phone: "",
+          email: "",
         }));
         return [...prev, ...additional];
       }
@@ -443,15 +447,39 @@ export default function BookNow() {
     }
   };
 
-  const hasValidSeasonSelection =
-    Object.keys(seasonSelections).length > 0 &&
-    Object.values(seasonSelections).every(
-      (entry) =>
-        entry.seatsRequested > 0 &&
-        Object.values(entry.activities).some(
-          (act) => act.selected && Object.keys(act.sessionTypes).length > 0
-        )
-    );
+  const hasValidSeasonSelection = useMemo(() => {
+    if (Object.keys(seasonSelections).length === 0) {
+      return false;
+    }
+
+    return Object.entries(seasonSelections).every(([seasonId, entry]) => {
+      if (!entry || entry.seatsRequested <= 0) {
+        return false;
+      }
+
+      const selectedActivities = Object.entries(entry.activities ?? {}).filter(
+        ([_, activity]) => activity?.selected
+      );
+
+      if (selectedActivities.length === 0) {
+        return false;
+      }
+
+      return selectedActivities.some(([activityName, activity]) => {
+        const season = availabilityForDate?.find((item) => item.id === seasonId);
+        const matchingActivity = season?.activities?.find(
+          (item) => item.name === activityName
+        );
+        const sessionTypes = matchingActivity?.sessionTypes ?? [];
+
+        if (!sessionTypes.length) {
+          return true;
+        }
+
+        return Object.keys(activity.sessionTypes ?? {}).length > 0;
+      });
+    });
+  }, [availabilityForDate, seasonSelections]);
 
   const seasonSelectionSummary = Object.entries(seasonSelections).map(
     ([seasonId, details]) => {
@@ -498,7 +526,12 @@ export default function BookNow() {
   const handleGuestDetailChange = (index, field, value) => {
     setGuestDetails((prev) => {
       const next = [...prev];
-      const existing = next[index] ?? { name: "", idNumber: "", phone: "" };
+      const existing = next[index] ?? {
+        name: "",
+        idNumber: "",
+        phone: "",
+        email: "",
+      };
       next[index] = {
         ...existing,
         [field]: value,
@@ -594,7 +627,8 @@ export default function BookNow() {
             const namePart = guest?.name?.trim() || `Guest ${index + 1}`;
             const idPart = guest?.idNumber?.trim() || "ID N/A";
             const phonePart = guest?.phone?.trim() || "Phone N/A";
-            return `${index + 1}. ${namePart} • ${idPart} • ${phonePart}`;
+            const emailPart = guest?.email?.trim() || "Email N/A";
+            return `${index + 1}. ${namePart} • ${idPart} • ${phonePart} • ${emailPart}`;
           })
           .join(" | ")
       : "No guest details provided";
@@ -660,7 +694,7 @@ export default function BookNow() {
                               <span className="font-medium text-foreground">
                                 Guest {index + 1}:
                               </span>{" "}
-                              {guest.name || "Name pending"} • {guest.idNumber || "ID pending"} • {guest.phone || "Phone pending"}
+                              {guest.name || "Name pending"} • {guest.idNumber || "ID pending"} • {guest.phone || "Phone pending"} • {guest.email || "Email pending"}
                             </li>
                           ))}
                         </ul>
@@ -836,6 +870,83 @@ export default function BookNow() {
                         <h2 className="text-2xl font-serif font-bold text-primary">
                           Booking Details
                         </h2>
+
+                        <div className="space-y-3">
+                          <Label className="text-base font-medium">
+                            Select Program(s) *
+                          </Label>
+                          {programsLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                              Loading available programs...
+                            </p>
+                          ) : programsError ? (
+                            <p className="text-sm text-red-600">
+                              {programsError}
+                            </p>
+                          ) : programOptions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              No programs are available for booking right now. Please check back later or contact us for assistance.
+                            </p>
+                          ) : (
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {programOptions.map((program) => {
+                                const resolvedId = program.id ?? program.title;
+                                const checkboxId = `program-${String(resolvedId)
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9]+/g, "-")}`;
+                                const isSelected = formData.programIds.includes(resolvedId);
+                                const timeRange =
+                                  program?.startTime && program?.endTime
+                                    ? formatTimeRange(program.startTime, program.endTime)
+                                    : null;
+                                return (
+                                  <div
+                                    key={String(resolvedId)}
+                                    className={`rounded-lg border p-4 transition-colors ${
+                                      isSelected
+                                        ? "border-primary bg-primary/5"
+                                        : "border-muted-foreground/30 bg-background"
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <Checkbox
+                                        id={checkboxId}
+                                        checked={isSelected}
+                                        onCheckedChange={() => handleProgramToggle(resolvedId)}
+                                      />
+                                      <label
+                                        htmlFor={checkboxId}
+                                        className="flex-1 cursor-pointer space-y-2"
+                                      >
+                                        <div>
+                                          <p className="text-sm font-semibold text-foreground">
+                                            {program.title || "Untitled Program"}
+                                          </p>
+                                          {program?.location?.name && (
+                                            <p className="text-xs text-muted-foreground">
+                                              {program.location.name}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="space-y-1 text-xs text-muted-foreground">
+                                          {timeRange && <p>Time: {timeRange}</p>}
+                                          {typeof program?.seats === "number" && (
+                                            <p>Seats available: {program.seats}</p>
+                                          )}
+                                          {program?.description && (
+                                            <p className="line-clamp-3">
+                                              {program.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </label>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
 
                         <div>
                           <Label htmlFor="location">Select Location *</Label>
@@ -1227,12 +1338,12 @@ export default function BookNow() {
                         type="submit"
                         size="lg"
                         className="w-full"
-                        disabled={
-                          !selectedDate ||
-                          formData.programIds.length === 0 ||
-                          !hasValidSeasonSelection ||
-                          totalSeatsRequested === 0
-                        }
+                        // disabled={
+                        //   !selectedDate ||
+                        //   formData.programIds.length === 0 ||
+                        //   !hasValidSeasonSelection ||
+                        //   totalSeatsRequested === 0
+                        // }
                       >
                         Next
                       </Button>
@@ -1266,7 +1377,7 @@ export default function BookNow() {
                                     Seat #{index + 1}
                                   </span>
                                 </div>
-                                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                   <div className="sm:col-span-1">
                                     <Label htmlFor={`guest-name-${index}`} className="text-sm">
                                       Full Name
@@ -1306,6 +1417,21 @@ export default function BookNow() {
                                         handleGuestDetailChange(index, "phone", e.target.value)
                                       }
                                       placeholder="Contact number"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="sm:col-span-1">
+                                    <Label htmlFor={`guest-email-${index}`} className="text-sm">
+                                      Email
+                                    </Label>
+                                    <Input
+                                      id={`guest-email-${index}`}
+                                      type="email"
+                                      value={guest.email}
+                                      onChange={(e) =>
+                                        handleGuestDetailChange(index, "email", e.target.value)
+                                      }
+                                      placeholder="guest@example.com"
                                       required
                                     />
                                   </div>
