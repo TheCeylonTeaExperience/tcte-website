@@ -138,13 +138,25 @@ export default function BookNow() {
   const [guestDetails, setGuestDetails] = useState([]);
 
   const formatTimeRange = useCallback((startIso, endIso) => {
-    try {
-      const startLabel = format(new Date(startIso), "HH:mm");
-      const endLabel = format(new Date(endIso), "HH:mm");
-      return `${startLabel} - ${endLabel}`;
-    } catch (error) {
+    const formatUtcTime = (isoString) => {
+      if (!isoString) return "";
+      const date = new Date(isoString);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const hours = String(date.getUTCHours()).padStart(2, "0");
+      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`;
+    };
+
+    const startLabel = formatUtcTime(startIso);
+    const endLabel = formatUtcTime(endIso);
+
+    if (!startLabel || !endLabel) {
       return "";
     }
+
+    return `${startLabel} - ${endLabel}`;
   }, []);
 
   const availabilityForDate = useMemo(() => {
