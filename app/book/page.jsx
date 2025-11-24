@@ -760,118 +760,50 @@ export default function BookNow() {
         {/* Booking Form */}
         <section className="py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            
             <Card className="max-w-3xl mx-auto">
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {currentStage === "booking" ? (
                     <>
-                      {/* Personal Information */}
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary">
-                          Personal Information
-                        </h2>
-                        <div>
-                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="promoCode"
-                              value={formData.promoCode || ""}
-                              onChange={(e) =>
-                                setFormData({ ...formData, promoCode: e.target.value })
-                              }
-                              placeholder="Enter promo code if you have one"
-                              className="flex-1"
-                            />
-                            <Button type="button" variant="outline">
-                              Verify
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="name">Full Name *</Label>
-                          <Input
-                            id="name"
-                            required
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData({ ...formData, name: e.target.value })
-                            }
-                            placeholder="John Doe"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="email">Email *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            required
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData({ ...formData, email: e.target.value })
-                            }
-                            placeholder="john@example.com"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="phone">Phone Number *</Label>
-                          <div className="flex gap-2">
-                            <Select
-                              value={formData.countryCode}
-                              onValueChange={(value) =>
-                                setFormData({ ...formData, countryCode: value })
-                              }
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {countryCodes.map((item) => (
-                                  <SelectItem key={item.code} value={item.code}>
-                                    {item.code} {item.country}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              id="phone"
-                              type="tel"
-                              required
-                              className="flex-1"
-                              value={formData.phone}
-                              onChange={(e) =>
-                                setFormData({ ...formData, phone: e.target.value })
-                              }
-                              placeholder="234567890"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="packs">Number of People (0-8)</Label>
-                          <Input
-                            id="packs"
-                            type="number"
-                            min="0"
-                            max="8"
-                            value={formData.packs}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                packs: parseInt(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      {/* Booking Details */}
+                     {/* Booking Details */}
                       <div className="space-y-4">
                         <h2 className="text-2xl font-serif font-bold text-primary">
                           Booking Details
                         </h2>
-
-                        <div className="space-y-3">
+                         <div>
+                          <Label htmlFor="location">Select Location *</Label>
+                          <Select
+                            value={formData.location}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, location: value })
+                            }
+                            required
+                          >
+                            <SelectTrigger id="location">
+                              <SelectValue placeholder="Choose a location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {locationChoices.map((loc) => (
+                                <SelectItem key={loc} value={loc}>
+                                  {loc}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+<div>
+                          <Label>Select Date *</Label>
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            disabled={(date) => date < new Date()}
+                            className="rounded-md border"
+                          />
+                        </div>
+                       
+                        {/* <div className="space-y-3">
                           <Label className="text-base font-medium">
                             Select Program(s) *
                           </Label>
@@ -946,40 +878,11 @@ export default function BookNow() {
                               })}
                             </div>
                           )}
-                        </div>
+                        </div> */}
 
-                        <div>
-                          <Label htmlFor="location">Select Location *</Label>
-                          <Select
-                            value={formData.location}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, location: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger id="location">
-                              <SelectValue placeholder="Choose a location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {locationChoices.map((loc) => (
-                                <SelectItem key={loc} value={loc}>
-                                  {loc}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        
 
-                        <div>
-                          <Label>Select Date *</Label>
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            disabled={(date) => date < new Date()}
-                            className="rounded-md border"
-                          />
-                        </div>
+                        
 
                         {selectedDate && (
                           <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
@@ -1293,7 +1196,7 @@ export default function BookNow() {
                           </div>
                         )}
 
-                        <div>
+                        {/* <div>
                           <Label htmlFor="payment">Payment Option *</Label>
                           <Select
                             value={formData.payment}
@@ -1318,7 +1221,7 @@ export default function BookNow() {
                               upon arrival
                             </p>
                           )}
-                        </div>
+                        </div> */}
 
                         <div>
                           <Label htmlFor="notes">Additional Notes (Optional)</Label>
@@ -1333,6 +1236,92 @@ export default function BookNow() {
                           />
                         </div>
                       </div>
+                      {/* Personal Information */}
+                      <div className="space-y-4">
+                        <h2 className="text-2xl font-serif font-bold text-primary">
+                          Personal Information
+                        </h2>
+                        <div>
+                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="promoCode"
+                              value={formData.promoCode || ""}
+                              onChange={(e) =>
+                                setFormData({ ...formData, promoCode: e.target.value })
+                              }
+                              placeholder="Enter promo code if you have one"
+                              className="flex-1"
+                            />
+                            <Button type="button" variant="outline">
+                              Verify
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="name">Full Name *</Label>
+                          <Input
+                            id="name"
+                            required
+                            value={formData.name}
+                            onChange={(e) =>
+                              setFormData({ ...formData, name: e.target.value })
+                            }
+                            placeholder="John Doe"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="email">Email *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={(e) =>
+                              setFormData({ ...formData, email: e.target.value })
+                            }
+                            placeholder="john@example.com"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="phone">Phone Number *</Label>
+                          <div className="flex gap-2">
+                            <Select
+                              value={formData.countryCode}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, countryCode: value })
+                              }
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countryCodes.map((item) => (
+                                  <SelectItem key={item.code} value={item.code}>
+                                    {item.code} {item.country}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              id="phone"
+                              type="tel"
+                              required
+                              className="flex-1"
+                              value={formData.phone}
+                              onChange={(e) =>
+                                setFormData({ ...formData, phone: e.target.value })
+                              }
+                              placeholder="234567890"
+                            />
+                          </div>
+                        </div>
+                        
+                      </div>
+
+                     
 
                       <Button
                         type="submit"
