@@ -38,6 +38,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const programId = searchParams.get("programId");
+    const includeTypes = searchParams.get("includeTypes") === "true";
 
     const where = {
       deletedAt: null,
@@ -57,18 +58,31 @@ export async function GET(request) {
       where.programId = parsedProgramId;
     }
 
-    const sessions = await prisma.session.findMany({
-      where,
-      include: {
-        program: {
-          include: {
-            location: true,
-          },
-        },
-        _count: {
-          select: { sessionTypes: true },
+    const include = {
+      program: {
+        include: {
+          location: true,
         },
       },
+      _count: {
+        select: { sessionTypes: true },
+      },
+    };
+
+    if (includeTypes) {
+      include.sessionTypes = {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          price: "asc",
+        },
+      };
+    }
+
+    const sessions = await prisma.session.findMany({
+      where,
+      include,
       orderBy: {
         startTime: "asc",
       },
