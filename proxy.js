@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/jwt";
 
-const PUBLIC_API_PATH_PREFIXES = ["/api/public/"];
+const PUBLIC_API_PATH_PREFIXES = ["/api/public/", "/api/booking"];
 const PUBLIC_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute window
 const PUBLIC_RATE_LIMIT_MAX_REQUESTS = 60; // 60 requests per IP per window
 

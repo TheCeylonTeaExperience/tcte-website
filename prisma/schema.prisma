@@ -137,17 +137,38 @@ model SessionType {
 }
 
 model Payment {
-    id            Int       @id @default(autoincrement())
-    amount        Float
-    method        String
-    transactionId String    @unique
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
-    deletedAt     DateTime?
+    id                Int              @id @default(autoincrement())
+    provider          PaymentProvider  @default(MANUAL)
+    status            PaymentStatus    @default(PENDING)
+    amount            Float
+    currency          String           @default("LKR")
+    method            String?
+    orderId           String?          @unique
+    transactionId     String?          @unique
+    payherePaymentId  String?          @unique
+    payhereStatusCode Int?
+    payhereStatusMsg  String?
+    payhereMd5Sig     String?
+    metadata          Json?
+    createdAt         DateTime         @default(now())
+    updatedAt         DateTime         @updatedAt
+    deletedAt         DateTime?
 
     bookings Booking[]
 
     @@map("payments")
+}
+
+enum PaymentProvider {
+    MANUAL
+    PAYHERE
+}
+
+enum PaymentStatus {
+    PENDING
+    SUCCESS
+    FAILED
+    CANCELED
 }
 
 model Booking {

@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import prisma from "@/lib/prisma";
 
 const PAYMENT_TYPES = new Set(["Full", "Installment"]);
+const PAYMENT_PROVIDERS = new Set(["MANUAL", "PAYHERE"]);
+const DEFAULT_CURRENCY = "LKR";
+const PAYHERE_DEFAULT_ACTION_URL =
+  process.env.PAYHERE_CHECKOUT_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://www.payhere.lk/pay/checkout"
+    : "https://sandbox.payhere.lk/pay/checkout");
 
 class HttpError extends Error {
   constructor(message, status = 400) {
@@ -26,14 +34,47 @@ export async function POST(request) {
       leaderId,
       bookedDate,
       selections,
-      payment: { paymentType, method, transactionId },
+      payment = {},
+      customer = {},
     } = payload;
+
+    const {
+      paymentType,
+      provider: rawProvider,
+      method,
+      transactionId,
+      currency: paymentCurrency,
+      orderId: providedOrderId,
+    } = payment;
+
+    const normalizedProvider =
+      typeof rawProvider === "string" ? rawProvider.toUpperCase() : "MANUAL";
+    const paymentProvider = PAYMENT_PROVIDERS.has(normalizedProvider)
+      ? normalizedProvider
+      : "MANUAL";
 
     const bookingDate = new Date(bookedDate);
     if (Number.isNaN(bookingDate.getTime())) {
       return NextResponse.json(
         { success: false, error: "Invalid bookedDate provided" },
         { status: 400 }
+      );
+    }
+
+    const leader = await prisma.leader.findFirst({
+      where: { id: leaderId, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        contact: true,
+      },
+    });
+
+    if (!leader) {
+      return NextResponse.json(
+        { success: false, error: "Leader not found" },
+        { status: 404 }
       );
     }
 
@@ -93,7 +134,24 @@ export async function POST(request) {
 
     const totalAmount = pricing.reduce((sum, item) => sum + item.total, 0);
 
-    const booking = await prisma.$transaction(async (tx) => {
+    const currency =
+      typeof paymentCurrency === "string" && paymentCurrency.trim().length > 0
+        ? paymentCurrency.trim().toUpperCase()
+        : DEFAULT_CURRENCY;
+
+    const resolvedOrderId =
+      paymentProvider === "PAYHERE"
+        ? providedOrderId?.trim() || generatePayHereOrderId(leaderId)
+        : providedOrderId?.trim() || null;
+
+    const paymentMethodName =
+      paymentProvider === "PAYHERE"
+        ? "PayHere Checkout"
+        : method?.trim() || method || null;
+
+    const customerDetails = buildCustomerDetails(customer, leader);
+
+    const transactionResult = await prisma.$transaction(async (tx) => {
       const availabilityRecords = await validateAvailability(
         tx,
         bookingDate,
@@ -102,16 +160,18 @@ export async function POST(request) {
         programMap
       );
 
-      const paymentRecord = await tx.payment.upsert({
-        where: { transactionId },
-        update: {
+      const paymentRecord = await tx.payment.create({
+        data: {
+          provider: paymentProvider,
+          status: paymentProvider === "PAYHERE" ? "PENDING" : "SUCCESS",
           amount: totalAmount,
-          method,
-        },
-        create: {
-          amount: totalAmount,
-          method,
-          transactionId,
+          currency,
+          method: paymentMethodName,
+          orderId: resolvedOrderId,
+          transactionId:
+            paymentProvider === "MANUAL" && transactionId
+              ? transactionId
+              : null,
         },
       });
 
@@ -150,9 +210,7 @@ export async function POST(request) {
 
       // Update availability for each unique session
       for (const [sessionId, totalDecrement] of decrementMap) {
-        const availability = availabilityRecords.find(
-          (record) => record.sessionId === sessionId
-        );
+        const availability = availabilityRecords.get(sessionId);
 
         if (!availability) {
           throw new HttpError(`Availability record not found for session ${sessionId}`);
@@ -180,13 +238,71 @@ export async function POST(request) {
         }
       }
 
-      return bookingRecord;
+      return { bookingRecord, paymentRecord };
     });
+
+    const { bookingRecord, paymentRecord } = transactionResult;
+
+    const booking = bookingRecord;
+
+    let paymentRedirect = null;
+
+    if (paymentProvider === "PAYHERE") {
+      const payHereConfig = getPayHereConfig();
+      const amountFormatted = formatPayHereAmount(totalAmount);
+      const hashedSecret = md5Upper(payHereConfig.merchantSecret);
+      const hash = md5Upper(
+        `${payHereConfig.merchantId}${paymentRecord.orderId}${amountFormatted}${currency}${hashedSecret}`
+      );
+
+      const itemsLabel = buildPayHereItems(selections, sessionMap);
+
+      paymentRedirect = {
+        actionUrl: payHereConfig.actionUrl,
+        params: {
+          merchant_id: payHereConfig.merchantId,
+          return_url: payHereConfig.returnUrl,
+          cancel_url: payHereConfig.cancelUrl,
+          notify_url: payHereConfig.notifyUrl,
+          order_id: paymentRecord.orderId,
+          items: itemsLabel,
+          currency,
+          amount: amountFormatted,
+          first_name: customerDetails.firstName,
+          last_name: customerDetails.lastName,
+          email: customerDetails.email,
+          phone: customerDetails.phone,
+          address: customerDetails.address,
+          city: customerDetails.city,
+          country: customerDetails.country,
+          hash,
+          custom_1: String(booking.id),
+          custom_2: String(leaderId),
+        },
+      };
+
+      await prisma.payment.update({
+        where: { id: paymentRecord.id },
+        data: {
+          payhereMd5Sig: hash,
+          metadata: {
+            checkout: {
+              generatedAt: new Date().toISOString(),
+              items: itemsLabel,
+            },
+          },
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
       bookingId: booking.id,
-      message: "Booking created successfully",
+      message:
+        paymentProvider === "PAYHERE"
+          ? "Booking created. Redirecting to payment gateway."
+          : "Booking created successfully",
+      paymentRedirect,
     });
   } catch (error) {
     console.error("Booking creation failed", error);
@@ -235,12 +351,23 @@ function validatePayload(payload) {
     return "Unsupported payment type";
   }
 
-  if (!payment.method) {
-    return "Payment method is required";
+  const provider =
+    typeof payment.provider === "string"
+      ? payment.provider.toUpperCase()
+      : "MANUAL";
+
+  if (!PAYMENT_PROVIDERS.has(provider)) {
+    return "Unsupported payment provider";
   }
 
-  if (!payment.transactionId) {
-    return "Payment transactionId is required";
+  if (provider === "MANUAL") {
+    if (!payment.method) {
+      return "Payment method is required";
+    }
+
+    if (!payment.transactionId) {
+      return "Payment transactionId is required";
+    }
   }
 
   return null;
@@ -293,7 +420,7 @@ function validateSessionConflicts(selections, sessionMap) {
 }
 
 async function validateAvailability(tx, bookedDate, selections, sessionMap, programMap) {
-  const availabilityRecords = [];
+  const availabilityRecords = new Map();
   const sessionTotals = new Map();
 
   // Aggregate seats requested per session
@@ -343,19 +470,8 @@ async function validateAvailability(tx, bookedDate, selections, sessionMap, prog
         409
       );
     }
-  }
 
-  // Now build the records array in selection order
-  for (const selection of selections) {
-    const availability = await tx.availability.findFirst({
-      where: {
-        sessionId: selection.sessionId,
-        date: bookedDate,
-      },
-    });
-
-    // Should always exist now
-    availabilityRecords.push(availability);
+    availabilityRecords.set(sessionId, availability);
   }
 
   return availabilityRecords;
@@ -508,6 +624,86 @@ async function createCustomerRecords(tx, leaderId, selections) {
   }
 
   return selectionCustomerIds;
+}
+
+function generatePayHereOrderId(leaderId) {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.floor(Math.random() * 1_000_000)
+    .toString(36)
+    .toUpperCase();
+  return `RV-${leaderId}-${timestamp}-${random}`.slice(0, 40);
+}
+
+function formatPayHereAmount(amount) {
+  const numeric = Number(amount || 0);
+  return Number.isNaN(numeric) ? "0.00" : numeric.toFixed(2);
+}
+
+function md5Upper(value) {
+  return createHash("md5").update(String(value)).digest("hex").toUpperCase();
+}
+
+function getPayHereConfig() {
+  const merchantId = process.env.PAYHERE_MERCHANT_ID;
+  const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET;
+  const returnUrl = process.env.PAYHERE_RETURN_URL;
+  const cancelUrl = process.env.PAYHERE_CANCEL_URL;
+  const notifyUrl = process.env.PAYHERE_NOTIFY_URL;
+
+  if (!merchantId || !merchantSecret || !returnUrl || !cancelUrl || !notifyUrl) {
+    throw new HttpError("PayHere integration is not configured", 500);
+  }
+
+  return {
+    merchantId,
+    merchantSecret,
+    returnUrl,
+    cancelUrl,
+    notifyUrl,
+    actionUrl: PAYHERE_DEFAULT_ACTION_URL,
+  };
+}
+
+function buildCustomerDetails(customer, leader) {
+  const safeName = (customer?.name || leader?.name || "Guest").trim();
+  const [firstNameRaw, ...rest] = safeName.split(/\s+/);
+  const firstName = customer?.firstName?.trim() || firstNameRaw || "Guest";
+  const lastNameValue = customer?.lastName?.trim() || rest.join(" ") || "Customer";
+  const email = (customer?.email || leader?.email || "guest@example.com").trim();
+  const phone = (customer?.phone || leader?.contact || "0000000000").trim();
+  const address = customer?.address?.trim() || "N/A";
+  const city = customer?.city?.trim() || "Colombo";
+  const country = customer?.country?.trim() || "Sri Lanka";
+
+  return {
+    firstName,
+    lastName: lastNameValue,
+    email,
+    phone,
+    address,
+    city,
+    country,
+  };
+}
+
+function buildPayHereItems(selections, sessionMap) {
+  const sessionNames = new Set();
+
+  selections.forEach((selection) => {
+    const session = sessionMap.get(selection.sessionId);
+    if (session?.name) {
+      sessionNames.add(session.name);
+    }
+  });
+
+  if (sessionNames.size === 0) {
+    return "Tea Experience Booking";
+  }
+
+  const namesArray = Array.from(sessionNames);
+  const baseLabel = namesArray.slice(0, 3).join(", ");
+  const suffix = namesArray.length > 3 ? "..." : "";
+  return `Tea Sessions: ${baseLabel}${suffix}`.slice(0, 100);
 }
 
 async function createBookingItems(

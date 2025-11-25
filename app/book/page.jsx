@@ -136,6 +136,8 @@ export default function BookNow() {
   const [programsError, setProgramsError] = useState("");
   const [currentStage, setCurrentStage] = useState("booking");
   const [guestDetails, setGuestDetails] = useState([]);
+  const [verifiedLeader, setVerifiedLeader] = useState(null);
+  const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
 
   const formatTimeRange = useCallback((startIso, endIso) => {
     const formatUtcTime = (isoString) => {
@@ -162,20 +164,64 @@ export default function BookNow() {
   const availabilityForDate = useMemo(() => {
     if (!selectedDate || programOptions.length === 0) return null;
 
-    return programOptions.map((program) => ({
-      id: program.title,
-      window: formatTimeRange(program.startTime, program.endTime),
-      activities: program.sessions.map((session) => ({
-        name: session.name,
-        available: program.seats,
-        capacity: program.seats,
-        sessionTypes: session.sessionTypes.map((st) => ({
-          id: st.id,
-          name: st.name,
-          price: st.price,
-        })),
-      })),
-    }));
+    return programOptions.map((program) => {
+      const programId = program.id ?? program.title ?? "";
+      const parsedCapacity =
+        typeof program.seats === "number"
+          ? program.seats
+          : Number.parseInt(program.seats ?? "", 10);
+      const safeCapacity = Number.isNaN(parsedCapacity)
+        ? null
+        : Math.max(0, parsedCapacity);
+
+      const activities = Array.isArray(program.sessions)
+        ? program.sessions.map((session) => {
+            const availabilityInfo = session?.availabilityForDate ?? {};
+            const availableSource =
+              availabilityInfo.availableSeats ??
+              availabilityInfo.capacity ??
+              safeCapacity ??
+              0;
+            const parsedAvailable = Number.parseInt(availableSource ?? "", 10);
+            const safeAvailable = Number.isNaN(parsedAvailable)
+              ? 0
+              : Math.max(0, parsedAvailable);
+
+            const capacitySource =
+              availabilityInfo.capacity != null
+                ? availabilityInfo.capacity
+                : safeCapacity;
+            const parsedActivityCapacity = Number.parseInt(
+              capacitySource ?? "",
+              10
+            );
+            const safeActivityCapacity = Number.isNaN(parsedActivityCapacity)
+              ? null
+              : Math.max(0, parsedActivityCapacity);
+
+            return {
+              id: session.id,
+              name: session.name,
+              available: safeAvailable,
+              capacity: safeActivityCapacity,
+              sessionTypes: Array.isArray(session.sessionTypes)
+                ? session.sessionTypes.map((st) => ({
+                    id: st.id,
+                    name: st.name,
+                    price: st.price,
+                  }))
+                : [],
+            };
+          })
+        : [];
+
+      return {
+        id: program.title ?? String(programId),
+        window: formatTimeRange(program.startTime, program.endTime),
+        programId,
+        activities,
+      };
+    });
   }, [selectedDate, programOptions, formatTimeRange]);
 
   useEffect(() => {
@@ -185,9 +231,20 @@ export default function BookNow() {
       setProgramsLoading(true);
       setProgramsError("");
       try {
-        const response = await fetch("/api/public/programs", {
-          cache: "no-store",
-        });
+        const params = new URLSearchParams();
+        if (selectedDate) {
+          params.set("date", format(selectedDate, "yyyy-MM-dd"));
+        }
+
+        const queryString = params.toString();
+        const response = await fetch(
+          queryString
+            ? `/api/public/programs?${queryString}`
+            : "/api/public/programs",
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Unable to load programs at this time");
@@ -216,15 +273,16 @@ export default function BookNow() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedDate]);
 
   const selectedProgramTitles = useMemo(
     () =>
       formData.programIds
         .map((id) => {
-          const matchedProgram = programOptions.find(
-            (program) => (program.id ?? program.title) === id
-          );
+          const matchedProgram = programOptions.find((program) => {
+            const resolved = program.id ?? program.title;
+            return String(resolved) === String(id);
+          });
           return matchedProgram?.title ?? null;
         })
         .filter(Boolean),
@@ -325,30 +383,69 @@ export default function BookNow() {
   };
 
   const handleSeasonToggle = (seasonId) => {
-    setSeasonSelections((prev) => {
-      if (prev[seasonId]) {
+    const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
+    const resolvedProgramId = seasonMeta?.programId ?? seasonId;
+    const normalizedProgramId = String(resolvedProgramId);
+    const existingSelection = seasonSelections[seasonId];
+
+    if (existingSelection) {
+      const normalizedExistingProgramId = String(
+        existingSelection.programId ?? normalizedProgramId
+      );
+      const programStillUsed = Object.entries(seasonSelections).some(
+        ([key, value]) =>
+          key !== seasonId && String(value?.programId ?? key) === normalizedExistingProgramId
+      );
+
+      setSeasonSelections((prev) => {
         const { [seasonId]: _removed, ...rest } = prev;
         return rest;
+      });
+
+      if (!programStillUsed) {
+        setFormData((prev) => ({
+          ...prev,
+          programIds: prev.programIds.filter(
+            (id) => String(id) !== normalizedExistingProgramId
+          ),
+        }));
       }
 
-      const totalAvailable = getSeasonAvailabilityTotal(seasonId);
-      const initialSeats = useGlobalSeatCount
-        ? clampSeatRequest(globalSeatCount, seasonId)
-        : clampSeatRequest(totalAvailable > 0 ? 1 : 0, seasonId);
+      return;
+    }
 
+    const totalAvailable = getSeasonAvailabilityTotal(seasonId);
+    const initialSeats = useGlobalSeatCount
+      ? clampSeatRequest(globalSeatCount, seasonId)
+      : clampSeatRequest(totalAvailable > 0 ? 1 : 0, seasonId);
+
+    setSeasonSelections((prev) => ({
+      ...prev,
+      [seasonId]: {
+        programId: normalizedProgramId,
+        seatsRequested: initialSeats,
+        activities: {},
+      },
+    }));
+
+    setFormData((prev) => {
+      if (prev.programIds.some((id) => String(id) === normalizedProgramId)) {
+        return prev;
+      }
       return {
         ...prev,
-        [seasonId]: {
-          seatsRequested: initialSeats,
-          activities: {},
-        },
+        programIds: [...prev.programIds, normalizedProgramId],
       };
     });
   };
 
   const handleActivityToggle = (seasonId, activityName) => {
+    const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
+    const normalizedProgramId = String(seasonMeta?.programId ?? seasonId);
+
     setSeasonSelections((prev) => {
       const existing = prev[seasonId] ?? {
+        programId: normalizedProgramId,
         seatsRequested: useGlobalSeatCount
           ? clampSeatRequest(globalSeatCount, seasonId)
           : clampSeatRequest(1, seasonId),
@@ -522,11 +619,78 @@ export default function BookNow() {
     { code: "+86", country: "CN" },
   ];
 
+  const handlePromoCodeChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      promoCode: value,
+    }));
+    setPromoStatus({ state: "idle", message: "" });
+    setVerifiedLeader(null);
+  };
+
+  const handleVerifyPromoCode = async () => {
+    const code = formData.promoCode?.trim();
+    if (!code) {
+      setPromoStatus({ state: "error", message: "Enter a promo code first." });
+      setVerifiedLeader(null);
+      return;
+    }
+
+    setPromoStatus({ state: "loading", message: "" });
+
+    try {
+      const params = new URLSearchParams({ code });
+      const response = await fetch(`/api/public/promo?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data?.error || "Promo code could not be verified.";
+        setPromoStatus({ state: "error", message });
+        setVerifiedLeader(null);
+        return;
+      }
+
+      setVerifiedLeader(data.leader);
+      setPromoStatus({
+        state: "success",
+        message: `Promo code verified. Booking under ${
+          data.leader?.name || data.leader?.email || "registered leader"
+        }`,
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        name: data.leader?.name || prev.name,
+        email: data.leader?.email || prev.email,
+      }));
+    } catch (error) {
+      console.error("Promo code verification failed", error);
+      setPromoStatus({
+        state: "error",
+        message: "Unable to verify promo code. Please try again.",
+      });
+      setVerifiedLeader(null);
+    }
+  };
+
+  const handleClearPromoCode = () => {
+    setVerifiedLeader(null);
+    setPromoStatus({ state: "idle", message: "" });
+    setFormData((prev) => ({
+      ...prev,
+      promoCode: "",
+    }));
+  };
+
   const handleProgramToggle = (programId) => {
+    const normalizedId = String(programId);
     setFormData((prev) => {
-      const nextProgramIds = prev.programIds.includes(programId)
-        ? prev.programIds.filter((id) => id !== programId)
-        : [...prev.programIds, programId];
+      const exists = prev.programIds.some((id) => String(id) === normalizedId);
+      const nextProgramIds = exists
+        ? prev.programIds.filter((id) => String(id) !== normalizedId)
+        : [...prev.programIds, normalizedId];
 
       return {
         ...prev,
@@ -557,6 +721,36 @@ export default function BookNow() {
     setCurrentStage("booking");
   };
 
+  const submitPayHereRedirect = useCallback((redirect) => {
+    if (!redirect || typeof window === "undefined") {
+      return;
+    }
+
+    const { actionUrl, params } = redirect;
+    if (!actionUrl || !params || typeof params !== "object") {
+      return;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = actionUrl;
+    form.style.display = "none";
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (currentStage === "booking") {
@@ -582,6 +776,23 @@ export default function BookNow() {
         return;
       }
 
+      if (!verifiedLeader) {
+        if (!formData.name?.trim()) {
+          alert("Enter your full name before continuing.");
+          return;
+        }
+
+        if (!formData.email?.trim()) {
+          alert("Enter a valid email before continuing.");
+          return;
+        }
+
+        if (!formData.phone?.trim()) {
+          alert("Enter a contact number before continuing.");
+          return;
+        }
+      }
+
       setCurrentStage("guests");
       return;
     }
@@ -600,12 +811,151 @@ export default function BookNow() {
     setIsSubmitting(true);
 
     try {
-      const bookingData = {
-        ...formData,
-        programs: selectedProgramTitles,
-        date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
-        seasonSelections,
-        guests: guestDetails,
+      if (!selectedDate) {
+        throw new Error("Select a date before confirming your booking.");
+      }
+
+      const bookingDate = new Date(selectedDate);
+      bookingDate.setUTCHours(0, 0, 0, 0);
+
+      const contactNumber = [formData.countryCode, formData.phone]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      let leaderId = verifiedLeader?.id;
+
+      if (!leaderId) {
+        const leaderPayload = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          contact: contactNumber,
+        };
+
+        const leaderResponse = await fetch("/api/public/leaders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(leaderPayload),
+        });
+
+        const leaderResult = await leaderResponse.json();
+
+        if (!leaderResponse.ok) {
+          throw new Error(leaderResult?.error || "Could not save your contact details.");
+        }
+
+        leaderId = leaderResult?.leader?.id;
+      }
+
+      if (!leaderId) {
+        throw new Error("Unable to determine the booking contact.");
+      }
+
+      const primaryName = (verifiedLeader?.name || formData.name || "Guest").trim();
+      const [firstName, ...restNames] = primaryName.split(/\s+/);
+      const lastName = restNames.join(" ") || "Customer";
+      const primaryEmail = (verifiedLeader?.email || formData.email || "guest@example.com").trim();
+      const primaryPhone = (verifiedLeader?.contact || contactNumber || "0000000000").trim();
+      const addressLine = formData.notes?.trim() || formData.location || "N/A";
+      const cityValue = formData.location || "Colombo";
+      const countryValue = "Sri Lanka";
+
+      const customersPayload = guestDetails.map((guest) => ({
+        name: guest.name.trim(),
+        email: guest.email.trim(),
+        phone: guest.phone?.trim() || null,
+        nic: guest.idNumber?.trim() || null,
+      }));
+
+      const bookingSelections = [];
+
+      Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+        const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
+        if (seatsRequested <= 0) {
+          return;
+        }
+
+        const resolvedProgramId = selection?.programId ?? seasonId;
+        const program = programOptions.find((programOption) => {
+          const optionId = programOption.id ?? programOption.title;
+          return String(optionId) === String(resolvedProgramId);
+        });
+
+        if (!program) {
+          return;
+        }
+
+        const activityEntries = Object.entries(selection.activities ?? {}).filter(
+          ([, details]) => details?.selected
+        );
+
+        activityEntries.forEach(([activityName, details]) => {
+          const session = program.sessions?.find(
+            (item) => item.name === activityName
+          );
+
+          if (!session) {
+            return;
+          }
+
+          const parsedSessionId = Number.parseInt(session.id, 10);
+          if (Number.isNaN(parsedSessionId)) {
+            return;
+          }
+
+          const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+
+          if (sessionTypeIds.length === 0) {
+            bookingSelections.push({
+              sessionId: parsedSessionId,
+              seatsRequested,
+              customers: customersPayload,
+            });
+            return;
+          }
+
+          sessionTypeIds.forEach((typeId) => {
+            const parsedTypeId = Number.parseInt(typeId, 10);
+            if (Number.isNaN(parsedTypeId)) {
+              return;
+            }
+
+            bookingSelections.push({
+              sessionId: parsedSessionId,
+              sessionTypeId: parsedTypeId,
+              seatsRequested,
+              customers: customersPayload,
+            });
+          });
+        });
+      });
+
+      if (bookingSelections.length === 0) {
+        throw new Error("No activities were selected for this booking.");
+      }
+
+      const payload = {
+        leaderId,
+        bookedDate: bookingDate.toISOString(),
+        selections: bookingSelections,
+        payment: {
+          paymentType: "Full",
+          provider: "PAYHERE",
+          currency: "LKR",
+          method: "PayHere Checkout",
+        },
+        customer: {
+          name: primaryName,
+          firstName,
+          lastName,
+          email: primaryEmail,
+          phone: primaryPhone,
+          address: addressLine,
+          city: cityValue,
+          country: countryValue,
+        },
       };
 
       const response = await fetch("/api/booking", {
@@ -613,26 +963,36 @@ export default function BookNow() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
 
-      if (response.ok) {
-        setReferenceCode(result.referenceCode);
-        setBookingConfirmed(true);
-      } else {
-        alert(result.error || "Booking failed. Please try again.");
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Booking failed. Please try again.");
       }
+
+      if (result.paymentRedirect) {
+        submitPayHereRedirect(result.paymentRedirect);
+        return;
+      }
+
+      const bookingReference =
+        result.referenceCode ??
+        (result.bookingId ? `RV-${String(result.bookingId)}` : null);
+      setReferenceCode(bookingReference || "");
+      setBookingConfirmed(true);
     } catch (error) {
       console.error("Booking error:", error);
-      alert("An error occurred. Please try again.");
+      alert(error?.message || "An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (bookingConfirmed) {
+    const contactName =
+      verifiedLeader?.name?.trim() || formData.name?.trim() || "Guest";
     const guestSummaryText = guestDetails.length
       ? guestDetails
           .map((guest, index) => {
@@ -647,7 +1007,7 @@ export default function BookNow() {
 
     const whatsappMessage = encodeURIComponent(
       `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${
-        formData.name
+        contactName
       }\nDate: ${format(
         selectedDate,
         "PPP"
@@ -1259,77 +1619,116 @@ export default function BookNow() {
                             <Input
                               id="promoCode"
                               value={formData.promoCode || ""}
-                              onChange={(e) =>
-                                setFormData({ ...formData, promoCode: e.target.value })
-                              }
+                              onChange={(e) => handlePromoCodeChange(e.target.value)}
                               placeholder="Enter promo code if you have one"
                               className="flex-1"
+                              disabled={promoStatus.state === "loading"}
                             />
-                            <Button type="button" variant="outline">
-                              Verify
-                            </Button>
+                            {verifiedLeader ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleClearPromoCode}
+                                disabled={promoStatus.state === "loading"}
+                              >
+                                Clear
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleVerifyPromoCode}
+                                disabled={promoStatus.state === "loading"}
+                              >
+                                {promoStatus.state === "loading" ? "Verifying..." : "Verify"}
+                              </Button>
+                            )}
                           </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="name">Full Name *</Label>
-                          <Input
-                            id="name"
-                            required
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData({ ...formData, name: e.target.value })
-                            }
-                            placeholder="John Doe"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="email">Email *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            required
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData({ ...formData, email: e.target.value })
-                            }
-                            placeholder="john@example.com"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="phone">Phone Number *</Label>
-                          <div className="flex gap-2">
-                            <Select
-                              value={formData.countryCode}
-                              onValueChange={(value) =>
-                                setFormData({ ...formData, countryCode: value })
-                              }
+                          {promoStatus.message && (
+                            <p
+                              className={`mt-2 text-sm ${
+                                promoStatus.state === "error"
+                                  ? "text-red-600"
+                                  : "text-emerald-600"
+                              }`}
                             >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {countryCodes.map((item) => (
-                                  <SelectItem key={item.code} value={item.code}>
-                                    {item.code} {item.country}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              id="phone"
-                              type="tel"
-                              required
-                              className="flex-1"
-                              value={formData.phone}
-                              onChange={(e) =>
-                                setFormData({ ...formData, phone: e.target.value })
-                              }
-                              placeholder="234567890"
-                            />
-                          </div>
+                              {promoStatus.message}
+                            </p>
+                          )}
                         </div>
+                        {verifiedLeader ? (
+                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
+                            Booking will be linked to promo leader
+                            {" "}
+                            <span className="font-semibold">
+                              {verifiedLeader.name || verifiedLeader.email}
+                            </span>
+                            .
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <Label htmlFor="name">Full Name *</Label>
+                              <Input
+                                id="name"
+                                required={!verifiedLeader}
+                                value={formData.name}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, name: e.target.value })
+                                }
+                                placeholder="John Doe"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="email">Email *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                required={!verifiedLeader}
+                                value={formData.email}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, email: e.target.value })
+                                }
+                                placeholder="john@example.com"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="phone">Phone Number *</Label>
+                              <div className="flex gap-2">
+                                <Select
+                                  value={formData.countryCode}
+                                  onValueChange={(value) =>
+                                    setFormData({ ...formData, countryCode: value })
+                                  }
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {countryCodes.map((item) => (
+                                      <SelectItem key={item.code} value={item.code}>
+                                        {item.code} {item.country}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  id="phone"
+                                  type="tel"
+                                  required={!verifiedLeader}
+                                  className="flex-1"
+                                  value={formData.phone}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, phone: e.target.value })
+                                  }
+                                  placeholder="234567890"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
                         
                       </div>
 
