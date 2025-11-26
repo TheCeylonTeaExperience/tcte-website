@@ -140,23 +140,26 @@ export default function BookNow() {
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
 
   const formatTimeRange = useCallback((startIso, endIso) => {
-    const formatUtcTime = (isoString) => {
+    const formatTimeOfDay = (isoString) => {
       if (!isoString) return "";
       const date = new Date(isoString);
-      if (Number.isNaN(date.getTime())) {
-        return "";
-      }
-      const hours = String(date.getUTCHours()).padStart(2, "0");
-      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      if (Number.isNaN(date.getTime())) return "";
+
+      // Sessions are stored in the DB as SQL TIME fields which Prisma maps
+      // to JS Date objects anchored at 1970-01-01 in UTC. When that's the
+      // case we should read the UTC hours/minutes to get the intended
+      // time-of-day (avoid local timezone shift). For full datetimes use
+      // local time display.
+      const useUtc = date.getUTCFullYear() === 1970;
+      const hours = String(useUtc ? date.getUTCHours() : date.getHours()).padStart(2, "0");
+      const minutes = String(useUtc ? date.getUTCMinutes() : date.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
     };
 
-    const startLabel = formatUtcTime(startIso);
-    const endLabel = formatUtcTime(endIso);
+    const startLabel = formatTimeOfDay(startIso);
+    const endLabel = formatTimeOfDay(endIso);
 
-    if (!startLabel || !endLabel) {
-      return "";
-    }
+    if (!startLabel || !endLabel) return "";
 
     return `${startLabel} - ${endLabel}`;
   }, []);
@@ -815,8 +818,10 @@ export default function BookNow() {
         throw new Error("Select a date before confirming your booking.");
       }
 
-      const bookingDate = new Date(selectedDate);
-      bookingDate.setUTCHours(0, 0, 0, 0);
+      // Send bookedDate as a date-only string (YYYY-MM-DD).
+      // The API expects a date-like value; using a plain date string
+      // avoids client/server timezone conversion issues.
+      const bookingDateString = format(selectedDate, "yyyy-MM-dd");
 
       const contactNumber = [formData.countryCode, formData.phone]
         .filter(Boolean)
@@ -938,7 +943,7 @@ export default function BookNow() {
 
       const payload = {
         leaderId,
-        bookedDate: bookingDate.toISOString(),
+        bookedDate: bookingDateString,
         selections: bookingSelections,
         payment: {
           paymentType: "Full",
