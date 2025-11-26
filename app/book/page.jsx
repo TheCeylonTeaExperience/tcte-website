@@ -123,6 +123,7 @@ export default function BookNow() {
     packs: 1,
     payment: "",
     notes: "",
+    promoCode: "",
   });
   const [seasonSelections, setSeasonSelections] = useState({});
   const [useGlobalSeatCount, setUseGlobalSeatCount] = useState(false);
@@ -133,34 +134,94 @@ export default function BookNow() {
   const [programOptions, setProgramOptions] = useState([]);
   const [programsLoading, setProgramsLoading] = useState(false);
   const [programsError, setProgramsError] = useState("");
+  const [currentStage, setCurrentStage] = useState("booking");
+  const [guestDetails, setGuestDetails] = useState([]);
+  const [verifiedLeader, setVerifiedLeader] = useState(null);
+  const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
 
   const formatTimeRange = useCallback((startIso, endIso) => {
-    try {
-      const startLabel = format(new Date(startIso), "HH:mm");
-      const endLabel = format(new Date(endIso), "HH:mm");
-      return `${startLabel} - ${endLabel}`;
-    } catch (error) {
+    const formatUtcTime = (isoString) => {
+      if (!isoString) return "";
+      const date = new Date(isoString);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const hours = String(date.getUTCHours()).padStart(2, "0");
+      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`;
+    };
+
+    const startLabel = formatUtcTime(startIso);
+    const endLabel = formatUtcTime(endIso);
+
+    if (!startLabel || !endLabel) {
       return "";
     }
+
+    return `${startLabel} - ${endLabel}`;
   }, []);
 
   const availabilityForDate = useMemo(() => {
     if (!selectedDate || programOptions.length === 0) return null;
 
-    return programOptions.map((program) => ({
-      id: program.title,
-      window: formatTimeRange(program.startTime, program.endTime),
-      activities: program.sessions.map((session) => ({
-        name: session.name,
-        available: program.seats,
-        capacity: program.seats,
-        sessionTypes: session.sessionTypes.map((st) => ({
-          id: st.id,
-          name: st.name,
-          price: st.price,
-        })),
-      })),
-    }));
+    return programOptions.map((program) => {
+      const programId = program.id ?? program.title ?? "";
+      const parsedCapacity =
+        typeof program.seats === "number"
+          ? program.seats
+          : Number.parseInt(program.seats ?? "", 10);
+      const safeCapacity = Number.isNaN(parsedCapacity)
+        ? null
+        : Math.max(0, parsedCapacity);
+
+      const activities = Array.isArray(program.sessions)
+        ? program.sessions.map((session) => {
+            const availabilityInfo = session?.availabilityForDate ?? {};
+            const availableSource =
+              availabilityInfo.availableSeats ??
+              availabilityInfo.capacity ??
+              safeCapacity ??
+              0;
+            const parsedAvailable = Number.parseInt(availableSource ?? "", 10);
+            const safeAvailable = Number.isNaN(parsedAvailable)
+              ? 0
+              : Math.max(0, parsedAvailable);
+
+            const capacitySource =
+              availabilityInfo.capacity != null
+                ? availabilityInfo.capacity
+                : safeCapacity;
+            const parsedActivityCapacity = Number.parseInt(
+              capacitySource ?? "",
+              10
+            );
+            const safeActivityCapacity = Number.isNaN(parsedActivityCapacity)
+              ? null
+              : Math.max(0, parsedActivityCapacity);
+
+            return {
+              id: session.id,
+              name: session.name,
+              available: safeAvailable,
+              capacity: safeActivityCapacity,
+              sessionTypes: Array.isArray(session.sessionTypes)
+                ? session.sessionTypes.map((st) => ({
+                    id: st.id,
+                    name: st.name,
+                    price: st.price,
+                  }))
+                : [],
+            };
+          })
+        : [];
+
+      return {
+        id: program.title ?? String(programId),
+        window: formatTimeRange(program.startTime, program.endTime),
+        programId,
+        activities,
+      };
+    });
   }, [selectedDate, programOptions, formatTimeRange]);
 
   useEffect(() => {
@@ -170,9 +231,20 @@ export default function BookNow() {
       setProgramsLoading(true);
       setProgramsError("");
       try {
-        const response = await fetch("/api/public/programs", {
-          cache: "no-store",
-        });
+        const params = new URLSearchParams();
+        if (selectedDate) {
+          params.set("date", format(selectedDate, "yyyy-MM-dd"));
+        }
+
+        const queryString = params.toString();
+        const response = await fetch(
+          queryString
+            ? `/api/public/programs?${queryString}`
+            : "/api/public/programs",
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Unable to load programs at this time");
@@ -201,15 +273,18 @@ export default function BookNow() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedDate]);
 
   const selectedProgramTitles = useMemo(
     () =>
       formData.programIds
-        .map(
-          (id) =>
-            programOptions.find((program) => program.id === id)?.title ?? null
-        )
+        .map((id) => {
+          const matchedProgram = programOptions.find((program) => {
+            const resolved = program.id ?? program.title;
+            return String(resolved) === String(id);
+          });
+          return matchedProgram?.title ?? null;
+        })
         .filter(Boolean),
     [formData.programIds, programOptions]
   );
@@ -226,6 +301,56 @@ export default function BookNow() {
 
   const locationChoices =
     locationOptions.length > 0 ? locationOptions : FALLBACK_LOCATIONS;
+
+  const totalSeatsRequested = useMemo(() => {
+    return Object.values(seasonSelections).reduce((acc, season) => {
+      const seats = typeof season?.seatsRequested === "number" ? season.seatsRequested : 0;
+      return acc + Math.max(0, seats);
+    }, 0);
+  }, [seasonSelections]);
+
+  const guestDetailsComplete = useMemo(() => {
+    if (guestDetails.length === 0) {
+      return false;
+    }
+    return guestDetails.every((guest) => {
+      const nameValid = Boolean(guest?.name && guest.name.trim());
+      const idValid = Boolean(guest?.idNumber && guest.idNumber.trim());
+      const phoneValid = Boolean(guest?.phone && guest.phone.trim());
+      const emailValid = Boolean(guest?.email && guest.email.trim());
+      return nameValid && idValid && phoneValid && emailValid;
+    });
+  }, [guestDetails]);
+
+  useEffect(() => {
+    if (currentStage !== "guests") {
+      return;
+    }
+
+    const desiredLength = Math.max(0, totalSeatsRequested);
+    if (desiredLength === 0) {
+      setCurrentStage("booking");
+      return;
+    }
+
+    setGuestDetails((prev) => {
+      if (prev.length === desiredLength) {
+        return prev;
+      }
+
+      if (prev.length < desiredLength) {
+        const additional = Array.from({ length: desiredLength - prev.length }, () => ({
+          name: "",
+          idNumber: "",
+          phone: "",
+          email: "",
+        }));
+        return [...prev, ...additional];
+      }
+
+      return prev.slice(0, desiredLength);
+    });
+  }, [currentStage, totalSeatsRequested]);
 
   const formatPrice = (value) => {
     if (value === null || value === undefined) {
@@ -258,30 +383,69 @@ export default function BookNow() {
   };
 
   const handleSeasonToggle = (seasonId) => {
-    setSeasonSelections((prev) => {
-      if (prev[seasonId]) {
+    const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
+    const resolvedProgramId = seasonMeta?.programId ?? seasonId;
+    const normalizedProgramId = String(resolvedProgramId);
+    const existingSelection = seasonSelections[seasonId];
+
+    if (existingSelection) {
+      const normalizedExistingProgramId = String(
+        existingSelection.programId ?? normalizedProgramId
+      );
+      const programStillUsed = Object.entries(seasonSelections).some(
+        ([key, value]) =>
+          key !== seasonId && String(value?.programId ?? key) === normalizedExistingProgramId
+      );
+
+      setSeasonSelections((prev) => {
         const { [seasonId]: _removed, ...rest } = prev;
         return rest;
+      });
+
+      if (!programStillUsed) {
+        setFormData((prev) => ({
+          ...prev,
+          programIds: prev.programIds.filter(
+            (id) => String(id) !== normalizedExistingProgramId
+          ),
+        }));
       }
 
-      const totalAvailable = getSeasonAvailabilityTotal(seasonId);
-      const initialSeats = useGlobalSeatCount
-        ? clampSeatRequest(globalSeatCount, seasonId)
-        : clampSeatRequest(totalAvailable > 0 ? 1 : 0, seasonId);
+      return;
+    }
 
+    const totalAvailable = getSeasonAvailabilityTotal(seasonId);
+    const initialSeats = useGlobalSeatCount
+      ? clampSeatRequest(globalSeatCount, seasonId)
+      : clampSeatRequest(totalAvailable > 0 ? 1 : 0, seasonId);
+
+    setSeasonSelections((prev) => ({
+      ...prev,
+      [seasonId]: {
+        programId: normalizedProgramId,
+        seatsRequested: initialSeats,
+        activities: {},
+      },
+    }));
+
+    setFormData((prev) => {
+      if (prev.programIds.some((id) => String(id) === normalizedProgramId)) {
+        return prev;
+      }
       return {
         ...prev,
-        [seasonId]: {
-          seatsRequested: initialSeats,
-          activities: {},
-        },
+        programIds: [...prev.programIds, normalizedProgramId],
       };
     });
   };
 
   const handleActivityToggle = (seasonId, activityName) => {
+    const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
+    const normalizedProgramId = String(seasonMeta?.programId ?? seasonId);
+
     setSeasonSelections((prev) => {
       const existing = prev[seasonId] ?? {
+        programId: normalizedProgramId,
         seatsRequested: useGlobalSeatCount
           ? clampSeatRequest(globalSeatCount, seasonId)
           : clampSeatRequest(1, seasonId),
@@ -392,15 +556,39 @@ export default function BookNow() {
     }
   };
 
-  const hasValidSeasonSelection =
-    Object.keys(seasonSelections).length > 0 &&
-    Object.values(seasonSelections).every(
-      (entry) =>
-        entry.seatsRequested > 0 &&
-        Object.values(entry.activities).some(
-          (act) => act.selected && Object.keys(act.sessionTypes).length > 0
-        )
-    );
+  const hasValidSeasonSelection = useMemo(() => {
+    if (Object.keys(seasonSelections).length === 0) {
+      return false;
+    }
+
+    return Object.entries(seasonSelections).every(([seasonId, entry]) => {
+      if (!entry || entry.seatsRequested <= 0) {
+        return false;
+      }
+
+      const selectedActivities = Object.entries(entry.activities ?? {}).filter(
+        ([_, activity]) => activity?.selected
+      );
+
+      if (selectedActivities.length === 0) {
+        return false;
+      }
+
+      return selectedActivities.some(([activityName, activity]) => {
+        const season = availabilityForDate?.find((item) => item.id === seasonId);
+        const matchingActivity = season?.activities?.find(
+          (item) => item.name === activityName
+        );
+        const sessionTypes = matchingActivity?.sessionTypes ?? [];
+
+        if (!sessionTypes.length) {
+          return true;
+        }
+
+        return Object.keys(activity.sessionTypes ?? {}).length > 0;
+      });
+    });
+  }, [availabilityForDate, seasonSelections]);
 
   const seasonSelectionSummary = Object.entries(seasonSelections).map(
     ([seasonId, details]) => {
@@ -431,11 +619,78 @@ export default function BookNow() {
     { code: "+86", country: "CN" },
   ];
 
+  const handlePromoCodeChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      promoCode: value,
+    }));
+    setPromoStatus({ state: "idle", message: "" });
+    setVerifiedLeader(null);
+  };
+
+  const handleVerifyPromoCode = async () => {
+    const code = formData.promoCode?.trim();
+    if (!code) {
+      setPromoStatus({ state: "error", message: "Enter a promo code first." });
+      setVerifiedLeader(null);
+      return;
+    }
+
+    setPromoStatus({ state: "loading", message: "" });
+
+    try {
+      const params = new URLSearchParams({ code });
+      const response = await fetch(`/api/public/promo?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data?.error || "Promo code could not be verified.";
+        setPromoStatus({ state: "error", message });
+        setVerifiedLeader(null);
+        return;
+      }
+
+      setVerifiedLeader(data.leader);
+      setPromoStatus({
+        state: "success",
+        message: `Promo code verified. Booking under ${
+          data.leader?.name || data.leader?.email || "registered leader"
+        }`,
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        name: data.leader?.name || prev.name,
+        email: data.leader?.email || prev.email,
+      }));
+    } catch (error) {
+      console.error("Promo code verification failed", error);
+      setPromoStatus({
+        state: "error",
+        message: "Unable to verify promo code. Please try again.",
+      });
+      setVerifiedLeader(null);
+    }
+  };
+
+  const handleClearPromoCode = () => {
+    setVerifiedLeader(null);
+    setPromoStatus({ state: "idle", message: "" });
+    setFormData((prev) => ({
+      ...prev,
+      promoCode: "",
+    }));
+  };
+
   const handleProgramToggle = (programId) => {
+    const normalizedId = String(programId);
     setFormData((prev) => {
-      const nextProgramIds = prev.programIds.includes(programId)
-        ? prev.programIds.filter((id) => id !== programId)
-        : [...prev.programIds, programId];
+      const exists = prev.programIds.some((id) => String(id) === normalizedId);
+      const nextProgramIds = exists
+        ? prev.programIds.filter((id) => String(id) !== normalizedId)
+        : [...prev.programIds, normalizedId];
 
       return {
         ...prev,
@@ -444,30 +699,263 @@ export default function BookNow() {
     });
   };
 
+  const handleGuestDetailChange = (index, field, value) => {
+    setGuestDetails((prev) => {
+      const next = [...prev];
+      const existing = next[index] ?? {
+        name: "",
+        idNumber: "",
+        phone: "",
+        email: "",
+      };
+      next[index] = {
+        ...existing,
+        [field]: value,
+      };
+      return next;
+    });
+  };
+
+  const handleBackToBooking = () => {
+    setIsSubmitting(false);
+    setCurrentStage("booking");
+  };
+
+  const submitPayHereRedirect = useCallback((redirect) => {
+    if (!redirect || typeof window === "undefined") {
+      return;
+    }
+
+    const { actionUrl, params } = redirect;
+    if (!actionUrl || !params || typeof params !== "object") {
+      return;
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = actionUrl;
+    form.style.display = "none";
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null) {
+        return;
+      }
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
+    if (currentStage === "booking") {
       if (formData.programIds.length === 0) {
-        alert("Select at least one program before booking.");
-        setIsSubmitting(false);
+        alert("Select at least one program before proceeding.");
         return;
       }
 
       if (!hasValidSeasonSelection) {
         alert(
-          "Select at least one season, choose activities, and set the seats needed before booking."
+          "Select at least one season, choose activities, and set the seats needed before continuing."
         );
-        setIsSubmitting(false);
         return;
       }
 
-      const bookingData = {
-        ...formData,
-        programs: selectedProgramTitles,
-        date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
-        seasonSelections,
+      if (!selectedDate) {
+        alert("Select a date before continuing.");
+        return;
+      }
+
+      if (totalSeatsRequested === 0) {
+        alert("Please specify how many seats you need before continuing.");
+        return;
+      }
+
+      if (!verifiedLeader) {
+        if (!formData.name?.trim()) {
+          alert("Enter your full name before continuing.");
+          return;
+        }
+
+        if (!formData.email?.trim()) {
+          alert("Enter a valid email before continuing.");
+          return;
+        }
+
+        if (!formData.phone?.trim()) {
+          alert("Enter a contact number before continuing.");
+          return;
+        }
+      }
+
+      setCurrentStage("guests");
+      return;
+    }
+
+    if (!guestDetailsComplete) {
+      alert("Please fill in all guest details before confirming your booking.");
+      return;
+    }
+
+    if (!selectedDate) {
+      alert("Select a date before confirming your booking.");
+      setCurrentStage("booking");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (!selectedDate) {
+        throw new Error("Select a date before confirming your booking.");
+      }
+
+      const bookingDate = new Date(selectedDate);
+      bookingDate.setUTCHours(0, 0, 0, 0);
+
+      const contactNumber = [formData.countryCode, formData.phone]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      let leaderId = verifiedLeader?.id;
+
+      if (!leaderId) {
+        const leaderPayload = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          contact: contactNumber,
+        };
+
+        const leaderResponse = await fetch("/api/public/leaders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(leaderPayload),
+        });
+
+        const leaderResult = await leaderResponse.json();
+
+        if (!leaderResponse.ok) {
+          throw new Error(leaderResult?.error || "Could not save your contact details.");
+        }
+
+        leaderId = leaderResult?.leader?.id;
+      }
+
+      if (!leaderId) {
+        throw new Error("Unable to determine the booking contact.");
+      }
+
+      const primaryName = (verifiedLeader?.name || formData.name || "Guest").trim();
+      const [firstName, ...restNames] = primaryName.split(/\s+/);
+      const lastName = restNames.join(" ") || "Customer";
+      const primaryEmail = (verifiedLeader?.email || formData.email || "guest@example.com").trim();
+      const primaryPhone = (verifiedLeader?.contact || contactNumber || "0000000000").trim();
+      const addressLine = formData.notes?.trim() || formData.location || "N/A";
+      const cityValue = formData.location || "Colombo";
+      const countryValue = "Sri Lanka";
+
+      const customersPayload = guestDetails.map((guest) => ({
+        name: guest.name.trim(),
+        email: guest.email.trim(),
+        phone: guest.phone?.trim() || null,
+        nic: guest.idNumber?.trim() || null,
+      }));
+
+      const bookingSelections = [];
+
+      Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+        const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
+        if (seatsRequested <= 0) {
+          return;
+        }
+
+        const resolvedProgramId = selection?.programId ?? seasonId;
+        const program = programOptions.find((programOption) => {
+          const optionId = programOption.id ?? programOption.title;
+          return String(optionId) === String(resolvedProgramId);
+        });
+
+        if (!program) {
+          return;
+        }
+
+        const activityEntries = Object.entries(selection.activities ?? {}).filter(
+          ([, details]) => details?.selected
+        );
+
+        activityEntries.forEach(([activityName, details]) => {
+          const session = program.sessions?.find(
+            (item) => item.name === activityName
+          );
+
+          if (!session) {
+            return;
+          }
+
+          const parsedSessionId = Number.parseInt(session.id, 10);
+          if (Number.isNaN(parsedSessionId)) {
+            return;
+          }
+
+          const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+
+          if (sessionTypeIds.length === 0) {
+            bookingSelections.push({
+              sessionId: parsedSessionId,
+              seatsRequested,
+              customers: customersPayload,
+            });
+            return;
+          }
+
+          sessionTypeIds.forEach((typeId) => {
+            const parsedTypeId = Number.parseInt(typeId, 10);
+            if (Number.isNaN(parsedTypeId)) {
+              return;
+            }
+
+            bookingSelections.push({
+              sessionId: parsedSessionId,
+              sessionTypeId: parsedTypeId,
+              seatsRequested,
+              customers: customersPayload,
+            });
+          });
+        });
+      });
+
+      if (bookingSelections.length === 0) {
+        throw new Error("No activities were selected for this booking.");
+      }
+
+      const payload = {
+        leaderId,
+        bookedDate: bookingDate.toISOString(),
+        selections: bookingSelections,
+        payment: {
+          paymentType: "Full",
+          provider: "PAYHERE",
+          currency: "LKR",
+          method: "PayHere Checkout",
+        },
+        customer: {
+          name: primaryName,
+          firstName,
+          lastName,
+          email: primaryEmail,
+          phone: primaryPhone,
+          address: addressLine,
+          city: cityValue,
+          country: countryValue,
+        },
       };
 
       const response = await fetch("/api/booking", {
@@ -475,35 +963,57 @@ export default function BookNow() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(bookingData),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
 
-      if (response.ok) {
-        setReferenceCode(result.referenceCode);
-        setBookingConfirmed(true);
-      } else {
-        alert(result.error || "Booking failed. Please try again.");
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || "Booking failed. Please try again.");
       }
+
+      if (result.paymentRedirect) {
+        submitPayHereRedirect(result.paymentRedirect);
+        return;
+      }
+
+      const bookingReference =
+        result.referenceCode ??
+        (result.bookingId ? `RV-${String(result.bookingId)}` : null);
+      setReferenceCode(bookingReference || "");
+      setBookingConfirmed(true);
     } catch (error) {
       console.error("Booking error:", error);
-      alert("An error occurred. Please try again.");
+      alert(error?.message || "An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (bookingConfirmed) {
+    const contactName =
+      verifiedLeader?.name?.trim() || formData.name?.trim() || "Guest";
+    const guestSummaryText = guestDetails.length
+      ? guestDetails
+          .map((guest, index) => {
+            const namePart = guest?.name?.trim() || `Guest ${index + 1}`;
+            const idPart = guest?.idNumber?.trim() || "ID N/A";
+            const phonePart = guest?.phone?.trim() || "Phone N/A";
+            const emailPart = guest?.email?.trim() || "Email N/A";
+            return `${index + 1}. ${namePart} • ${idPart} • ${phonePart} • ${emailPart}`;
+          })
+          .join(" | ")
+      : "No guest details provided";
+
     const whatsappMessage = encodeURIComponent(
       `Hi! I've just booked a tea tour.\n\nReference Code: ${referenceCode}\nName: ${
-        formData.name
+        contactName
       }\nDate: ${format(
         selectedDate,
         "PPP"
       )}\nSeasons: ${seasonSelectionSummary.join(
         " | "
-      )}\nPrograms: ${selectedProgramTitles.join(", ")}`
+      )}\nPrograms: ${selectedProgramTitles.join(", ")}\nGuests: ${guestSummaryText}`
     );
     const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
 
@@ -547,6 +1057,21 @@ export default function BookNow() {
                     <p>
                       <strong>Location:</strong> {formData.location}
                     </p>
+                    {guestDetails.length > 0 && (
+                      <div>
+                        <strong>Guests:</strong>
+                        <ul className="mt-2 space-y-1">
+                          {guestDetails.map((guest, index) => (
+                            <li key={`guest-summary-${index}`}>
+                              <span className="font-medium text-foreground">
+                                Guest {index + 1}:
+                              </span>{" "}
+                              {guest.name || "Name pending"} • {guest.idNumber || "ID pending"} • {guest.phone || "Phone pending"} • {guest.email || "Email pending"}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <p className="text-muted-foreground mb-6">
@@ -607,647 +1132,736 @@ export default function BookNow() {
         {/* Booking Form */}
         <section className="py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            
             <Card className="max-w-3xl mx-auto">
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Personal Information */}
-                  <div className="space-y-4">
-                    <h2 className="text-2xl font-serif font-bold text-primary">
-                      Personal Information
-                    </h2>
-
-                    <div>
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input
-                        id="name"
-                        required
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="John Doe"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        placeholder="john@example.com"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone">Phone Number *</Label>
-                      <div className="flex gap-2">
-                        <Select
-                          value={formData.countryCode}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, countryCode: value })
-                          }
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {countryCodes.map((item) => (
-                              <SelectItem key={item.code} value={item.code}>
-                                {item.code} {item.country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          required
-                          className="flex-1"
-                          value={formData.phone}
-                          onChange={(e) =>
-                            setFormData({ ...formData, phone: e.target.value })
-                          }
-                          placeholder="234567890"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="packs">Number of People (0-8)</Label>
-                      <Input
-                        id="packs"
-                        type="number"
-                        min="0"
-                        max="8"
-                        value={formData.packs}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            packs: parseInt(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* Booking Details */}
-                  <div className="space-y-4">
-                    <h2 className="text-2xl font-serif font-bold text-primary">
-                      Booking Details
-                    </h2>
-
-                    <div>
-                      <Label htmlFor="location">Select Location *</Label>
-                      <Select
-                        value={formData.location}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, location: value })
-                        }
-                        required
-                      >
-                        <SelectTrigger id="location">
-                          <SelectValue placeholder="Choose a location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {locationChoices.map((loc) => (
-                            <SelectItem key={loc} value={loc}>
-                              {loc}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Select Date *</Label>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => date < new Date()}
-                        className="rounded-md border"
-                      />
-                    </div>
-
-                    {selectedDate && (
-                      <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <h3 className="text-lg font-semibold text-primary">
-                            Availability Overview
-                          </h3>
-                          <span className="text-sm text-muted-foreground">
-                            {format(selectedDate, "PPP")} • Seasons & Activities
-                          </span>
+                  {currentStage === "booking" ? (
+                    <>
+                     {/* Booking Details */}
+                      <div className="space-y-4">
+                        <h2 className="text-2xl font-serif font-bold text-primary">
+                          Booking Details
+                        </h2>
+                         <div>
+                          <Label htmlFor="location">Select Location *</Label>
+                          <Select
+                            value={formData.location}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, location: value })
+                            }
+                            required
+                          >
+                            <SelectTrigger id="location">
+                              <SelectValue placeholder="Choose a location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {locationChoices.map((loc) => (
+                                <SelectItem key={loc} value={loc}>
+                                  {loc}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        {availabilityForDate ? (
-                          <div className="space-y-4">
-                            <div className="rounded-md border border-muted-foreground/20 bg-background/70 p-4">
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Checkbox
-                                    id="use-global-seats"
-                                    checked={useGlobalSeatCount}
-                                    onCheckedChange={(checked) =>
-                                      handleGlobalSeatToggle(checked)
-                                    }
-                                  />
-                                  <label
-                                    htmlFor="use-global-seats"
-                                    className="cursor-pointer text-sm text-foreground"
-                                  >
-                                    Use the same seat count for every selected
-                                    season
-                                  </label>
-                                </div>
-                                {useGlobalSeatCount && (
-                                  <div className="flex items-center gap-2">
-                                    <Label
-                                      htmlFor="global-seat-count"
-                                      className="text-xs uppercase tracking-wide text-muted-foreground"
-                                    >
-                                      Seats per season
-                                    </Label>
-                                    <Input
-                                      id="global-seat-count"
-                                      type="number"
-                                      min="0"
-                                      className="w-24"
-                                      value={
-                                        Number.isNaN(globalSeatCount)
-                                          ? ""
-                                          : globalSeatCount
-                                      }
-                                      onChange={(e) =>
-                                        handleGlobalSeatCountChange(
-                                          e.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                              {!useGlobalSeatCount && (
-                                <p className="mt-2 text-xs text-muted-foreground">
-                                  Adjust seat counts individually inside each
-                                  season card below.
-                                </p>
-                              )}
-                            </div>
-                            <div className="grid gap-3">
-                              {availabilityForDate.map((season) => {
-                                const totalAvailable =
-                                  getSeasonAvailabilityTotal(season.id);
-                                const seasonSelection =
-                                  seasonSelections[season.id];
-                                const isSelected = Boolean(seasonSelection);
-                                const seatValue =
-                                  isSelected &&
-                                  typeof seasonSelection.seatsRequested ===
-                                    "number"
-                                    ? String(seasonSelection.seatsRequested)
-                                    : "";
-                                const seatInputId = `seats-${season.id}`;
-
+<div>
+                          <Label>Select Date *</Label>
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            disabled={(date) => date < new Date()}
+                            className="rounded-md border"
+                          />
+                        </div>
+                       
+                        {/* <div className="space-y-3">
+                          <Label className="text-base font-medium">
+                            Select Program(s) *
+                          </Label>
+                          {programsLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                              Loading available programs...
+                            </p>
+                          ) : programsError ? (
+                            <p className="text-sm text-red-600">
+                              {programsError}
+                            </p>
+                          ) : programOptions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              No programs are available for booking right now. Please check back later or contact us for assistance.
+                            </p>
+                          ) : (
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {programOptions.map((program) => {
+                                const resolvedId = program.id ?? program.title;
+                                const checkboxId = `program-${String(resolvedId)
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9]+/g, "-")}`;
+                                const isSelected = formData.programIds.includes(resolvedId);
+                                const timeRange =
+                                  program?.startTime && program?.endTime
+                                    ? formatTimeRange(program.startTime, program.endTime)
+                                    : null;
                                 return (
                                   <div
-                                    key={season.id}
-                                    className="rounded-md border bg-background px-4 py-3 shadow-sm"
+                                    key={String(resolvedId)}
+                                    className={`rounded-lg border p-4 transition-colors ${
+                                      isSelected
+                                        ? "border-primary bg-primary/5"
+                                        : "border-muted-foreground/30 bg-background"
+                                    }`}
                                   >
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                      <div className="flex items-start gap-3">
-                                        <Checkbox
-                                          id={`season-${season.id}`}
-                                          checked={isSelected}
-                                          onCheckedChange={() =>
-                                            handleSeasonToggle(season.id)
-                                          }
-                                          aria-label={`Select ${season.id}`}
-                                        />
-                                        <label
-                                          htmlFor={`season-${season.id}`}
-                                          className="cursor-pointer"
-                                        >
-                                          <p className="font-medium text-primary">
-                                            {season.id} • {season.window}
+                                    <div className="flex items-start gap-3">
+                                      <Checkbox
+                                        id={checkboxId}
+                                        checked={isSelected}
+                                        onCheckedChange={() => handleProgramToggle(resolvedId)}
+                                      />
+                                      <label
+                                        htmlFor={checkboxId}
+                                        className="flex-1 cursor-pointer space-y-2"
+                                      >
+                                        <div>
+                                          <p className="text-sm font-semibold text-foreground">
+                                            {program.title || "Untitled Program"}
                                           </p>
-                                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                            {totalAvailable} seats left today
-                                          </p>
-                                        </label>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Label
-                                          htmlFor={seatInputId}
-                                          className="text-xs uppercase tracking-wide text-muted-foreground"
-                                        >
-                                          Seats needed
-                                        </Label>
-                                        <Input
-                                          id={seatInputId}
-                                          type="number"
-                                          min="0"
-                                          max={totalAvailable}
-                                          className="w-24"
-                                          value={isSelected ? seatValue : ""}
-                                          onChange={(e) =>
-                                            handleSeatsChange(
-                                              season.id,
-                                              Number.parseInt(
-                                                e.target.value,
-                                                10
-                                              ) || 0
-                                            )
-                                          }
-                                          disabled={!isSelected}
-                                          placeholder="0"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                      {season.activities.map((activity) => {
-                                        const seatsTaken = Math.max(
-                                          0,
-                                          activity.capacity - activity.available
-                                        );
-                                        const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
-                                        const fillPercent = activity.capacity
-                                          ? Math.round(
-                                              (seatsTaken / activity.capacity) *
-                                                100
-                                            )
-                                          : 0;
-                                        const normalizedActivityId =
-                                          activity.name
-                                            .replace(/\s+/g, "-")
-                                            .toLowerCase();
-                                        const activityCheckboxId = `activity-${season.id}-${normalizedActivityId}`;
-                                        const activitySelected = Boolean(
-                                          seasonSelection?.activities?.[
-                                            activity.name
-                                          ]?.selected
-                                        );
-                                        return (
-                                          <div
-                                            key={activity.name}
-                                            className={`rounded border p-3 transition-colors ${
-                                              activitySelected
-                                                ? "border-primary bg-primary/5"
-                                                : "border-muted-foreground/20 bg-muted/40"
-                                            }`}
-                                          >
-                                            <div className="flex items-start justify-between gap-2">
-                                              <label
-                                                htmlFor={activityCheckboxId}
-                                                className={`flex items-center gap-2 text-sm font-semibold ${
-                                                  isSelected
-                                                    ? "text-foreground"
-                                                    : "text-muted-foreground"
-                                                }`}
-                                              >
-                                                <Checkbox
-                                                  id={activityCheckboxId}
-                                                  checked={activitySelected}
-                                                  disabled={!isSelected}
-                                                  onCheckedChange={() =>
-                                                    handleActivityToggle(
-                                                      season.id,
-                                                      activity.name
-                                                    )
-                                                  }
-                                                />
-                                                {activity.name}
-                                              </label>
-                                              <span className="text-xs text-muted-foreground">
-                                                {capacityLabel}
-                                              </span>
-                                            </div>
-                                            <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
-                                              <div
-                                                className={`h-full rounded ${
-                                                  activitySelected
-                                                    ? "bg-primary"
-                                                    : "bg-primary/40"
-                                                }`}
-                                                style={{
-                                                  width: `${Math.min(
-                                                    100,
-                                                    Math.max(0, fillPercent)
-                                                  )}%`,
-                                                }}
-                                              />
-                                            </div>
-                                            {activitySelected &&
-                                              activity.sessionTypes &&
-                                              activity.sessionTypes.length >
-                                                0 && (
-                                                <div className="mt-3 space-y-2">
-                                                  <p className="text-xs font-medium text-muted-foreground">
-                                                    Select session types:
-                                                  </p>
-                                                  {activity.sessionTypes.map(
-                                                    (st) => {
-                                                      const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
-                                                      const stSelected =
-                                                        seasonSelection
-                                                          ?.activities?.[
-                                                          activity.name
-                                                        ]?.sessionTypes?.[
-                                                          st.id
-                                                        ] || false;
-                                                      return (
-                                                        <div
-                                                          key={st.id}
-                                                          className="flex items-center gap-2"
-                                                        >
-                                                          <Checkbox
-                                                            id={stCheckboxId}
-                                                            checked={stSelected}
-                                                            onCheckedChange={() =>
-                                                              handleSessionTypeToggle(
-                                                                season.id,
-                                                                activity.name,
-                                                                st.id
-                                                              )
-                                                            }
-                                                          />
-                                                          <label
-                                                            htmlFor={
-                                                              stCheckboxId
-                                                            }
-                                                            className="text-xs cursor-pointer"
-                                                          >
-                                                            {st.name} -{" "}
-                                                            {formatPrice(
-                                                              st.price
-                                                            )}
-                                                          </label>
-                                                        </div>
-                                                      );
-                                                    }
-                                                  )}
-                                                </div>
-                                              )}
-                                          </div>
-                                        );
-                                      })}
+                                          {program?.location?.name && (
+                                            <p className="text-xs text-muted-foreground">
+                                              {program.location.name}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="space-y-1 text-xs text-muted-foreground">
+                                          {timeRange && <p>Time: {timeRange}</p>}
+                                          {typeof program?.seats === "number" && (
+                                            <p>Seats available: {program.seats}</p>
+                                          )}
+                                          {program?.description && (
+                                            <p className="line-clamp-3">
+                                              {program.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </label>
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Availability information will appear once slots are
-                            published for this date.
-                          </p>
-                        )}
-                        {Object.keys(seasonSelections).length > 0 &&
-                          !hasValidSeasonSelection && (
-                            <p className="text-sm text-amber-600">
-                              Select at least one activity, choose session
-                              types, and enter the seats needed for each chosen
-                              season.
-                            </p>
                           )}
-                        {seasonSelectionSummary.length > 0 && (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                            <p className="font-medium text-primary">
-                              Your selections
-                            </p>
-                            <ul className="mt-2 space-y-1 text-muted-foreground">
-                              {Object.entries(seasonSelections).map(
-                                ([seasonId, details]) => {
-                                  const activities = Object.keys(
-                                    details.activities
-                                  );
-                                  const activityList = activities.length
-                                    ? activities.join(", ")
-                                    : "No activities selected";
-                                  return (
-                                    <li key={seasonId}>
-                                      <span className="font-medium text-foreground">
-                                        {seasonId}:
-                                      </span>{" "}
-                                      {details.seatsRequested} seats •{" "}
-                                      {activityList}
-                                    </li>
-                                  );
-                                }
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                        </div> */}
 
-                    {/* <div>
-                      <Label>Select Programs * (Select one or more)</Label>
-                      <div className="space-y-3 mt-2">
-                        {programsLoading ? (
-                          <p className="text-sm text-muted-foreground">
-                            Loading available programs...
-                          </p>
-                        ) : programsError ? (
-                          <p className="text-sm text-red-600">
-                            {programsError}
-                          </p>
-                        ) : programOptions.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
-                            No programs are available right now. Please check
-                            back later.
-                          </p>
-                        ) : (
-                          programOptions.map((program) => {
-                            const checkboxId = `program-${program.id}`;
-                            const locationName = program.location?.name;
-                            return (
-                              <div
-                                key={program.id}
-                                className="rounded border border-muted-foreground/20 bg-muted/40 p-3"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <Checkbox
-                                    id={checkboxId}
-                                    checked={formData.programIds.includes(
-                                      program.id
-                                    )}
-                                    onCheckedChange={() =>
-                                      handleProgramToggle(program.id)
-                                    }
-                                  />
-                                  <label
-                                    htmlFor={checkboxId}
-                                    className="flex-1 cursor-pointer"
-                                  >
-                                    <p className="text-sm font-semibold text-foreground">
-                                      {program.title}
-                                    </p>
-                                    {locationName && (
-                                      <p className="text-xs text-muted-foreground">
-                                        Location: {locationName}
-                                      </p>
-                                    )}
-                                    {program.description && (
-                                      <p className="mt-1 text-xs text-muted-foreground">
-                                        {program.description}
-                                      </p>
-                                    )}
-                                  </label>
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div> */}
+                        
 
-                    {/* {programOptions.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-serif font-bold text-primary">
-                          Program Details & Sessions
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Review the sessions available in each program before
-                          confirming your booking.
-                        </p>
-                        <div className="space-y-3">
-                          {programOptions.map((program) => (
-                            <div
-                              key={`program-overview-${program.id}`}
-                              className="rounded-md border border-muted-foreground/20 bg-background p-4 shadow-sm"
-                            >
-                              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                  <p className="text-base font-semibold text-foreground">
-                                    {program.title}
-                                  </p>
-                                  {program.location?.name && (
-                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                      Location: {program.location.name}
+                        
+
+                        {selectedDate && (
+                          <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                              <h3 className="text-lg font-semibold text-primary">
+                                Availability Overview
+                              </h3>
+                              <span className="text-sm text-muted-foreground">
+                                {format(selectedDate, "PPP")} • Seasons & Activities
+                              </span>
+                            </div>
+                            {availabilityForDate ? (
+                              <div className="space-y-4">
+                                <div className="rounded-md border border-muted-foreground/20 bg-background/70 p-4">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Checkbox
+                                        id="use-global-seats"
+                                        checked={useGlobalSeatCount}
+                                        onCheckedChange={(checked) =>
+                                          handleGlobalSeatToggle(checked)
+                                        }
+                                      />
+                                      <label
+                                        htmlFor="use-global-seats"
+                                        className="cursor-pointer text-sm text-foreground"
+                                      >
+                                        Use the same seat count for every selected
+                                        season
+                                      </label>
+                                    </div>
+                                    {useGlobalSeatCount && (
+                                      <div className="flex items-center gap-2">
+                                        <Label
+                                          htmlFor="global-seat-count"
+                                          className="text-xs uppercase tracking-wide text-muted-foreground"
+                                        >
+                                          Seats per season
+                                        </Label>
+                                        <Input
+                                          id="global-seat-count"
+                                          type="number"
+                                          min="0"
+                                          className="w-24"
+                                          value={
+                                            Number.isNaN(globalSeatCount)
+                                              ? ""
+                                              : globalSeatCount
+                                          }
+                                          onChange={(e) =>
+                                            handleGlobalSeatCountChange(
+                                              e.target.value
+                                            )
+                                          }
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {!useGlobalSeatCount && (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                      Adjust seat counts individually inside each
+                                      season card below.
                                     </p>
                                   )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">
-                                  Seats available: {program.seats}
-                                </span>
-                              </div>
-                              {program.description && (
-                                <p className="mt-2 text-sm text-muted-foreground">
-                                  {program.description}
-                                </p>
-                              )}
-                              {program.sessions.length > 0 ? (
-                                <div className="mt-3 space-y-3">
-                                  {program.sessions.map((session) => (
-                                    <div
-                                      key={`session-${session.id}`}
-                                      className="rounded border border-muted-foreground/20 bg-muted/30 p-3"
-                                    >
-                                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                        <p className="text-sm font-medium text-foreground">
-                                          {session.name}
-                                        </p>
-                                        <span className="text-xs text-muted-foreground">
-                                          {formatTimeRange(
-                                            session.startTime,
-                                            session.endTime
-                                          )}
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">
-                                        Session price:{" "}
-                                        {formatPrice(session.price)}
-                                      </p>
-                                      {session.sessionTypes.length > 0 && (
-                                        <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                                          {session.sessionTypes.map((type) => (
-                                            <li
-                                              key={`session-type-${type.id}`}
-                                              className="flex items-baseline justify-between gap-2"
+                                <div className="grid gap-3">
+                                  {availabilityForDate.map((season) => {
+                                    const totalAvailable =
+                                      getSeasonAvailabilityTotal(season.id);
+                                    const seasonSelection =
+                                      seasonSelections[season.id];
+                                    const isSelected = Boolean(seasonSelection);
+                                    const seatValue =
+                                      isSelected &&
+                                      typeof seasonSelection.seatsRequested ===
+                                        "number"
+                                        ? String(seasonSelection.seatsRequested)
+                                        : "";
+                                    const seatInputId = `seats-${season.id}`;
+
+                                    return (
+                                      <div
+                                        key={season.id}
+                                        className="rounded-md border bg-background px-4 py-3 shadow-sm"
+                                      >
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                          <div className="flex items-start gap-3">
+                                            <Checkbox
+                                              id={`season-${season.id}`}
+                                              checked={isSelected}
+                                              onCheckedChange={() =>
+                                                handleSeasonToggle(season.id)
+                                              }
+                                              aria-label={`Select ${season.id}`}
+                                            />
+                                            <label
+                                              htmlFor={`season-${season.id}`}
+                                              className="cursor-pointer"
                                             >
-                                              <span className="font-medium text-foreground">
-                                                {type.name}
-                                              </span>
-                                              <span>
-                                                {formatPrice(type.price)}
-                                              </span>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      )}
-                                    </div>
-                                  ))}
+                                              <p className="font-medium text-primary">
+                                                {season.id} • {season.window}
+                                              </p>
+                                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                                {totalAvailable} seats left today
+                                              </p>
+                                            </label>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Label
+                                              htmlFor={seatInputId}
+                                              className="text-xs uppercase tracking-wide text-muted-foreground"
+                                            >
+                                              Seats needed
+                                            </Label>
+                                            <Input
+                                              id={seatInputId}
+                                              type="number"
+                                              min="0"
+                                              max={totalAvailable}
+                                              className="w-24"
+                                              value={isSelected ? seatValue : ""}
+                                              onChange={(e) =>
+                                                handleSeatsChange(
+                                                  season.id,
+                                                  Number.parseInt(
+                                                    e.target.value,
+                                                    10
+                                                  ) || 0
+                                                )
+                                              }
+                                              disabled={!isSelected}
+                                              placeholder="0"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                                          {season.activities.map((activity) => {
+                                            const seatsTaken = Math.max(
+                                              0,
+                                              activity.capacity - activity.available
+                                            );
+                                            const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
+                                            const fillPercent = activity.capacity
+                                              ? Math.round(
+                                                  (seatsTaken / activity.capacity) *
+                                                    100
+                                                )
+                                              : 0;
+                                            const normalizedActivityId =
+                                              activity.name
+                                                .replace(/\s+/g, "-")
+                                                .toLowerCase();
+                                            const activityCheckboxId = `activity-${season.id}-${normalizedActivityId}`;
+                                            const activitySelected = Boolean(
+                                              seasonSelection?.activities?.[
+                                                activity.name
+                                              ]?.selected
+                                            );
+                                            return (
+                                              <div
+                                                key={activity.name}
+                                                className={`rounded border p-3 transition-colors ${
+                                                  activitySelected
+                                                    ? "border-primary bg-primary/5"
+                                                    : "border-muted-foreground/20 bg-muted/40"
+                                                }`}
+                                              >
+                                                <div className="flex items-start justify-between gap-2">
+                                                  <label
+                                                    htmlFor={activityCheckboxId}
+                                                    className={`flex items-center gap-2 text-sm font-semibold ${
+                                                      isSelected
+                                                        ? "text-foreground"
+                                                        : "text-muted-foreground"
+                                                    }`}
+                                                  >
+                                                    <Checkbox
+                                                      id={activityCheckboxId}
+                                                      checked={activitySelected}
+                                                      disabled={!isSelected}
+                                                      onCheckedChange={() =>
+                                                        handleActivityToggle(
+                                                          season.id,
+                                                          activity.name
+                                                        )
+                                                      }
+                                                    />
+                                                    {activity.name}
+                                                  </label>
+                                                  <span className="text-xs text-muted-foreground">
+                                                    {capacityLabel}
+                                                  </span>
+                                                </div>
+                                                <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
+                                                  <div
+                                                    className={`h-full rounded ${
+                                                      activitySelected
+                                                        ? "bg-primary"
+                                                        : "bg-primary/40"
+                                                    }`}
+                                                    style={{
+                                                      width: `${Math.min(
+                                                        100,
+                                                        Math.max(0, fillPercent)
+                                                      )}%`,
+                                                    }}
+                                                  />
+                                                </div>
+                                                {activitySelected &&
+                                                  activity.sessionTypes &&
+                                                  activity.sessionTypes.length >
+                                                    0 && (
+                                                    <div className="mt-3 space-y-2">
+                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                        Select session types:
+                                                      </p>
+                                                      {activity.sessionTypes.map(
+                                                        (st) => {
+                                                          const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
+                                                          const stSelected =
+                                                            seasonSelection
+                                                              ?.activities?.[
+                                                              activity.name
+                                                            ]?.sessionTypes?.[
+                                                              st.id
+                                                            ] || false;
+                                                          return (
+                                                            <div
+                                                              key={st.id}
+                                                              className="flex items-center gap-2"
+                                                            >
+                                                              <Checkbox
+                                                                id={stCheckboxId}
+                                                                checked={stSelected}
+                                                                onCheckedChange={() =>
+                                                                  handleSessionTypeToggle(
+                                                                    season.id,
+                                                                    activity.name,
+                                                                    st.id
+                                                                  )
+                                                                }
+                                                              />
+                                                              <label
+                                                                htmlFor={
+                                                                  stCheckboxId
+                                                                }
+                                                                className="text-xs cursor-pointer"
+                                                              >
+                                                                {st.name} -{" "}
+                                                                {formatPrice(
+                                                                  st.price
+                                                                )}
+                                                              </label>
+                                                            </div>
+                                                          );
+                                                        }
+                                                      )}
+                                                    </div>
+                                                  )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              ) : (
-                                <p className="mt-3 text-sm text-muted-foreground">
-                                  Session schedule will be announced soon.
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Availability information will appear once slots are
+                                published for this date.
+                              </p>
+                            )}
+                            {Object.keys(seasonSelections).length > 0 &&
+                              !hasValidSeasonSelection && (
+                                <p className="text-sm text-amber-600">
+                                  Select at least one activity, choose session
+                                  types, and enter the seats needed for each chosen
+                                  season.
                                 </p>
                               )}
-                            </div>
-                          ))}
+                            {seasonSelectionSummary.length > 0 && (
+                              <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+                                <p className="font-medium text-primary">
+                                  Your selections
+                                </p>
+                                <ul className="mt-2 space-y-1 text-muted-foreground">
+                                  {Object.entries(seasonSelections).map(
+                                    ([seasonId, details]) => {
+                                      const activities = Object.keys(
+                                        details.activities
+                                      );
+                                      const activityList = activities.length
+                                        ? activities.join(", ")
+                                        : "No activities selected";
+                                      return (
+                                        <li key={seasonId}>
+                                          <span className="font-medium text-foreground">
+                                            {seasonId}:
+                                          </span>{" "}
+                                          {details.seatsRequested} seats •{" "}
+                                          {activityList}
+                                        </li>
+                                      );
+                                    }
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* <div>
+                          <Label htmlFor="payment">Payment Option *</Label>
+                          <Select
+                            value={formData.payment}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, payment: value })
+                            }
+                            required
+                          >
+                            <SelectTrigger id="payment">
+                              <SelectValue placeholder="Choose payment option" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="full">Full Payment</SelectItem>
+                              <SelectItem value="partial">
+                                Partial Payment (≥25% on arrival)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {formData.payment === "partial" && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Note: Partial payment requires at least 25% payment
+                              upon arrival
+                            </p>
+                          )}
+                        </div> */}
+
+                        <div>
+                          <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                          <Textarea
+                            id="notes"
+                            value={formData.notes}
+                            onChange={(e) =>
+                              setFormData({ ...formData, notes: e.target.value })
+                            }
+                            placeholder="Any special requirements or questions?"
+                            rows={4}
+                          />
                         </div>
                       </div>
-                    )} */}
+                      {/* Personal Information */}
+                      <div className="space-y-4">
+                        <h2 className="text-2xl font-serif font-bold text-primary">
+                          Personal Information
+                        </h2>
+                        <div>
+                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="promoCode"
+                              value={formData.promoCode || ""}
+                              onChange={(e) => handlePromoCodeChange(e.target.value)}
+                              placeholder="Enter promo code if you have one"
+                              className="flex-1"
+                              disabled={promoStatus.state === "loading"}
+                            />
+                            {verifiedLeader ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleClearPromoCode}
+                                disabled={promoStatus.state === "loading"}
+                              >
+                                Clear
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleVerifyPromoCode}
+                                disabled={promoStatus.state === "loading"}
+                              >
+                                {promoStatus.state === "loading" ? "Verifying..." : "Verify"}
+                              </Button>
+                            )}
+                          </div>
+                          {promoStatus.message && (
+                            <p
+                              className={`mt-2 text-sm ${
+                                promoStatus.state === "error"
+                                  ? "text-red-600"
+                                  : "text-emerald-600"
+                              }`}
+                            >
+                              {promoStatus.message}
+                            </p>
+                          )}
+                        </div>
+                        {verifiedLeader ? (
+                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
+                            Booking will be linked to promo leader
+                            {" "}
+                            <span className="font-semibold">
+                              {verifiedLeader.name || verifiedLeader.email}
+                            </span>
+                            .
+                          </div>
+                        ) : (
+                          <>
+                            <div>
+                              <Label htmlFor="name">Full Name *</Label>
+                              <Input
+                                id="name"
+                                required={!verifiedLeader}
+                                value={formData.name}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, name: e.target.value })
+                                }
+                                placeholder="John Doe"
+                              />
+                            </div>
 
-                    <div>
-                      <Label htmlFor="payment">Payment Option *</Label>
-                      <Select
-                        value={formData.payment}
-                        onValueChange={(value) =>
-                          setFormData({ ...formData, payment: value })
-                        }
-                        required
+                            <div>
+                              <Label htmlFor="email">Email *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                required={!verifiedLeader}
+                                value={formData.email}
+                                onChange={(e) =>
+                                  setFormData({ ...formData, email: e.target.value })
+                                }
+                                placeholder="john@example.com"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="phone">Phone Number *</Label>
+                              <div className="flex gap-2">
+                                <Select
+                                  value={formData.countryCode}
+                                  onValueChange={(value) =>
+                                    setFormData({ ...formData, countryCode: value })
+                                  }
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {countryCodes.map((item) => (
+                                      <SelectItem key={item.code} value={item.code}>
+                                        {item.code} {item.country}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  id="phone"
+                                  type="tel"
+                                  required={!verifiedLeader}
+                                  className="flex-1"
+                                  value={formData.phone}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, phone: e.target.value })
+                                  }
+                                  placeholder="234567890"
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        
+                      </div>
+
+                     
+
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full"
+                        // disabled={
+                        //   !selectedDate ||
+                        //   formData.programIds.length === 0 ||
+                        //   !hasValidSeasonSelection ||
+                        //   totalSeatsRequested === 0
+                        // }
                       >
-                        <SelectTrigger id="payment">
-                          <SelectValue placeholder="Choose payment option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="full">Full Payment</SelectItem>
-                          <SelectItem value="partial">
-                            Partial Payment (≥25% on arrival)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {formData.payment === "partial" && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Note: Partial payment requires at least 25% payment
-                          upon arrival
+                        Next
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        <h2 className="text-2xl font-serif font-bold text-primary">
+                          Guest Details
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          We need information for each of the {totalSeatsRequested} people joining the tour. These details help our guides welcome everyone smoothly.
                         </p>
-                      )}
-                    </div>
 
-                    <div>
-                      <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                      <Textarea
-                        id="notes"
-                        value={formData.notes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, notes: e.target.value })
-                        }
-                        placeholder="Any special requirements or questions?"
-                        rows={4}
-                      />
-                    </div>
-                  </div>
+                        <div className="space-y-4">
+                          {guestDetails.length === 0 ? (
+                            <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                              Please go back and select your seats to continue.
+                            </div>
+                          ) : (
+                            guestDetails.map((guest, index) => (
+                              <div
+                                key={`guest-${index}`}
+                                className="rounded-lg border border-muted-foreground/30 bg-background p-4 shadow-sm"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <h3 className="text-lg font-semibold text-primary">
+                                    Guest {index + 1}
+                                  </h3>
+                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                    Seat #{index + 1}
+                                  </span>
+                                </div>
+                                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                  <div className="sm:col-span-1">
+                                    <Label htmlFor={`guest-name-${index}`} className="text-sm">
+                                      Full Name
+                                    </Label>
+                                    <Input
+                                      id={`guest-name-${index}`}
+                                      value={guest.name}
+                                      onChange={(e) =>
+                                        handleGuestDetailChange(index, "name", e.target.value)
+                                      }
+                                      placeholder="Guest name"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="sm:col-span-1">
+                                    <Label htmlFor={`guest-id-${index}`} className="text-sm">
+                                      ID / Passport Number
+                                    </Label>
+                                    <Input
+                                      id={`guest-id-${index}`}
+                                      value={guest.idNumber}
+                                      onChange={(e) =>
+                                        handleGuestDetailChange(index, "idNumber", e.target.value)
+                                      }
+                                      placeholder="ID number"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="sm:col-span-1">
+                                    <Label htmlFor={`guest-phone-${index}`} className="text-sm">
+                                      Phone Number
+                                    </Label>
+                                    <Input
+                                      id={`guest-phone-${index}`}
+                                      value={guest.phone}
+                                      onChange={(e) =>
+                                        handleGuestDetailChange(index, "phone", e.target.value)
+                                      }
+                                      placeholder="Contact number"
+                                      required
+                                    />
+                                  </div>
+                                  <div className="sm:col-span-1">
+                                    <Label htmlFor={`guest-email-${index}`} className="text-sm">
+                                      Email
+                                    </Label>
+                                    <Input
+                                      id={`guest-email-${index}`}
+                                      type="email"
+                                      value={guest.email}
+                                      onChange={(e) =>
+                                        handleGuestDetailChange(index, "email", e.target.value)
+                                      }
+                                      placeholder="guest@example.com"
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
 
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={
-                      isSubmitting ||
-                      !selectedDate ||
-                      formData.programIds.length === 0 ||
-                      !hasValidSeasonSelection
-                    }
-                  >
-                    {isSubmitting ? "Processing..." : "Confirm Booking"}
-                  </Button>
+                      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleBackToBooking}
+                          className="sm:w-40"
+                        >
+                          Back
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="lg"
+                          className="w-full sm:flex-1"
+                          disabled={isSubmitting || !guestDetailsComplete}
+                        >
+                          {isSubmitting ? "Processing..." : "Confirm Booking"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </form>
               </CardContent>
             </Card>
