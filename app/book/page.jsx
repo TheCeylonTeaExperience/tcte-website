@@ -1614,7 +1614,7 @@ export default function BookNow() {
                           Personal Information
                         </h2>
                         <div>
-                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                          <Label htmlFor="promoCode">Enter Affiliate Code (Optional)</Label>
                           <div className="flex gap-2">
                             <Input
                               id="promoCode"
