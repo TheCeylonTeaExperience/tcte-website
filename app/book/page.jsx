@@ -202,6 +202,15 @@ export default function BookNow() {
             return {
               id: session.id,
               name: session.name,
+              price:
+                session?.price ??
+                session?.basePrice ??
+                session?.defaultPrice ??
+                session?.minimumPrice ??
+                session?.minPrice ??
+                session?.amount ??
+                session?.cost ??
+                null,
               available: safeAvailable,
               capacity: safeActivityCapacity,
               sessionTypes: Array.isArray(session.sessionTypes)
@@ -361,6 +370,93 @@ export default function BookNow() {
       return String(value);
     }
     return `LKR ${numeric.toLocaleString()}`;
+  };
+
+  const parsePriceValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const getActivityPricingDetails = (seasonId, activity) => {
+    if (!activity) {
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const directPriceCandidates = [
+      activity.price,
+      activity.basePrice,
+      activity.defaultPrice,
+      activity.minimumPrice,
+      activity.minPrice,
+      activity.amount,
+      activity.cost,
+    ];
+
+    const seatCount = Number(
+      seasonSelections?.[seasonId]?.seatsRequested ?? 0
+    );
+
+    const selectedSessionTypeIds =
+      seasonSelections?.[seasonId]?.activities?.[activity.name]?.sessionTypes ?? {};
+
+    const selectedSessionTypePrices = Array.isArray(activity.sessionTypes)
+      ? activity.sessionTypes
+          .filter((sessionType) => {
+            const key = sessionType?.id;
+            if (key === null || key === undefined) {
+              return false;
+            }
+            return Boolean(selectedSessionTypeIds[key]);
+          })
+          .map((sessionType) => parsePriceValue(sessionType?.price))
+          .filter((value) => value !== null)
+      : [];
+
+    const directPrice = directPriceCandidates
+      .map((candidate) => parsePriceValue(candidate))
+      .find((value) => value !== null);
+
+    const pricePool = selectedSessionTypePrices.length
+      ? selectedSessionTypePrices
+      : directPrice !== null
+        ? [directPrice]
+        : [];
+
+    if (!pricePool.length) {
+      if (Array.isArray(activity.sessionTypes) && activity.sessionTypes.length > 0) {
+        return {
+          perSeatLabel: "Select a session type for pricing",
+          totalLabel: null,
+        };
+      }
+
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const minPrice = Math.min(...pricePool);
+    const maxPrice = Math.max(...pricePool);
+
+    const perSeatLabel =
+      minPrice === maxPrice
+        ? `${formatPrice(minPrice)} per guest`
+        : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)} per guest`;
+
+    if (!seatCount || seatCount <= 0) {
+      return { perSeatLabel, totalLabel: null };
+    }
+
+    const minTotal = minPrice * seatCount;
+    const maxTotal = maxPrice * seatCount;
+
+    const totalLabel =
+      minTotal === maxTotal
+        ? `${formatPrice(minTotal)} total for ${seatCount} seats`
+        : `${formatPrice(minTotal)} - ${formatPrice(maxTotal)} total for ${seatCount} seats`;
+
+    return { perSeatLabel, totalLabel };
   };
 
   const getSeasonAvailabilityTotal = (seasonId) => {
@@ -1392,11 +1488,23 @@ export default function BookNow() {
                                         </div>
                                         <div className="mt-3 grid gap-2 sm:grid-cols-3">
                                           {season.activities.map((activity) => {
-                                            const seatsTaken = Math.max(
-                                              0,
-                                              activity.capacity - activity.available
+                                            const seatsTaken =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? Math.max(
+                                                    0,
+                                                    activity.capacity - activity.available
+                                                  )
+                                                : 0;
+                                            const capacityLabel =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? `${activity.available} of ${activity.capacity} seats available`
+                                                : `${activity.available} seats available`;
+                                            const pricingDetails = getActivityPricingDetails(
+                                              season.id,
+                                              activity
                                             );
-                                            const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
                                             const fillPercent = activity.capacity
                                               ? Math.round(
                                                   (seatsTaken / activity.capacity) *
@@ -1444,9 +1552,19 @@ export default function BookNow() {
                                                     />
                                                     {activity.name}
                                                   </label>
-                                                  <span className="text-xs text-muted-foreground">
-                                                    {capacityLabel}
-                                                  </span>
+                                                  <div className="flex flex-col items-end text-xs text-muted-foreground text-right">
+                                                    <span>{capacityLabel}</span>
+                                                    {pricingDetails.perSeatLabel && (
+                                                      <span className="mt-1">
+                                                        Price: {pricingDetails.perSeatLabel}
+                                                      </span>
+                                                    )}
+                                                    {pricingDetails.totalLabel && (
+                                                      <span className="mt-1 text-foreground">
+                                                        {pricingDetails.totalLabel}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                 </div>
                                                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
                                                   <div
