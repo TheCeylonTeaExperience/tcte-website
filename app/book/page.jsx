@@ -139,24 +139,49 @@ export default function BookNow() {
   const [verifiedLeader, setVerifiedLeader] = useState(null);
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
 
+  const rangesOverlap = useCallback((first, second) => {
+    if (!first?.startTime || !first?.endTime || !second?.startTime || !second?.endTime) {
+      return false;
+    }
+
+    const firstStart = new Date(first.startTime).getTime();
+    const firstEnd = new Date(first.endTime).getTime();
+    const secondStart = new Date(second.startTime).getTime();
+    const secondEnd = new Date(second.endTime).getTime();
+
+    if (
+      Number.isNaN(firstStart) ||
+      Number.isNaN(firstEnd) ||
+      Number.isNaN(secondStart) ||
+      Number.isNaN(secondEnd)
+    ) {
+      return false;
+    }
+
+    return firstStart < secondEnd && firstEnd > secondStart;
+  }, []);
+
   const formatTimeRange = useCallback((startIso, endIso) => {
-    const formatUtcTime = (isoString) => {
+    const formatTimeOfDay = (isoString) => {
       if (!isoString) return "";
       const date = new Date(isoString);
-      if (Number.isNaN(date.getTime())) {
-        return "";
-      }
-      const hours = String(date.getUTCHours()).padStart(2, "0");
-      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      if (Number.isNaN(date.getTime())) return "";
+
+      // Sessions are stored in the DB as SQL TIME fields which Prisma maps
+      // to JS Date objects anchored at 1970-01-01 in UTC. When that's the
+      // case we should read the UTC hours/minutes to get the intended
+      // time-of-day (avoid local timezone shift). For full datetimes use
+      // local time display.
+      const useUtc = date.getUTCFullYear() === 1970;
+      const hours = String(useUtc ? date.getUTCHours() : date.getHours()).padStart(2, "0");
+      const minutes = String(useUtc ? date.getUTCMinutes() : date.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
     };
 
-    const startLabel = formatUtcTime(startIso);
-    const endLabel = formatUtcTime(endIso);
+    const startLabel = formatTimeOfDay(startIso);
+    const endLabel = formatTimeOfDay(endIso);
 
-    if (!startLabel || !endLabel) {
-      return "";
-    }
+    if (!startLabel || !endLabel) return "";
 
     return `${startLabel} - ${endLabel}`;
   }, []);
@@ -204,6 +229,8 @@ export default function BookNow() {
               name: session.name,
               available: safeAvailable,
               capacity: safeActivityCapacity,
+              startTime: session.startTime,
+              endTime: session.endTime,
               sessionTypes: Array.isArray(session.sessionTypes)
                 ? session.sessionTypes.map((st) => ({
                     id: st.id,
@@ -223,6 +250,54 @@ export default function BookNow() {
       };
     });
   }, [selectedDate, programOptions, formatTimeRange]);
+
+  const collectSelectedSessions = useCallback(
+    (selectionsMap) => {
+      if (!availabilityForDate) {
+        return [];
+      }
+
+      const entries = [];
+
+      Object.entries(selectionsMap || {}).forEach(([seasonId, selection]) => {
+        if (!selection) {
+          return;
+        }
+
+        const season = availabilityForDate.find((entry) => entry.id === seasonId);
+        if (!season) {
+          return;
+        }
+
+        Object.entries(selection.activities || {}).forEach(([activityName, activityState]) => {
+          if (!activityState?.selected) {
+            return;
+          }
+
+          const session = season.activities.find((activity) => activity.name === activityName);
+          if (!session) {
+            return;
+          }
+
+          entries.push({
+            seasonId,
+            activityName,
+            sessionId: session.id,
+            startTime: session.startTime,
+            endTime: session.endTime,
+          });
+        });
+      });
+
+      return entries;
+    },
+    [availabilityForDate]
+  );
+
+  const selectedSessions = useMemo(
+    () => collectSelectedSessions(seasonSelections),
+    [collectSelectedSessions, seasonSelections]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -442,6 +517,9 @@ export default function BookNow() {
   const handleActivityToggle = (seasonId, activityName) => {
     const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
     const normalizedProgramId = String(seasonMeta?.programId ?? seasonId);
+    const targetSession = seasonMeta?.activities?.find(
+      (activity) => activity.name === activityName
+    );
 
     setSeasonSelections((prev) => {
       const existing = prev[seasonId] ?? {
@@ -456,6 +534,23 @@ export default function BookNow() {
       if (activities[activityName]?.selected) {
         delete activities[activityName];
       } else {
+        if (targetSession?.startTime && targetSession?.endTime) {
+          const currentSelections = collectSelectedSessions(prev);
+          const hasConflict = currentSelections.some((entry) => {
+            if (entry.sessionId === targetSession.id) {
+              return false;
+            }
+            return rangesOverlap(entry, targetSession);
+          });
+
+          if (hasConflict) {
+            alert(
+              "You already selected another activity that overlaps with this time slot. Please choose a different session."
+            );
+            return prev;
+          }
+        }
+
         activities[activityName] = {
           selected: true,
           sessionTypes: {},
@@ -815,8 +910,10 @@ export default function BookNow() {
         throw new Error("Select a date before confirming your booking.");
       }
 
-      const bookingDate = new Date(selectedDate);
-      bookingDate.setUTCHours(0, 0, 0, 0);
+      // Send bookedDate as a date-only string (YYYY-MM-DD).
+      // The API expects a date-like value; using a plain date string
+      // avoids client/server timezone conversion issues.
+      const bookingDateString = format(selectedDate, "yyyy-MM-dd");
 
       const contactNumber = [formData.countryCode, formData.phone]
         .filter(Boolean)
@@ -938,7 +1035,7 @@ export default function BookNow() {
 
       const payload = {
         leaderId,
-        bookedDate: bookingDate.toISOString(),
+        bookedDate: bookingDateString,
         selections: bookingSelections,
         payment: {
           paymentType: "Full",
@@ -1413,6 +1510,16 @@ export default function BookNow() {
                                                 activity.name
                                               ]?.selected
                                             );
+                                            const conflictsWithSelection = selectedSessions.some(
+                                              (entry) => {
+                                                if (entry.sessionId === activity.id) {
+                                                  return false;
+                                                }
+                                                return rangesOverlap(entry, activity);
+                                              }
+                                            );
+                                            const activityDisabled =
+                                              !activitySelected && conflictsWithSelection;
                                             return (
                                               <div
                                                 key={activity.name}
@@ -1434,7 +1541,7 @@ export default function BookNow() {
                                                     <Checkbox
                                                       id={activityCheckboxId}
                                                       checked={activitySelected}
-                                                      disabled={!isSelected}
+                                                      disabled={!isSelected || activityDisabled}
                                                       onCheckedChange={() =>
                                                         handleActivityToggle(
                                                           season.id,
@@ -1448,6 +1555,11 @@ export default function BookNow() {
                                                     {capacityLabel}
                                                   </span>
                                                 </div>
+                                                {activityDisabled && (
+                                                  <p className="mt-2 text-xs text-amber-600">
+                                                    This overlaps with another activity you already selected.
+                                                  </p>
+                                                )}
                                                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
                                                   <div
                                                     className={`h-full rounded ${

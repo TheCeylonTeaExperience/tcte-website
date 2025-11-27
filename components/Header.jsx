@@ -40,10 +40,11 @@ export default function Header() {
             <Image
               src="/image/logo/logo.png"
               alt="Reviva logo"
-              width={70}
-              height={70}
-              className="h-50 w-50 object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-110 filter brightness-0"
+              width={200}
+              height={200}
+              className=" object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-110 filter brightness-0"
               priority
+              quality={70}
             />
             
           </Link>
