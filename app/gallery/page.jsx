@@ -19,7 +19,7 @@ export default function Gallery() {
     },
     {
       id: 2,
-      src: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img6.jpg",
       alt: "Guided tea plucking tour",
       category: "Plucking Tour",
     },
@@ -49,7 +49,7 @@ export default function Gallery() {
     },
     {
       id: 7,
-      src: "https://images.unsplash.com/photo-1597318130702-690dd509c0cc?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img5.jpg",
       alt: "Fresh tea leaves close-up",
       category: "Tea Fields",
     },
@@ -61,25 +61,37 @@ export default function Gallery() {
     },
     {
       id: 9,
-      src: "https://images.unsplash.com/photo-1563822249366-163bd08f49fe?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img9.jpg",
       alt: "Panoramic tea estate view",
       category: "Tea Fields",
     },
     {
       id: 10,
-      src: "https://images.unsplash.com/photo-1573875376991-9625d31b7a03?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img2.jpg",
       alt: "Traditional wooden tea house",
       category: "Heritage",
     },
     {
       id: 11,
-      src: "https://images.unsplash.com/photo-1505731132160-eca3da39b807?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img8.jpg",
       alt: "Tea plantation workers harvesting",
       category: "Plucking Tour",
     },
     {
       id: 12,
       src: "https://images.unsplash.com/photo-1464306208223-e0b4495a5553?auto=format&fit=crop&w=1200&q=80",
+      alt: "Assortment of loose leaf teas",
+      category: "Tea Varietals",
+    },
+    {
+      id: 13,
+      src: "/image/img3.jpg",
+      alt: "Assortment of loose leaf teas",
+      category: "Tea Varietals",
+    },
+    {
+      id: 14,
+      src: "/image/img1.jpg",
       alt: "Assortment of loose leaf teas",
       category: "Tea Varietals",
     },

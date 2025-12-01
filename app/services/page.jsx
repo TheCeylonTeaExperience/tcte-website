@@ -16,9 +16,9 @@ export default function Services() {
     {
       id: "plucking-tour",
       title: "Plucking Tour",
-      price: "$45 - $65",
-      duration: "2 hours",
-      groupSize: "2-8 people",
+      //price: "$45 - $65",
+      //duration: "2 hours",
+      //groupSize: "2-8 people",
       description:
         "Experience the art of tea plucking firsthand in our pristine tea gardens. Learn the traditional 'two leaves and a bud' technique from our expert pluckers.",
       image: "/image/PluckingTour.jpg",
@@ -33,9 +33,9 @@ export default function Services() {
     {
       id: "black-tea",
       title: "Black Tea Experience",
-      price: "$55 - $75",
-      duration: "2.5 hours",
-      groupSize: "2-8 people",
+      //price: "$55 - $75",
+      //duration: "2.5 hours",
+      //groupSize: "2-8 people",
       description:
         "Discover the complete journey of black tea from field to cup. Witness the withering, rolling, oxidation, and firing processes that create our signature black teas.",
       image:
@@ -51,9 +51,9 @@ export default function Services() {
     {
       id: "green-tea",
       title: "Green Tea Experience",
-      price: "$55 - $75",
-      duration: "2.5 hours",
-      groupSize: "2-8 people",
+      //price: "$55 - $75",
+      //duration: "2.5 hours",
+      //groupSize: "2-8 people",
       description:
         "Explore the delicate world of green tea production. Learn about the steaming and pan-firing methods that preserve the tea's natural antioxidants and fresh flavor.",
       image:
@@ -69,9 +69,9 @@ export default function Services() {
     {
       id: "tea-tasting",
       title: "Tea Tasting Session",
-      price: "$35 - $50",
-      duration: "1.5 hours",
-      groupSize: "2-8 people",
+      //price: "$35 - $50",
+      //duration: "1.5 hours",
+      //groupSize: "2-8 people",
       description:
         "Embark on a sensory journey through our curated selection of premium teas. Develop your palate and learn professional tea evaluation techniques.",
       image:
@@ -177,11 +177,11 @@ export default function Services() {
                       </ul>
                     </div>
                   </div>
-                  <div className="px-6 pb-6">
+                  {/* <div className="px-6 pb-6">
                     <Button asChild className="w-full">
                       <Link href="/book">Book This Experience</Link>
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               ))}
             </div>

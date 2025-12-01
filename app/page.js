@@ -18,12 +18,13 @@ import {
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [carouselPosition, setCarouselPosition] = useState(0);
 
   const heroImages = [
-    // {
-    //   url: "/image/PluckingTour.jpg",
-    //   alt: "Lush tea fields at sunrise",
-    // },
+    {
+       url: "/image/PluckingTour.jpg",
+       alt: "Lush tea fields at sunrise",
+    },
     {
       url: "/image/g1.jpg",
       alt: "Lush tea fields at sunrise",
@@ -55,6 +56,33 @@ export default function Home() {
       (prev) => (prev - 1 + heroImages.length) % heroImages.length
     );
   };
+
+  // Carousel scroll functions
+  const scrollCarouselLeft = () => {
+    setCarouselPosition((prev) => Math.min(prev + 350, 0));
+  };
+
+  const scrollCarouselRight = () => {
+    setCarouselPosition((prev) => prev - 350);
+  };
+
+  // Auto-scroll carousel
+  useEffect(() => {
+    const autoScroll = setInterval(() => {
+      setCarouselPosition((prev) => {
+        // Calculate max scroll (negative value)
+        const maxScroll = -((13 * 2) * (320 + 24)); // 13 images * 2 duplicates * (width + gap)
+        // Reset to 0 when reaching halfway point for seamless loop
+        if (prev <= maxScroll / 2) {
+          return 0;
+        }
+        return prev - 1; // Scroll 1px at a time for smooth animation
+      });
+    }, 20); // Update every 20ms for smooth 60fps animation
+
+    return () => clearInterval(autoScroll);
+  }, []);
+
   const features = [
     {
       icon: FaLeaf,
@@ -89,9 +117,8 @@ export default function Home() {
             {heroImages.map((image, index) => (
               <div
                 key={image.url}
-                className={`absolute inset-0 transition-opacity duration-1000 ${
-                  index === currentSlide ? "opacity-100" : "opacity-0"
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? "opacity-100" : "opacity-0"
+                  }`}
                 aria-hidden={index !== currentSlide}
               >
                 <div className="relative h-full w-full">
@@ -132,11 +159,10 @@ export default function Home() {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index === currentSlide
+                className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentSlide
                     ? "bg-white w-8"
                     : "bg-white/50 hover:bg-white/75"
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
@@ -217,14 +243,76 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16 fade-in-up">
               <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
-                Our Tea Experiences
+                Most Popular
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Choose from our curated tea tourism programs designed for every
                 tea enthusiast
               </p>
             </div>
-            <div
+
+            {/* Scrolling Images Carousel */}
+            <div className="mb-16 overflow-hidden relative">
+              {/* Left Arrow */}
+              <button
+                onClick={scrollCarouselLeft}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition-colors duration-200 shadow-lg"
+                aria-label="Scroll left"
+              >
+                <FaChevronLeft className="h-6 w-6" />
+              </button>
+
+              {/* Right Arrow */}
+              <button
+                onClick={scrollCarouselRight}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition-colors duration-200 shadow-lg"
+                aria-label="Scroll right"
+              >
+                <FaChevronRight className="h-6 w-6" />
+              </button>
+
+              <div 
+                className="flex gap-6 w-fit"
+                style={{ transform: `translateX(${carouselPosition}px)` }}
+              >
+                {/* Duplicate the images twice for seamless loop */}
+                {[...Array(2)].map((_, duplicateIndex) => (
+                  <div key={duplicateIndex} className="flex gap-6">
+                    {[
+                      "/image/PluckingTour.jpg",
+                      "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80",
+                      "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&q=80",
+                      "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&q=80",
+                      "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&q=80",
+                      "/image/img1.jpg",
+                      "/image/img2.jpg",
+                      "/image/img3.jpg",
+                      "/image/img5.jpg",
+                      "/image/img6.jpg",
+                      "/image/img7.jpg",
+                      "/image/img8.jpg",
+                      "/image/img9.jpg",
+
+                    ].map((image, index) => (
+                      <div
+                        key={`${duplicateIndex}-${index}`}
+                        className="relative flex-shrink-0 w-80 h-100 rounded-xl overflow-hidden shadow-lg border-2 border-primary/20 hover:border-primary/50 transition-all duration-300"
+                      >
+                        <Image
+                          src={image}
+                          alt={`Tea experience ${index + 1}`}
+                          fill
+                          sizes="320px"
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* <div
               className="grid gap-8"
               style={{
                 gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
@@ -298,7 +386,7 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </section>
 
