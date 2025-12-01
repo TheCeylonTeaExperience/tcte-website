@@ -22,6 +22,12 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { FaCheckCircle, FaWhatsapp } from "react-icons/fa";
+import {
+  getCountries,
+  getCountryCallingCode,
+  parsePhoneNumberFromString,
+} from "libphonenumber-js";
+import metadata from "libphonenumber-js/metadata.min.json";
 
 // Dummy availability data until the API layer is ready
 const SEASON_AVAILABILITY = {
@@ -116,7 +122,7 @@ export default function BookNow() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    countryCode: "+1",
+    countryCode: "LK",
     phone: "",
     location: "",
     programIds: [],
@@ -138,6 +144,60 @@ export default function BookNow() {
   const [guestDetails, setGuestDetails] = useState([]);
   const [verifiedLeader, setVerifiedLeader] = useState(null);
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
+  const [phoneValidation, setPhoneValidation] = useState({ state: "idle", message: "" });
+  const [validatedPhoneNumber, setValidatedPhoneNumber] = useState(null);
+
+  const regionDisplayNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" });
+    } catch (error) {
+      return null;
+    }
+  }, []);
+
+  const countryOptions = useMemo(() => {
+    const isoCodes = getCountries(metadata) ?? [];
+
+    return isoCodes
+      .map((isoCode) => {
+        try {
+          const dial = getCountryCallingCode(isoCode, metadata);
+          const countryName = regionDisplayNames?.of(isoCode) ?? isoCode;
+
+          if (!dial) {
+            return null;
+          }
+
+          return {
+            iso: isoCode,
+            dial: `+${dial}`,
+            label: `${countryName} (+${dial})`,
+            sortKey: countryName?.toUpperCase() ?? isoCode,
+          };
+        } catch (error) {
+          return null;
+        }
+      })
+      .filter((option) => option !== null)
+      .sort((a, b) => (a.sortKey > b.sortKey ? 1 : a.sortKey < b.sortKey ? -1 : 0));
+  }, [regionDisplayNames]);
+
+  useEffect(() => {
+    if (countryOptions.length === 0) {
+      return;
+    }
+
+    const hasSelectedCountry = countryOptions.some(
+      (option) => option.iso === formData.countryCode
+    );
+
+    if (!hasSelectedCountry) {
+      setFormData((prev) => ({
+        ...prev,
+        countryCode: countryOptions[0]?.iso ?? "",
+      }));
+    }
+  }, [countryOptions, formData.countryCode]);
 
   const rangesOverlap = useCallback((first, second) => {
     if (!first?.startTime || !first?.endTime || !second?.startTime || !second?.endTime) {
@@ -227,6 +287,15 @@ export default function BookNow() {
             return {
               id: session.id,
               name: session.name,
+              price:
+                session?.price ??
+                session?.basePrice ??
+                session?.defaultPrice ??
+                session?.minimumPrice ??
+                session?.minPrice ??
+                session?.amount ??
+                session?.cost ??
+                null,
               available: safeAvailable,
               capacity: safeActivityCapacity,
               startTime: session.startTime,
@@ -436,6 +505,154 @@ export default function BookNow() {
       return String(value);
     }
     return `LKR ${numeric.toLocaleString()}`;
+  };
+
+  const parsePriceValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const validatePhoneNumber = useCallback((countryIso, rawNumber) => {
+    const sanitizedNumber =
+      typeof rawNumber === "string" ? rawNumber.replace(/[^\d]/g, "") : "";
+
+    if (!sanitizedNumber) {
+      setPhoneValidation({ state: "idle", message: "" });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    if (!countryIso) {
+      setPhoneValidation({ state: "error", message: "Select a country first." });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    let dialPrefix = "";
+    try {
+      const dialDigits = getCountryCallingCode(countryIso, metadata);
+      dialPrefix = `+${dialDigits}`;
+    } catch (error) {
+      console.error(`Unable to resolve dial code for country ${countryIso}`, error);
+      setPhoneValidation({
+        state: "error",
+        message: "Unable to resolve the dial code for the selected country.",
+      });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    try {
+      const candidate = parsePhoneNumberFromString(
+        `${dialPrefix}${sanitizedNumber}`
+      );
+
+      if (!candidate || !candidate.isValid()) {
+        setPhoneValidation({
+          state: "error",
+          message: "Enter a valid phone number for the selected country.",
+        });
+        setValidatedPhoneNumber(null);
+        return { isValid: false, parsed: null };
+      }
+
+      setPhoneValidation({
+        state: "success",
+        message: candidate.formatInternational(),
+      });
+      setValidatedPhoneNumber(candidate);
+      return { isValid: true, parsed: candidate };
+    } catch (error) {
+      setPhoneValidation({
+        state: "error",
+        message: "Enter a valid phone number for the selected country.",
+      });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+  }, []);
+
+
+  const getActivityPricingDetails = (seasonId, activity) => {
+    if (!activity) {
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const directPriceCandidates = [
+      activity.price,
+      activity.basePrice,
+      activity.defaultPrice,
+      activity.minimumPrice,
+      activity.minPrice,
+      activity.amount,
+      activity.cost,
+    ];
+
+    const seatCount = Number(
+      seasonSelections?.[seasonId]?.seatsRequested ?? 0
+    );
+
+    const selectedSessionTypeIds =
+      seasonSelections?.[seasonId]?.activities?.[activity.name]?.sessionTypes ?? {};
+
+    const selectedSessionTypePrices = Array.isArray(activity.sessionTypes)
+      ? activity.sessionTypes
+          .filter((sessionType) => {
+            const key = sessionType?.id;
+            if (key === null || key === undefined) {
+              return false;
+            }
+            return Boolean(selectedSessionTypeIds[key]);
+          })
+          .map((sessionType) => parsePriceValue(sessionType?.price))
+          .filter((value) => value !== null)
+      : [];
+
+    const directPrice = directPriceCandidates
+      .map((candidate) => parsePriceValue(candidate))
+      .find((value) => value !== null);
+
+    const pricePool = selectedSessionTypePrices.length
+      ? selectedSessionTypePrices
+      : directPrice !== null
+        ? [directPrice]
+        : [];
+
+    if (!pricePool.length) {
+      if (Array.isArray(activity.sessionTypes) && activity.sessionTypes.length > 0) {
+        return {
+          perSeatLabel: "Select a session type for pricing",
+          totalLabel: null,
+        };
+      }
+
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const minPrice = Math.min(...pricePool);
+    const maxPrice = Math.max(...pricePool);
+
+    const perSeatLabel =
+      minPrice === maxPrice
+        ? `${formatPrice(minPrice)} per guest`
+        : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)} per guest`;
+
+    if (!seatCount || seatCount <= 0) {
+      return { perSeatLabel, totalLabel: null };
+    }
+
+    const minTotal = minPrice * seatCount;
+    const maxTotal = maxPrice * seatCount;
+
+    const totalLabel =
+      minTotal === maxTotal
+        ? `${formatPrice(minTotal)} total for ${seatCount} seats`
+        : `${formatPrice(minTotal)} - ${formatPrice(maxTotal)} total for ${seatCount} seats`;
+
+    return { perSeatLabel, totalLabel };
   };
 
   const getSeasonAvailabilityTotal = (seasonId) => {
@@ -705,15 +922,6 @@ export default function BookNow() {
     }
   );
 
-  const countryCodes = [
-    { code: "+1", country: "US/CA" },
-    { code: "+44", country: "UK" },
-    { code: "+91", country: "IN" },
-    { code: "+94", country: "LK" },
-    { code: "+61", country: "AU" },
-    { code: "+86", country: "CN" },
-  ];
-
   const handlePromoCodeChange = (value) => {
     setFormData((prev) => ({
       ...prev,
@@ -777,6 +985,23 @@ export default function BookNow() {
       ...prev,
       promoCode: "",
     }));
+  };
+
+  const handleCountryCodeChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      countryCode: value,
+    }));
+    validatePhoneNumber(value, formData.phone);
+  };
+
+  const handlePhoneInputChange = (value) => {
+    const sanitizedValue = value.replace(/[^\d]/g, "");
+    setFormData((prev) => ({
+      ...prev,
+      phone: sanitizedValue,
+    }));
+    validatePhoneNumber(formData.countryCode, sanitizedValue);
   };
 
   const handleProgramToggle = (programId) => {
@@ -883,7 +1108,21 @@ export default function BookNow() {
         }
 
         if (!formData.phone?.trim()) {
-          alert("Enter a contact number before continuing.");
+          setPhoneValidation({
+            state: "error",
+            message: "Enter a phone number before continuing.",
+          });
+          alert("Enter a phone number before continuing.");
+          return;
+        }
+
+        const phoneCheck = validatePhoneNumber(
+          formData.countryCode,
+          formData.phone
+        );
+
+        if (!phoneCheck.isValid) {
+          alert("Enter a valid phone number before continuing.");
           return;
         }
       }
@@ -903,6 +1142,23 @@ export default function BookNow() {
       return;
     }
 
+    let bookingPhoneResult = validatedPhoneNumber;
+
+    if (!verifiedLeader) {
+      const latestPhoneCheck = validatePhoneNumber(
+        formData.countryCode,
+        formData.phone
+      );
+
+      if (!latestPhoneCheck.isValid) {
+        alert("Enter a valid phone number before confirming your booking.");
+        setCurrentStage("booking");
+        return;
+      }
+
+      bookingPhoneResult = latestPhoneCheck.parsed;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -915,10 +1171,26 @@ export default function BookNow() {
       // avoids client/server timezone conversion issues.
       const bookingDateString = format(selectedDate, "yyyy-MM-dd");
 
-      const contactNumber = [formData.countryCode, formData.phone]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
+      const fallbackDialPrefix = (() => {
+        try {
+          if (!formData.countryCode) {
+            return "";
+          }
+          return `+${getCountryCallingCode(formData.countryCode, metadata)}`;
+        } catch (error) {
+          console.error(
+            `Unable to compute fallback dial code for ${formData.countryCode}`,
+            error
+          );
+          return "";
+        }
+      })();
+
+      const fallbackContact = `${fallbackDialPrefix}${formData.phone ?? ""}`.replace(
+        /\s+/g,
+        ""
+      );
+      const contactNumber = bookingPhoneResult?.number ?? fallbackContact;
 
       let leaderId = verifiedLeader?.id;
 
@@ -1354,40 +1626,54 @@ export default function BookNow() {
                         
 
                         {selectedDate && (
-                          <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                              <h3 className="text-lg font-semibold text-primary">
-                                Availability Overview
-                              </h3>
-                              <span className="text-sm text-muted-foreground">
-                                {format(selectedDate, "PPP")} • Seasons & Activities
-                              </span>
+                          <div className="space-y-6 rounded-xl border border-primary/20 p-6 bg-gradient-to-br from-primary/5 via-background to-primary/3 shadow-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-2 h-8 bg-gradient-to-b from-primary to-primary/60 rounded-full" />
+                                <div>
+                                  <h3 className="text-xl font-bold text-primary">
+                                    Availability Overview
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Select your preferred time slots and activities
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                                  {format(selectedDate, "PPP")}
+                                </span>
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  Seasons & Activities
+                                </span>
+                              </div>
                             </div>
                             {availabilityForDate ? (
                               <div className="space-y-4">
-                                <div className="rounded-md border border-muted-foreground/20 bg-background/70 p-4">
-                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="flex items-center gap-2">
+                                <div className="rounded-lg border border-muted-foreground/20 bg-gradient-to-r from-background to-muted/30 p-5 shadow-sm">
+                                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center gap-3">
                                       <Checkbox
                                         id="use-global-seats"
                                         checked={useGlobalSeatCount}
                                         onCheckedChange={(checked) =>
                                           handleGlobalSeatToggle(checked)
                                         }
+                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                       />
                                       <label
                                         htmlFor="use-global-seats"
-                                        className="cursor-pointer text-sm text-foreground"
+                                        className="cursor-pointer text-sm font-medium text-foreground"
                                       >
                                         Use the same seat count for every selected
                                         season
                                       </label>
                                     </div>
                                     {useGlobalSeatCount && (
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-3 bg-primary/5 px-3 py-2 rounded-md">
                                         <Label
                                           htmlFor="global-seat-count"
-                                          className="text-xs uppercase tracking-wide text-muted-foreground"
+                                          className="text-xs font-semibold uppercase tracking-wide text-primary"
                                         >
                                           Seats per season
                                         </Label>
@@ -1395,7 +1681,7 @@ export default function BookNow() {
                                           id="global-seat-count"
                                           type="number"
                                           min="0"
-                                          className="w-24"
+                                          className="w-20 text-center font-medium border-primary/30 focus:border-primary"
                                           value={
                                             Number.isNaN(globalSeatCount)
                                               ? ""
@@ -1435,7 +1721,11 @@ export default function BookNow() {
                                     return (
                                       <div
                                         key={season.id}
-                                        className="rounded-md border bg-background px-4 py-3 shadow-sm"
+                                        className={`rounded-xl border transition-all duration-200 px-5 py-4 shadow-md hover:shadow-lg ${
+                                          isSelected
+                                            ? "bg-gradient-to-br from-primary/10 via-background to-primary/5 border-primary/30"
+                                            : "bg-gradient-to-br from-background to-muted/20 border-muted-foreground/20 hover:border-primary/20"
+                                        }`}
                                       >
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                           <div className="flex items-start gap-3">
@@ -1451,18 +1741,32 @@ export default function BookNow() {
                                               htmlFor={`season-${season.id}`}
                                               className="cursor-pointer"
                                             >
-                                              <p className="font-medium text-primary">
-                                                {season.id} • {season.window}
-                                              </p>
-                                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                                {totalAvailable} seats left today
-                                              </p>
+                                              <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-lg font-bold text-primary">
+                                                  {season.id}
+                                                </span>
+                                                <span className="text-sm text-muted-foreground">•</span>
+                                                <span className="text-sm font-medium text-foreground">
+                                                  {season.window}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${
+                                                  totalAvailable > 5 ? "bg-green-500" : 
+                                                  totalAvailable > 2 ? "bg-yellow-500" : "bg-red-500"
+                                                }`} />
+                                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                  {totalAvailable} seats available
+                                                </p>
+                                              </div>
                                             </label>
                                           </div>
-                                          <div className="flex items-center gap-2">
+                                          <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                                            isSelected ? "bg-primary/10" : "bg-muted/30"
+                                          }`}>
                                             <Label
                                               htmlFor={seatInputId}
-                                              className="text-xs uppercase tracking-wide text-muted-foreground"
+                                              className="text-xs font-semibold uppercase tracking-wide text-primary"
                                             >
                                               Seats needed
                                             </Label>
@@ -1471,7 +1775,11 @@ export default function BookNow() {
                                               type="number"
                                               min="0"
                                               max={totalAvailable}
-                                              className="w-24"
+                                              className={`w-20 text-center font-medium transition-colors ${
+                                                isSelected 
+                                                  ? "border-primary/30 focus:border-primary" 
+                                                  : "border-muted-foreground/30"
+                                              }`}
                                               value={isSelected ? seatValue : ""}
                                               onChange={(e) =>
                                                 handleSeatsChange(
@@ -1487,13 +1795,25 @@ export default function BookNow() {
                                             />
                                           </div>
                                         </div>
-                                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                                        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                           {season.activities.map((activity) => {
-                                            const seatsTaken = Math.max(
-                                              0,
-                                              activity.capacity - activity.available
+                                            const seatsTaken =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? Math.max(
+                                                    0,
+                                                    activity.capacity - activity.available
+                                                  )
+                                                : 0;
+                                            const capacityLabel =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? `${activity.available} of ${activity.capacity} seats available`
+                                                : `${activity.available} seats available`;
+                                            const pricingDetails = getActivityPricingDetails(
+                                              season.id,
+                                              activity
                                             );
-                                            const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
                                             const fillPercent = activity.capacity
                                               ? Math.round(
                                                   (seatsTaken / activity.capacity) *
@@ -1523,18 +1843,20 @@ export default function BookNow() {
                                             return (
                                               <div
                                                 key={activity.name}
-                                                className={`rounded border p-3 transition-colors ${
+                                                className={`rounded-lg border p-4 transition-all duration-200 hover:shadow-md ${
                                                   activitySelected
-                                                    ? "border-primary bg-primary/5"
-                                                    : "border-muted-foreground/20 bg-muted/40"
+                                                    ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm"
+                                                    : "border-muted-foreground/20 bg-gradient-to-br from-muted/20 to-muted/10 hover:border-primary/30"
                                                 }`}
                                               >
-                                                <div className="flex items-start justify-between gap-2">
+                                                <div className="flex items-start justify-between gap-3">
                                                   <label
                                                     htmlFor={activityCheckboxId}
-                                                    className={`flex items-center gap-2 text-sm font-semibold ${
+                                                    className={`flex items-center gap-3 text-sm font-bold transition-colors cursor-pointer ${
                                                       isSelected
-                                                        ? "text-foreground"
+                                                        ? activitySelected 
+                                                          ? "text-primary" 
+                                                          : "text-foreground hover:text-primary"
                                                         : "text-muted-foreground"
                                                     }`}
                                                   >
@@ -1548,24 +1870,36 @@ export default function BookNow() {
                                                           activity.name
                                                         )
                                                       }
+                                                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                                     />
-                                                    {activity.name}
+                                                    <span>{activity.name}</span>
                                                   </label>
-                                                  <span className="text-xs text-muted-foreground">
-                                                    {capacityLabel}
-                                                  </span>
+                                                  <div className="flex flex-col items-end text-xs text-right space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className={`w-2 h-2 rounded-full ${
+                                                        activity.available > (activity.capacity || 10) * 0.7 ? "bg-green-500" : 
+                                                        activity.available > (activity.capacity || 10) * 0.3 ? "bg-yellow-500" : "bg-red-500"
+                                                      }`} />
+                                                      <span className="text-muted-foreground font-medium">{capacityLabel}</span>
+                                                    </div>
+                                                    {pricingDetails.perSeatLabel && (
+                                                      <div className="bg-primary/10 px-2 py-1 rounded text-primary font-semibold">
+                                                        {pricingDetails.perSeatLabel}
+                                                      </div>
+                                                    )}
+                                                    {pricingDetails.totalLabel && (
+                                                      <div className="bg-primary text-primary-foreground px-2 py-1 rounded font-bold text-xs">
+                                                        {pricingDetails.totalLabel}
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
-                                                {activityDisabled && (
-                                                  <p className="mt-2 text-xs text-amber-600">
-                                                    This overlaps with another activity you already selected.
-                                                  </p>
-                                                )}
-                                                <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
+                                                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted shadow-inner">
                                                   <div
-                                                    className={`h-full rounded ${
+                                                    className={`h-full rounded-full transition-all duration-500 ease-out ${
                                                       activitySelected
-                                                        ? "bg-primary"
-                                                        : "bg-primary/40"
+                                                        ? "bg-gradient-to-r from-primary to-primary/80"
+                                                        : "bg-gradient-to-r from-primary/40 to-primary/20"
                                                     }`}
                                                     style={{
                                                       width: `${Math.min(
@@ -1579,8 +1913,8 @@ export default function BookNow() {
                                                   activity.sessionTypes &&
                                                   activity.sessionTypes.length >
                                                     0 && (
-                                                    <div className="mt-3 space-y-2">
-                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                    <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                                      <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wide">
                                                         Select session types:
                                                       </p>
                                                       {activity.sessionTypes.map(
@@ -1596,7 +1930,9 @@ export default function BookNow() {
                                                           return (
                                                             <div
                                                               key={st.id}
-                                                              className="flex items-center gap-2"
+                                                              className={`flex items-center gap-3 p-2 rounded transition-colors ${
+                                                                stSelected ? "bg-primary/10" : "hover:bg-primary/5"
+                                                              }`}
                                                             >
                                                               <Checkbox
                                                                 id={stCheckboxId}
@@ -1608,17 +1944,20 @@ export default function BookNow() {
                                                                     st.id
                                                                   )
                                                                 }
+                                                                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                                               />
                                                               <label
                                                                 htmlFor={
                                                                   stCheckboxId
                                                                 }
-                                                                className="text-xs cursor-pointer"
+                                                                className={`text-xs font-medium cursor-pointer flex-1 ${
+                                                                  stSelected ? "text-primary" : "text-foreground"
+                                                                }`}
                                                               >
-                                                                {st.name} -{" "}
-                                                                {formatPrice(
-                                                                  st.price
-                                                                )}
+                                                                <span>{st.name}</span>
+                                                                <span className="ml-2 font-bold">
+                                                                  {formatPrice(st.price)}
+                                                                </span>
                                                               </label>
                                                             </div>
                                                           );
@@ -1726,7 +2065,7 @@ export default function BookNow() {
                           Personal Information
                         </h2>
                         <div>
-                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
+                          <Label htmlFor="promoCode">Enter Affiliate Code (Optional)</Label>
                           <div className="flex gap-2">
                             <Input
                               id="promoCode"
@@ -1811,17 +2150,15 @@ export default function BookNow() {
                               <div className="flex gap-2">
                                 <Select
                                   value={formData.countryCode}
-                                  onValueChange={(value) =>
-                                    setFormData({ ...formData, countryCode: value })
-                                  }
+                                  onValueChange={handleCountryCodeChange}
                                 >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
+                                  <SelectTrigger className="w-48">
+                                    <SelectValue placeholder="Select country" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {countryCodes.map((item) => (
-                                      <SelectItem key={item.code} value={item.code}>
-                                        {item.code} {item.country}
+                                    {countryOptions.map((option) => (
+                                      <SelectItem key={option.iso} value={option.iso}>
+                                        {option.label}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -1830,14 +2167,30 @@ export default function BookNow() {
                                   id="phone"
                                   type="tel"
                                   required={!verifiedLeader}
-                                  className="flex-1"
+                                  className={`flex-1 ${
+                                    phoneValidation.state === "error"
+                                      ? "border-red-500 focus-visible:ring-red-500"
+                                      : ""
+                                  }`}
                                   value={formData.phone}
                                   onChange={(e) =>
-                                    setFormData({ ...formData, phone: e.target.value })
+                                    handlePhoneInputChange(e.target.value)
                                   }
                                   placeholder="234567890"
+                                  aria-invalid={phoneValidation.state === "error"}
                                 />
                               </div>
+                              {phoneValidation.state === "error" && (
+                                <p className="mt-1 text-xs text-red-600">
+                                  {phoneValidation.message ||
+                                    "Enter a valid phone number for the selected country."}
+                                </p>
+                              )}
+                              {phoneValidation.state === "success" && (
+                                <p className="mt-1 text-xs text-emerald-600">
+                                  Verified: {phoneValidation.message}
+                                </p>
+                              )}
                             </div>
                           </>
                         )}
