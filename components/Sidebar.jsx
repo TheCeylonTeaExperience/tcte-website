@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronDown,
   Layers3,
+  MapPin,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -28,6 +29,11 @@ const sidebarLinks = [
     href: "/dashboard",
     icon: LayoutDashboard,
   },
+  {
+        label: "Locations",
+        href: "/dashboard/locations",
+        icon: MapPin,
+      },
   {
     label: "Program Settings",
     icon: Settings,
@@ -47,6 +53,7 @@ const sidebarLinks = [
         href: "/dashboard/session-types",
         icon: Layers3,
       },
+      
     ],
   },
   {
