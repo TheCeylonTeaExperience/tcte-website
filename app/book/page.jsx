@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import Header from "@/components/Header";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaCheckCircle, FaWhatsapp } from "react-icons/fa";
+import { FaCheckCircle, FaWhatsapp, FaCalendarAlt } from "react-icons/fa";
 import {
   getCountries,
   getCountryCallingCode,
@@ -119,6 +119,8 @@ const FALLBACK_LOCATIONS = [
 export default function BookNow() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calendarRef = useRef(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -146,6 +148,23 @@ export default function BookNow() {
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
   const [phoneValidation, setPhoneValidation] = useState({ state: "idle", message: "" });
   const [validatedPhoneNumber, setValidatedPhoneNumber] = useState(null);
+
+  // Close calendar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    if (showCalendar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCalendar]);
 
   const regionDisplayNames = useMemo(() => {
     try {
@@ -1484,64 +1503,96 @@ export default function BookNow() {
       <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-yellow-300/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-4 drop-shadow-lg">
-              Book Your Experience
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 animate-fade-in">
+              <span className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></span>
+              <span className="text-sm font-medium">Book Your Tea Experience</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-4 drop-shadow-2xl animate-fade-in">
+              Reserve Your Perfect
+              <span className="block text-yellow-300 mt-2">Tea Journey</span>
             </h1>
-            <p className="text-lg opacity-95 drop-shadow">
-              Fill in your details to reserve your tea tour
+            <p className="text-lg sm:text-xl opacity-95 drop-shadow max-w-2xl mx-auto animate-fade-in">
+              Fill in your details below to reserve your authentic Ceylon tea experience
             </p>
           </div>
         </section>
 
         {/* Booking Form */}
-        <section className="py-12">
+        <section className="py-16 bg-gradient-to-b from-background via-secondary/5 to-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             
-            <Card className="max-w-3xl mx-auto">
-              <CardContent className="pt-6">
+            <Card className="max-w-6xl mx-auto border-2 border-primary/20 shadow-2xl bg-white/95 backdrop-blur overflow-hidden">
+              <CardContent className="pt-8 pb-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {currentStage === "booking" ? (
                     <>
                      {/* Booking Details */}
                       <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary">
+                        <h2 className="text-2xl font-serif font-bold text-primary text-center mb-8">
                           Booking Details
                         </h2>
-                         <div>
-                          <Label htmlFor="location">Select Location *</Label>
-                          <Select
-                            value={formData.location}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, location: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger id="location">
-                              <SelectValue placeholder="Choose a location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {locationChoices.map((loc) => (
-                                <SelectItem key={loc} value={loc}>
-                                  {loc}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-<div>
-                          <Label>Select Date *</Label>
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            disabled={(date) => date < new Date()}
-                            className="rounded-md border"
-                          />
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="location" className="text-base font-semibold flex items-center gap-2">
+                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                              Select Location *
+                            </Label>
+                            <Select
+                              value={formData.location}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, location: value })
+                              }
+                            >
+                              <SelectTrigger id="location" className="h-12 w-full border-2 border-primary/30 focus:border-primary">
+                                <SelectValue placeholder="Choose your tea estate" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {locationChoices.map((loc) => (
+                                  <SelectItem key={loc} value={loc} className="cursor-pointer">
+                                    {loc}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-base font-semibold flex items-center gap-2">
+                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                              Select Date *
+                            </Label>
+                            <div className="relative" ref={calendarRef}>
+                              <div
+                                onClick={() => setShowCalendar(!showCalendar)}
+                                className="h-12 border-2 border-primary/30 rounded-lg px-3 bg-white flex items-center justify-between cursor-pointer hover:border-primary transition-colors"
+                              >
+                                <span className={selectedDate ? "text-foreground" : "text-muted-foreground"}>
+                                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                                </span>
+                                <FaCalendarAlt className="text-primary" />
+                              </div>
+                              {showCalendar && (
+                                <div className="absolute z-50 mt-2 border-2 border-primary/30 rounded-lg p-3 bg-white shadow-xl">
+                                  <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                      setSelectedDate(date);
+                                      setShowCalendar(false);
+                                    }}
+                                    disabled={(date) => date < new Date()}
+                                    className="rounded-md"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                        
                         {/* <div className="space-y-3">
@@ -1795,7 +1846,7 @@ export default function BookNow() {
                                             />
                                           </div>
                                         </div>
-                                        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        <div className="mt-4 grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                                           {season.activities.map((activity) => {
                                             const seatsTaken =
                                               activity.capacity !== null &&
@@ -1843,58 +1894,60 @@ export default function BookNow() {
                                             return (
                                               <div
                                                 key={activity.name}
-                                                className={`rounded-lg border p-4 transition-all duration-200 hover:shadow-md ${
+                                                className={`rounded-lg border p-3 sm:p-4 transition-all duration-200 hover:shadow-md ${
                                                   activitySelected
                                                     ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm"
                                                     : "border-muted-foreground/20 bg-gradient-to-br from-muted/20 to-muted/10 hover:border-primary/30"
                                                 }`}
                                               >
-                                                <div className="flex items-start justify-between gap-3">
-                                                  <label
-                                                    htmlFor={activityCheckboxId}
-                                                    className={`flex items-center gap-3 text-sm font-bold transition-colors cursor-pointer ${
-                                                      isSelected
-                                                        ? activitySelected 
-                                                          ? "text-primary" 
-                                                          : "text-foreground hover:text-primary"
-                                                        : "text-muted-foreground"
-                                                    }`}
-                                                  >
-                                                    <Checkbox
-                                                      id={activityCheckboxId}
-                                                      checked={activitySelected}
-                                                      disabled={!isSelected || activityDisabled}
-                                                      onCheckedChange={() =>
-                                                        handleActivityToggle(
-                                                          season.id,
-                                                          activity.name
-                                                        )
-                                                      }
-                                                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                                    />
-                                                    <span>{activity.name}</span>
-                                                  </label>
-                                                  <div className="flex flex-col items-end text-xs text-right space-y-1">
+                                                <div className="flex flex-col gap-3">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <label
+                                                      htmlFor={activityCheckboxId}
+                                                      className={`flex items-center gap-2 text-sm font-bold transition-colors cursor-pointer flex-1 min-w-0 ${
+                                                        isSelected
+                                                          ? activitySelected 
+                                                            ? "text-primary" 
+                                                            : "text-foreground hover:text-primary"
+                                                          : "text-muted-foreground"
+                                                      }`}
+                                                    >
+                                                      <Checkbox
+                                                        id={activityCheckboxId}
+                                                        checked={activitySelected}
+                                                        disabled={!isSelected || activityDisabled}
+                                                        onCheckedChange={() =>
+                                                          handleActivityToggle(
+                                                            season.id,
+                                                            activity.name
+                                                          )
+                                                        }
+                                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                      />
+                                                      <span className="truncate">{activity.name}</span>
+                                                    </label>
+                                                  </div>
+                                                  <div className="flex flex-col gap-2 text-xs">
                                                     <div className="flex items-center gap-2">
-                                                      <div className={`w-2 h-2 rounded-full ${
+                                                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                                                         activity.available > (activity.capacity || 10) * 0.7 ? "bg-green-500" : 
                                                         activity.available > (activity.capacity || 10) * 0.3 ? "bg-yellow-500" : "bg-red-500"
                                                       }`} />
-                                                      <span className="text-muted-foreground font-medium">{capacityLabel}</span>
+                                                      <span className="text-muted-foreground font-medium text-xs">{capacityLabel}</span>
                                                     </div>
                                                     {pricingDetails.perSeatLabel && (
-                                                      <div className="bg-primary/10 px-2 py-1 rounded text-primary font-semibold">
+                                                      <div className="bg-primary/10 px-2 py-1 rounded text-primary font-semibold text-xs whitespace-nowrap">
                                                         {pricingDetails.perSeatLabel}
                                                       </div>
                                                     )}
                                                     {pricingDetails.totalLabel && (
-                                                      <div className="bg-primary text-primary-foreground px-2 py-1 rounded font-bold text-xs">
+                                                      <div className="bg-primary text-primary-foreground px-2 py-1 rounded font-bold text-xs whitespace-nowrap">
                                                         {pricingDetails.totalLabel}
                                                       </div>
                                                     )}
                                                   </div>
                                                 </div>
-                                                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted shadow-inner">
+                                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted shadow-inner">
                                                   <div
                                                     className={`h-full rounded-full transition-all duration-500 ease-out ${
                                                       activitySelected
@@ -1913,56 +1966,58 @@ export default function BookNow() {
                                                   activity.sessionTypes &&
                                                   activity.sessionTypes.length >
                                                     0 && (
-                                                    <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                                                      <p className="text-xs font-bold text-primary mb-3 uppercase tracking-wide">
+                                                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                                      <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">
                                                         Select session types:
                                                       </p>
-                                                      {activity.sessionTypes.map(
-                                                        (st) => {
-                                                          const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
-                                                          const stSelected =
-                                                            seasonSelection
-                                                              ?.activities?.[
-                                                              activity.name
-                                                            ]?.sessionTypes?.[
-                                                              st.id
-                                                            ] || false;
-                                                          return (
-                                                            <div
-                                                              key={st.id}
-                                                              className={`flex items-center gap-3 p-2 rounded transition-colors ${
-                                                                stSelected ? "bg-primary/10" : "hover:bg-primary/5"
-                                                              }`}
-                                                            >
-                                                              <Checkbox
-                                                                id={stCheckboxId}
-                                                                checked={stSelected}
-                                                                onCheckedChange={() =>
-                                                                  handleSessionTypeToggle(
-                                                                    season.id,
-                                                                    activity.name,
-                                                                    st.id
-                                                                  )
-                                                                }
-                                                                className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                                              />
-                                                              <label
-                                                                htmlFor={
-                                                                  stCheckboxId
-                                                                }
-                                                                className={`text-xs font-medium cursor-pointer flex-1 ${
-                                                                  stSelected ? "text-primary" : "text-foreground"
+                                                      <div className="space-y-2">
+                                                        {activity.sessionTypes.map(
+                                                          (st) => {
+                                                            const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
+                                                            const stSelected =
+                                                              seasonSelection
+                                                                ?.activities?.[
+                                                                activity.name
+                                                              ]?.sessionTypes?.[
+                                                                st.id
+                                                              ] || false;
+                                                            return (
+                                                              <div
+                                                                key={st.id}
+                                                                className={`flex items-center gap-2 p-2 rounded transition-colors ${
+                                                                  stSelected ? "bg-primary/10" : "hover:bg-primary/5"
                                                                 }`}
                                                               >
-                                                                <span>{st.name}</span>
-                                                                <span className="ml-2 font-bold">
-                                                                  {formatPrice(st.price)}
-                                                                </span>
-                                                              </label>
-                                                            </div>
-                                                          );
-                                                        }
-                                                      )}
+                                                                <Checkbox
+                                                                  id={stCheckboxId}
+                                                                  checked={stSelected}
+                                                                  onCheckedChange={() =>
+                                                                    handleSessionTypeToggle(
+                                                                      season.id,
+                                                                      activity.name,
+                                                                      st.id
+                                                                    )
+                                                                  }
+                                                                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                                />
+                                                                <label
+                                                                  htmlFor={
+                                                                    stCheckboxId
+                                                                  }
+                                                                  className={`text-xs font-medium cursor-pointer flex-1 min-w-0 ${
+                                                                    stSelected ? "text-primary" : "text-foreground"
+                                                                  }`}
+                                                                >
+                                                                  <span className="block truncate">{st.name}</span>
+                                                                  <span className="font-bold block">
+                                                                    {formatPrice(st.price)}
+                                                                  </span>
+                                                                </label>
+                                                              </div>
+                                                            );
+                                                          }
+                                                        )}
+                                                      </div>
                                                     </div>
                                                   )}
                                               </div>
@@ -2046,8 +2101,8 @@ export default function BookNow() {
                           )}
                         </div> */}
 
-                        <div>
-                          <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                        <div className="space-y-2">
+                          <Label htmlFor="notes" className="text-base font-semibold">Additional Notes (Optional)</Label>
                           <Textarea
                             id="notes"
                             value={formData.notes}
@@ -2056,6 +2111,7 @@ export default function BookNow() {
                             }
                             placeholder="Any special requirements or questions?"
                             rows={4}
+                            className="border-2 border-primary/30 focus:border-primary resize-none"
                           />
                         </div>
                       </div>
@@ -2064,15 +2120,18 @@ export default function BookNow() {
                         <h2 className="text-2xl font-serif font-bold text-primary">
                           Personal Information
                         </h2>
-                        <div>
-                          <Label htmlFor="promoCode">Enter Affiliate Code (Optional)</Label>
-                          <div className="flex gap-2">
+                        <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+                          <Label htmlFor="promoCode" className="text-base font-semibold flex items-center gap-2">
+                            {/* <FaStar className="text-yellow-500" /> */}
+                            Enter Affiliate Code (Optional)
+                          </Label>
+                          <div className="flex gap-2 mt-2">
                             <Input
                               id="promoCode"
                               value={formData.promoCode || ""}
                               onChange={(e) => handlePromoCodeChange(e.target.value)}
                               placeholder="Enter promo code if you have one"
-                              className="flex-1"
+                              className="flex-1 h-12 border-2 border-primary/30 focus:border-primary"
                               disabled={promoStatus.state === "loading"}
                             />
                             {verifiedLeader ? (
@@ -2081,15 +2140,16 @@ export default function BookNow() {
                                 variant="outline"
                                 onClick={handleClearPromoCode}
                                 disabled={promoStatus.state === "loading"}
+                                className="h-12 border-2"
                               >
                                 Clear
                               </Button>
                             ) : (
                               <Button
                                 type="button"
-                                variant="outline"
                                 onClick={handleVerifyPromoCode}
                                 disabled={promoStatus.state === "loading"}
+                                className="h-12 bg-gradient-to-r from-primary to-primary/80"
                               >
                                 {promoStatus.state === "loading" ? "Verifying..." : "Verify"}
                               </Button>
@@ -2108,18 +2168,23 @@ export default function BookNow() {
                           )}
                         </div>
                         {verifiedLeader ? (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
-                            Booking will be linked to promo leader
-                            {" "}
-                            <span className="font-semibold">
-                              {verifiedLeader.name || verifiedLeader.email}
-                            </span>
-                            .
+                          <div className="rounded-lg border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                                <FaCheck className="text-white" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-emerald-700">Promo Code Applied</p>
+                                <p className="text-base font-semibold text-emerald-900">
+                                  Linked to {verifiedLeader.name || verifiedLeader.email}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         ) : (
                           <>
-                            <div>
-                              <Label htmlFor="name">Full Name *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="name" className="text-base font-semibold">Full Name *</Label>
                               <Input
                                 id="name"
                                 required={!verifiedLeader}
@@ -2128,11 +2193,12 @@ export default function BookNow() {
                                   setFormData({ ...formData, name: e.target.value })
                                 }
                                 placeholder="John Doe"
+                                className="h-12 border-2 border-primary/30 focus:border-primary"
                               />
                             </div>
 
-                            <div>
-                              <Label htmlFor="email">Email *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-base font-semibold">Email *</Label>
                               <Input
                                 id="email"
                                 type="email"
@@ -2142,17 +2208,18 @@ export default function BookNow() {
                                   setFormData({ ...formData, email: e.target.value })
                                 }
                                 placeholder="john@example.com"
+                                className="h-12 border-2 border-primary/30 focus:border-primary"
                               />
                             </div>
 
-                            <div>
-                              <Label htmlFor="phone">Phone Number *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone" className="text-base font-semibold">Phone Number *</Label>
                               <div className="flex gap-2">
                                 <Select
                                   value={formData.countryCode}
                                   onValueChange={handleCountryCodeChange}
                                 >
-                                  <SelectTrigger className="w-48">
+                                  <SelectTrigger className="w-48 h-12 border-2 border-primary/30 focus:border-primary">
                                     <SelectValue placeholder="Select country" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -2167,10 +2234,9 @@ export default function BookNow() {
                                   id="phone"
                                   type="tel"
                                   required={!verifiedLeader}
-                                  className={`flex-1 ${
-                                    phoneValidation.state === "error"
+                                  className={`flex-1 h-12 border-2 ${phoneValidation.state === "error"
                                       ? "border-red-500 focus-visible:ring-red-500"
-                                      : ""
+                                      : "border-primary/30 focus:border-primary"
                                   }`}
                                   value={formData.phone}
                                   onChange={(e) =>
@@ -2215,12 +2281,22 @@ export default function BookNow() {
                     </>
                   ) : (
                     <>
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary">
-                          Guest Details
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          We need information for each of the {totalSeatsRequested} people joining the tour. These details help our guides welcome everyone smoothly.
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3 pb-4 border-b-2 border-primary/20">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                            <FaUsers className="text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-primary">
+                              Guest Details
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                              {totalSeatsRequested} {totalSeatsRequested === 1 ? 'guest' : 'guests'} joining the tour
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                          Please provide information for each guest. These details help our guides welcome everyone smoothly.
                         </p>
 
                         <div className="space-y-4">
@@ -2232,20 +2308,25 @@ export default function BookNow() {
                             guestDetails.map((guest, index) => (
                               <div
                                 key={`guest-${index}`}
-                                className="rounded-lg border border-muted-foreground/30 bg-background p-4 shadow-sm"
+                                className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-white to-primary/5 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <h3 className="text-lg font-semibold text-primary">
-                                    Guest {index + 1}
-                                  </h3>
-                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                <div className="flex items-center justify-between gap-2 mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold">
+                                      {index + 1}
+                                    </div>
+                                    <h3 className="text-xl font-bold text-primary">
+                                      Guest {index + 1}
+                                    </h3>
+                                  </div>
+                                  <span className="text-xs font-semibold uppercase tracking-wide bg-primary/10 text-primary px-3 py-1 rounded-full">
                                     Seat #{index + 1}
                                   </span>
                                 </div>
-                                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                   <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-name-${index}`} className="text-sm">
-                                      Full Name
+                                    <Label htmlFor={`guest-name-${index}`} className="text-sm font-semibold">
+                                      Full Name *
                                     </Label>
                                     <Input
                                       id={`guest-name-${index}`}
@@ -2307,22 +2388,30 @@ export default function BookNow() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between border-t-2 border-primary/20">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={handleBackToBooking}
-                          className="sm:w-40"
+                          className="sm:w-48 h-14 text-base border-2 hover:bg-primary/5"
                         >
-                          Back
+                          ← Back to Booking
                         </Button>
                         <Button
                           type="submit"
                           size="lg"
-                          className="w-full sm:flex-1"
+                          className="w-full sm:flex-1 h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
                           disabled={isSubmitting || !guestDetailsComplete}
                         >
-                          {isSubmitting ? "Processing..." : "Confirm Booking"}
+                          {isSubmitting ? (
+                            <span className="flex items-center gap-2">
+                              <span className="animate-spin">⏳</span> Processing...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <FaCheck /> Confirm Booking
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </>
