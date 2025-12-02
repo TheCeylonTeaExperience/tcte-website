@@ -665,10 +665,10 @@ export default function BookingForm() {
 
   if (initialLoading) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading booking tools...</p>
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#767014' }} />
+          <p style={{ color: '#000000', opacity: 0.7 }}>Loading booking tools...</p>
         </CardContent>
       </Card>
     );
@@ -676,10 +676,10 @@ export default function BookingForm() {
 
   if (initialError) {
     return (
-      <Card className="border-destructive/30">
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardContent className="py-10 text-center space-y-4">
-          <p className="text-destructive font-medium">{initialError}</p>
-          <Button onClick={loadInitialData} variant="outline">
+          <p className="font-medium" style={{ color: '#000000' }}>{initialError}</p>
+          <Button onClick={loadInitialData} variant="outline" style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}>
             <RefreshCw className="mr-2 h-4 w-4" /> Try again
           </Button>
         </CardContent>
@@ -689,36 +689,36 @@ export default function BookingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle>Create Booking</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#767014' }}>Create Booking</CardTitle>
+          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
             Select a leader, configure session attendance, and capture payment details.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {formError && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-md border px-4 py-3 text-sm" style={{ borderColor: '#767014', backgroundColor: '#C5BF81', color: '#000000' }}>
               {formError}
             </div>
           )}
 
           {submissionStatus === "success" && submissionMessage && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+            <div className="rounded-md border px-4 py-3 text-sm flex items-center gap-2" style={{ borderColor: '#767014', backgroundColor: '#C5BF81', color: '#000000' }}>
               <CheckCircle2 className="h-4 w-4" />
               <span>{submissionMessage}</span>
             </div>
           )}
 
           {submissionStatus === "error" && submissionMessage && (
-            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-md border px-4 py-3 text-sm" style={{ borderColor: '#767014', backgroundColor: '#C5BF81', color: '#000000' }}>
               {submissionMessage}
             </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="leaderId">Leader</Label>
+              <Label htmlFor="leaderId" style={{ color: '#767014', fontWeight: 600 }}>Leader</Label>
               <Select value={formState.leaderId} onValueChange={handleLeaderChange}>
                 <SelectTrigger id="leaderId">
                   <SelectValue placeholder="Select leader" />
@@ -744,7 +744,7 @@ export default function BookingForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bookedDate">Booking date</Label>
+              <Label htmlFor="bookedDate" style={{ color: '#767014', fontWeight: 600 }}>Booking date</Label>
               <div className="relative">
                 <Input
                   id="bookedDate"
@@ -759,7 +759,7 @@ export default function BookingForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentType">Payment type</Label>
+              <Label htmlFor="paymentType" style={{ color: '#767014', fontWeight: 600 }}>Payment type</Label>
               <Select value={formState.paymentType} onValueChange={handlePaymentTypeChange}>
                 <SelectTrigger id="paymentType">
                   <SelectValue />
@@ -772,7 +772,7 @@ export default function BookingForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Payment method</Label>
+              <Label htmlFor="paymentMethod" style={{ color: '#767014', fontWeight: 600 }}>Payment method</Label>
               <Input
                 id="paymentMethod"
                 name="paymentMethod"
@@ -784,7 +784,7 @@ export default function BookingForm() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="transactionId">Transaction reference</Label>
+              <Label htmlFor="transactionId" style={{ color: '#767014', fontWeight: 600 }}>Transaction reference</Label>
               <Input
                 id="transactionId"
                 name="transactionId"
@@ -801,12 +801,12 @@ export default function BookingForm() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Session selections</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-lg font-semibold" style={{ color: '#767014' }}>Session selections</h3>
+                <p className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>
                   Add one entry per set of sessions that share the same attendees and seat count.
                 </p>
               </div>
-              <Button type="button" onClick={handleAddSelection} variant="outline" size="sm">
+              <Button type="button" onClick={handleAddSelection} variant="outline" size="sm" style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}>
                 <Plus className="mr-2 h-4 w-4" /> Add session group
               </Button>
             </div>
@@ -883,12 +883,12 @@ export default function BookingForm() {
                   .filter(Boolean);
 
                 return (
-                  <Card key={selection.id} className="border shadow-sm">
+                  <Card key={selection.id} className="border-2 shadow-sm" style={{ borderColor: '#C5BF81' }}>
                     <CardHeader className="space-y-1">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <CardTitle className="text-base">Selection {index + 1}</CardTitle>
-                          <CardDescription>
+                          <CardTitle className="text-base" style={{ color: '#767014' }}>Selection {index + 1}</CardTitle>
+                          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
                             Choose the sessions that share the same attendees and seat count.
                           </CardDescription>
                         </div>
@@ -910,7 +910,7 @@ export default function BookingForm() {
                       <div className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                           <div className="space-y-2">
-                            <Label>Location</Label>
+                            <Label style={{ color: '#767014', fontWeight: 600 }}>Location</Label>
                             <Select
                               value={selection.locationId}
                               onValueChange={(value) => handleLocationChange(index, value)}
@@ -941,7 +941,7 @@ export default function BookingForm() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label>Program</Label>
+                            <Label style={{ color: '#767014', fontWeight: 600 }}>Program</Label>
                             <Select
                               value={selection.programId}
                               onValueChange={(value) => handleProgramChange(index, value)}
@@ -975,7 +975,7 @@ export default function BookingForm() {
                           </div>
 
                           <div className="space-y-2">
-                            <Label htmlFor={`seats-${selection.id}`}>Seats requested</Label>
+                            <Label htmlFor={`seats-${selection.id}`} style={{ color: '#767014', fontWeight: 600 }}>Seats requested</Label>
                             <Input
                               id={`seats-${selection.id}`}
                               type="number"
@@ -987,8 +987,8 @@ export default function BookingForm() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Sessions</Label>
-                          <div className="space-y-3 rounded-md border border-border/60 p-3">
+                          <Label style={{ color: '#767014', fontWeight: 600 }}>Sessions</Label>
+                          <div className="space-y-3 rounded-md border p-3" style={{ borderColor: '#C5BF81' }}>
                             {availableSessions.length === 0 ? (
                               <p className="text-sm text-muted-foreground">
                                 {selection.programId
@@ -1120,6 +1120,7 @@ export default function BookingForm() {
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-2"
+                          style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}
                           onClick={() => handleCheckAvailability(index)}
                           disabled={
                             !formState.bookedDate ||
@@ -1137,7 +1138,7 @@ export default function BookingForm() {
                         </Button>
 
                         {selection.availabilityStatus === "success" && (
-                          <span className="flex items-center gap-1 text-emerald-600">
+                          <span className="flex items-center gap-1" style={{ color: '#767014' }}>
                             <Users className="h-4 w-4" />
                             All selected sessions have at least {seatsRequested} seat(s)
                           </span>
@@ -1148,12 +1149,12 @@ export default function BookingForm() {
                         )}
 
                         {selection.availabilityStatus === "error" && selection.availabilityError && (
-                          <span className="text-destructive">{selection.availabilityError}</span>
+                          <span style={{ color: '#000000' }}>{selection.availabilityError}</span>
                         )}
                       </div>
 
                       {showLeaderToggle && (
-                        <div className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm">
+                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm" style={{ borderColor: '#C5BF81' }}>
                           <Checkbox
                             id={`leader-attending-${selection.id}`}
                             checked={selection.leaderAttending}
@@ -1170,7 +1171,7 @@ export default function BookingForm() {
 
                       {showCustomerInputs && (
                         <div className="space-y-3">
-                          <h4 className="font-medium text-sm flex items-center gap-2">
+                          <h4 className="font-medium text-sm flex items-center gap-2" style={{ color: '#767014' }}>
                             <Users className="h-4 w-4" /> Attendee details
                           </h4>
                           <div className="space-y-4">
@@ -1183,7 +1184,7 @@ export default function BookingForm() {
                                 className="grid gap-3 md:grid-cols-2 lg:grid-cols-4"
                               >
                                 <div className="space-y-2">
-                                  <Label>Name</Label>
+                                  <Label style={{ color: '#767014', fontWeight: 600 }}>Name</Label>
                                   <Input
                                     value={customer.name}
                                     onChange={(event) =>
@@ -1199,7 +1200,7 @@ export default function BookingForm() {
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>Email</Label>
+                                  <Label style={{ color: '#767014', fontWeight: 600 }}>Email</Label>
                                   <Input
                                     type="email"
                                     value={customer.email}
@@ -1216,7 +1217,7 @@ export default function BookingForm() {
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>Phone</Label>
+                                  <Label style={{ color: '#767014', fontWeight: 600 }}>Phone</Label>
                                   <Input
                                     value={customer.phone || ""}
                                     onChange={(event) =>
@@ -1231,7 +1232,7 @@ export default function BookingForm() {
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>NIC / ID</Label>
+                                  <Label style={{ color: '#767014', fontWeight: 600 }}>NIC / ID</Label>
                                   <Input
                                     value={customer.nic || ""}
                                     onChange={(event) =>
@@ -1251,9 +1252,9 @@ export default function BookingForm() {
                         </div>
                       )}
 
-                      <div className="rounded-md bg-muted/40 px-4 py-3 text-sm">
+                      <div className="rounded-md px-4 py-3 text-sm" style={{ backgroundColor: '#C5BF81', opacity: 0.3 }}>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">Summary</span>
+                          <span className="font-medium" style={{ color: '#000000' }}>Summary</span>
                           {selection.seatsRequested > 0 && selectedSessionNames.length > 0 && (
                             <span className="text-muted-foreground flex items-center gap-2">
                               {selection.seatsRequested} seat(s)
@@ -1278,13 +1279,14 @@ export default function BookingForm() {
           <Separator />
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm" style={{ color: '#767014', fontWeight: 600 }}>
               Estimated total: {estimatedTotal > 0 ? `LKR ${estimatedTotal.toLocaleString()}` : "—"}
             </div>
             <div className="flex gap-3">
               <Button
                 type="button"
                 variant="outline"
+                style={{ borderColor: '#C5BF81', color: '#000000', backgroundColor: '#ffffff' }}
                 onClick={() => {
                   setFormState((prev) => ({
                     leaderId: "",
@@ -1301,7 +1303,7 @@ export default function BookingForm() {
               >
                 Reset
               </Button>
-              <Button type="submit" disabled={submissionStatus === "submitting"}>
+              <Button type="submit" disabled={submissionStatus === "submitting"} style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}>
                 {submissionStatus === "submitting" ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
