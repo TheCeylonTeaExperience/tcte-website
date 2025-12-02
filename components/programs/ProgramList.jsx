@@ -23,6 +23,7 @@ import {
   Eye,
   Pencil,
   Plus,
+  Sparkles,
 } from "lucide-react";
 
 function formatTime(value) {
@@ -179,19 +180,37 @@ export default function ProgramList() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground">Loading programs...</p>
+        <div className="relative">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-t-4 border-emerald-500"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <Sparkles className="h-6 w-6 text-emerald-500 animate-pulse" />
+          </div>
+        </div>
+        <p className="text-lg font-medium bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+          Loading your amazing programs...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="border-destructive/20">
+      <Card className="border-2 border-red-200 bg-gradient-to-br from-red-50 to-orange-50">
         <CardContent className="pt-6">
-          <div className="text-center text-destructive">
-            <p className="font-medium">Error loading programs</p>
-            <p className="text-sm mt-1">{error}</p>
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <p className="font-bold text-xl text-red-700 mb-2">
+              Oops! Something went wrong
+            </p>
+            <p className="text-sm text-red-600">{error}</p>
+            <Button
+              onClick={() => fetchPrograms()}
+              className="mt-4 bg-red-600 hover:bg-red-700"
+            >
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -199,98 +218,186 @@ export default function ProgramList() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Your Programs</h2>
-          <p className="text-muted-foreground text-sm">
-            {programs.length} program{programs.length !== 1 ? "s" : ""} found
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => fetchPrograms()}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button onClick={handleOpenCreate} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            New Program
-          </Button>
+    <div className="space-y-6">
+      {/* Header Section with Gradient */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-8 shadow-xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="text-white">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-6 w-6 text-yellow-300 animate-pulse" />
+              <h2 className="text-3xl font-bold">Your Programs</h2>
+            </div>
+            <p className="text-emerald-100 text-lg">
+              {programs.length} awesome program
+              {programs.length !== 1 ? "s" : ""} ready to inspire
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => fetchPrograms()}
+              variant="outline"
+              size="lg"
+              disabled={loading}
+              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:text-white"
+            >
+              <RefreshCw className="mr-2 h-5 w-5" />
+              Refresh
+            </Button>
+            <Button
+              onClick={handleOpenCreate}
+              size="lg"
+              className="bg-white text-emerald-600 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              New Program
+            </Button>
+          </div>
         </div>
       </div>
 
       {programs.length === 0 ? (
-        <Card>
+        <Card className="border-2 border-dashed border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
           <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No programs yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first training program to get started.
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-full flex items-center justify-center mb-6">
+                <Calendar className="h-12 w-12 text-emerald-600" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3 bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                No programs yet
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Create your first amazing training program and start inspiring
+                your audience!
               </p>
-              <Button onClick={handleOpenCreate}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Program
+              <Button
+                onClick={handleOpenCreate}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                size="lg"
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                Create Your First Program
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {programs.map((program) => (
-            <Card
-              key={program.id}
-              className="hover:shadow-lg transition-shadow"
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-2">
-                      {program.title}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={program.isActive ? "default" : "secondary"}
-                      >
-                        {program.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      {program._count && (
-                        <Badge variant="outline">
-                          {program._count.sessions} session
-                          {program._count.sessions !== 1 ? "s" : ""}
+          {programs.map((program, index) => {
+            // Different gradient colors for variety
+            const gradients = [
+              "from-emerald-500 to-teal-600",
+              "from-blue-500 to-indigo-600",
+              "from-purple-500 to-pink-600",
+              "from-orange-500 to-red-600",
+              "from-cyan-500 to-blue-600",
+              "from-violet-500 to-purple-600",
+            ];
+            const gradient = gradients[index % gradients.length];
+
+            return (
+              <Card
+                key={program.id}
+                className="group hover:shadow-2xl transition-all duration-300 border-2 hover:border-emerald-300 overflow-hidden"
+              >
+                {/* Colorful Header */}
+                <div className={`h-2 bg-gradient-to-r ${gradient}`}></div>
+
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <CardTitle className="text-xl mb-3 group-hover:text-emerald-600 transition-colors">
+                        {program.title}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant={program.isActive ? "default" : "secondary"}
+                          className={program.isActive
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0 shadow-sm"
+                            : "bg-gray-200 text-gray-600"
+                          }
+                        >
+                          {program.isActive ? "🟢 Active" : "⚫ Inactive"}
                         </Badge>
-                      )}
+                        {program._count && (
+                          <Badge
+                            variant="outline"
+                            className="border-2 border-purple-200 bg-purple-50 text-purple-700"
+                          >
+                            📚 {program._count.sessions} session
+                            {program._count.sessions !== 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {program.description && (
+                    <CardDescription className="line-clamp-2 text-base">
+                      {program.description}
+                    </CardDescription>
+                  )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-blue-900">
+                        {program.location?.name || "No location"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-purple-900">
+                        {program.seats} seats available
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                        <Clock className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-orange-900">
+                        {formatTime(program.startTime)} -{" "}
+                        {formatTime(program.endTime)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 pt-2">
                     <Button
-                      variant="ghost"
-                      size="icon"
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleOpenDetails(program.id)}
-                      aria-label="View program details"
+                      className="flex-1 border-2 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
                     </Button>
                     <Button
-                      variant="ghost"
-                      size="icon"
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleOpenEdit(program)}
-                      aria-label="Edit program"
+                      className="flex-1 border-2 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
                     </Button>
                     <Button
-                      variant="ghost"
-                      size="icon"
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleDelete(program.id)}
                       disabled={deleteLoading === program.id}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      aria-label="Delete program"
+                      className="border-2 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                     >
                       {deleteLoading === program.id ? (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
@@ -299,37 +406,10 @@ export default function ProgramList() {
                       )}
                     </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {program.description && (
-                  <CardDescription className="line-clamp-2">
-                    {program.description}
-                  </CardDescription>
-                )}
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{program.location?.name || "No location"}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{program.seats} seats available</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {formatTime(program.startTime)} -{" "}
-                      {formatTime(program.endTime)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
