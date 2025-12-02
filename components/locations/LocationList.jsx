@@ -79,8 +79,8 @@ export default function LocationList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Locations</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#767014' }}>Locations</h2>
+          <p style={{ color: '#000000', opacity: 0.7 }}>
             Manage your physical locations and venues.
           </p>
         </div>
@@ -89,36 +89,37 @@ export default function LocationList() {
             setEditingLocation(null);
             setFormOpen(true);
           }}
+          style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Location
         </Button>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-4 rounded-md">{error}</div>
+        <div className="p-4 rounded-md border" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>{error}</div>
       )}
 
-      <Card>
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle>All Locations</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#767014' }}>All Locations</CardTitle>
+          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
             A list of all active locations in the system.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">Loading locations...</div>
+            <div className="text-center py-4" style={{ color: '#000000', opacity: 0.7 }}>Loading locations...</div>
           ) : locations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8" style={{ color: '#000000', opacity: 0.7 }}>
               No locations found. Create one to get started.
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Name</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Address</TableHead>
+                  <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -126,11 +127,11 @@ export default function LocationList() {
                   <TableRow key={location.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        {location.name}
+                        <MapPin className="h-4 w-4" style={{ color: '#767014' }} />
+                        <span style={{ color: '#000000' }}>{location.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{location.address || "—"}</TableCell>
+                    <TableCell style={{ color: '#000000', opacity: 0.7 }}>{location.address || "—"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -140,15 +141,16 @@ export default function LocationList() {
                             setEditingLocation(location);
                             setFormOpen(true);
                           }}
+                          style={{ color: '#767014' }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
                           onClick={() => handleDelete(location.id)}
                           disabled={deleteLoading === location.id}
+                          style={{ color: '#000000' }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
