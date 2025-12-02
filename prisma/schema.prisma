@@ -187,8 +187,44 @@ model Booking {
     deletedAt   DateTime?
 
     items BookingItem[]
+    refunds Refund[]
+    history BookingHistory[]
 
     @@map("bookings")
+}
+
+model Refund {
+    id          String       @id @default(cuid())
+    bookingId   Int
+    booking     Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+    amount      Float
+    reason      String?
+    status      RefundStatus @default(PENDING)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+
+    @@map("refunds")
+}
+
+enum RefundStatus {
+    PENDING
+    PROCESSED
+    FAILED
+}
+
+model BookingHistory {
+    id             Int           @id @default(autoincrement())
+    bookingId      Int
+    booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+    action         String        /// RESCHEDULE, CANCEL, REFUND
+    previousDate   DateTime?
+    newDate        DateTime?
+    previousStatus BookingStatus?
+    newStatus      BookingStatus?
+    reason         String?
+    createdAt      DateTime      @default(now())
+
+    @@map("booking_history")
 }
 
 model BookingItem {

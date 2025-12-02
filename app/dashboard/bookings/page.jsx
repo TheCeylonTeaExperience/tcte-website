@@ -33,6 +33,7 @@ import {
   LayoutGrid
 } from "lucide-react";
 import BookingForm from "@/components/bookings/BookingForm";
+import BookingManager from "@/components/bookings/BookingManager";
 
 export default function BookingsPage() {
   useDashboard();
@@ -61,6 +62,7 @@ export default function BookingsPage() {
       setLoading(false);
     }
   }
+
 
   const selectedDateBookings = useMemo(() => {
     if (!date) return [];
@@ -202,7 +204,7 @@ export default function BookingsPage() {
           ) : (
             <div className="grid gap-4">
               {selectedDateBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard key={booking.id} booking={booking} onUpdate={fetchBookings} />
               ))}
             </div>
           )}
@@ -212,7 +214,7 @@ export default function BookingsPage() {
   );
 }
 
-function BookingCard({ booking }) {
+function BookingCard({ booking, onUpdate }) {
   const statusColor = {
     PENDING: "text-yellow-600 bg-yellow-50 border-yellow-200",
     PAID: "text-green-600 bg-green-50 border-green-200",
@@ -247,9 +249,12 @@ function BookingCard({ booking }) {
             </div>
           </div>
           
-          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusColor[booking.status]}`}>
-            <StatusIcon className="h-3.5 w-3.5" />
-            {booking.status}
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusColor[booking.status]}`}>
+              <StatusIcon className="h-3.5 w-3.5" />
+              {booking.status}
+            </div>
+            <BookingManager booking={booking} onUpdate={onUpdate} />
           </div>
         </div>
 
