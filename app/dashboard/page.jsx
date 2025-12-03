@@ -19,6 +19,7 @@ import {
   Activity,
   LogOut,
   CreditCard,
+  TrendingUp,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -57,46 +58,92 @@ export default function DashboardPage() {
       description: "Manage reservations",
       href: "/dashboard/bookings",
       icon: Calendar,
-      color: "text-blue-500",
     },
     {
       title: "Customers",
       description: "View client database",
       href: "/dashboard/customers",
       icon: Users,
-      color: "text-green-500",
     },
     {
       title: "Programs",
       description: "Update wellness programs",
       href: "/dashboard/programs",
       icon: BookOpen,
-      color: "text-purple-500",
     },
     {
       title: "Sessions",
       description: "Schedule sessions",
       href: "/dashboard/sessions",
       icon: Activity,
-      color: "text-orange-500",
+    },
+  ];
+
+  const statCards = [
+    {
+      title: "Total Bookings",
+      value: isLoading ? "--" : stats.totalBookings,
+      subtitle: "All time bookings",
+      icon: Calendar,
+      gradient: "linear-gradient(135deg, #767014, #C5BF81)",
+    },
+    {
+      title: "Active Customers",
+      value: isLoading ? "--" : stats.activeCustomers,
+      subtitle: "Registered clients",
+      icon: Users,
+      gradient: "linear-gradient(135deg, #C5BF81, #767014)",
+    },
+    {
+      title: "Active Programs",
+      value: isLoading ? "--" : stats.activePrograms,
+      subtitle: "Currently running",
+      icon: BookOpen,
+      gradient: "linear-gradient(135deg, #767014, #C5BF81)",
+    },
+    {
+      title: "Revenue",
+      value: isLoading
+        ? "LKR 0.00"
+        : new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "LKR",
+          }).format(stats.revenue),
+      subtitle: "Total revenue",
+      icon: CreditCard,
+      gradient: "linear-gradient(135deg, #C5BF81, #767014)",
     },
   ];
 
   return (
     <div className="space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back, {user?.name || user?.email}! Here's what's happening today.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div 
+        className="rounded-2xl p-8 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #767014 0%, #C5BF81 50%, #767014 100%)' }}
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
+        
+        <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight" style={{ color: '#ffffff' }}>
+              Dashboard
+            </h1>
+            <p className="mt-2 text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
+              Welcome back, <span className="font-semibold">{user?.name || user?.email}</span>! Here's what's happening today.
+            </p>
+          </div>
           <Button
             variant="outline"
             onClick={handleLogout}
             disabled={isLoggingOut}
+            className="w-fit font-semibold border-2 transition-all duration-300 hover:scale-105"
+            style={{ 
+              backgroundColor: '#ffffff', 
+              color: '#767014', 
+              borderColor: '#ffffff',
+            }}
           >
             <LogOut className="mr-2 h-4 w-4" />
             {isLoggingOut ? "Logging out..." : "Logout"}
@@ -105,83 +152,66 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? "--" : stats.totalBookings}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All time bookings
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? "--" : stats.activeCustomers}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Registered clients
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Programs</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? "--" : stats.activePrograms}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Currently running
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading
-                ? "$0.00"
-                : new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "LKR",
-                  }).format(stats.revenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total revenue
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, index) => (
+          <Card 
+            key={index}
+            className="relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group"
+            style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
+          >
+            <div 
+              className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+              style={{ background: stat.gradient }}
+            />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium" style={{ color: '#000000', opacity: 0.7 }}>
+                {stat.title}
+              </CardTitle>
+              <div 
+                className="p-2 rounded-lg"
+                style={{ background: stat.gradient }}
+              >
+                <stat.icon className="h-4 w-4" style={{ color: '#ffffff' }} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold" style={{ color: '#767014' }}>
+                {stat.value}
+              </div>
+              <div className="flex items-center gap-1 mt-1">
+                <TrendingUp className="h-3 w-3" style={{ color: '#C5BF81' }} />
+                <p className="text-xs" style={{ color: '#000000', opacity: 0.6 }}>
+                  {stat.subtitle}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Quick Links Grid */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Quick Access</h2>
+        <h2 className="text-xl font-semibold mb-4" style={{ color: '#767014' }}>Quick Access</h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {quickLinks.map((link) => (
+          {quickLinks.map((link, index) => (
             <Link key={link.href} href={link.href}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-                <CardHeader>
-                  <div className={`p-2 w-fit rounded-md bg-muted ${link.color} bg-opacity-10 mb-2`}>
-                    <link.icon className={`h-6 w-6 ${link.color}`} />
+              <Card 
+                className="transition-all duration-300 cursor-pointer h-full border-2 hover:shadow-xl hover:-translate-y-2 group overflow-hidden relative"
+                style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
+              >
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: 'linear-gradient(135deg, rgba(118, 112, 20, 0.05), rgba(197, 191, 129, 0.1))' }}
+                />
+                <CardHeader className="relative z-10">
+                  <div 
+                    className="p-3 w-fit rounded-xl mb-3 group-hover:scale-110 transition-transform duration-300"
+                    style={{ background: index % 2 === 0 ? 'linear-gradient(135deg, #767014, #C5BF81)' : 'linear-gradient(135deg, #C5BF81, #767014)' }}
+                  >
+                    <link.icon className="h-6 w-6" style={{ color: '#ffffff' }} />
                   </div>
-                  <CardTitle className="text-lg">{link.title}</CardTitle>
-                  <CardDescription>{link.description}</CardDescription>
+                  <CardTitle className="text-lg" style={{ color: '#767014' }}>{link.title}</CardTitle>
+                  <CardDescription style={{ color: '#000000', opacity: 0.6 }}>{link.description}</CardDescription>
                 </CardHeader>
               </Card>
             </Link>
@@ -191,46 +221,74 @@ export default function DashboardPage() {
 
       {/* Profile Section */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Your account details</CardDescription>
+        <Card 
+          className="border-2 overflow-hidden"
+          style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
+        >
+          <CardHeader 
+            className="border-b-2"
+            style={{ borderColor: '#C5BF81', background: 'linear-gradient(135deg, rgba(118, 112, 20, 0.05), rgba(197, 191, 129, 0.1))' }}
+          >
+            <CardTitle style={{ color: '#767014' }}>Profile Information</CardTitle>
+            <CardDescription style={{ color: '#000000', opacity: 0.6 }}>Your account details</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-sm font-medium text-muted-foreground">Email</span>
-              <span className="text-sm">{user?.email}</span>
+          <CardContent className="space-y-4 pt-6">
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: '#C5BF81' }}>
+              <span className="text-sm font-medium" style={{ color: '#767014' }}>Email</span>
+              <span className="text-sm" style={{ color: '#000000' }}>{user?.email}</span>
             </div>
-            <div className="flex items-center justify-between border-b pb-2">
-              <span className="text-sm font-medium text-muted-foreground">Name</span>
-              <span className="text-sm">{user?.name || "Not set"}</span>
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: '#C5BF81' }}>
+              <span className="text-sm font-medium" style={{ color: '#767014' }}>Name</span>
+              <span className="text-sm" style={{ color: '#000000' }}>{user?.name || "Not set"}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">Role</span>
-              <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 capitalize">
+              <span className="text-sm font-medium" style={{ color: '#767014' }}>Role</span>
+              <span 
+                className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize"
+                style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+              >
                 {user?.role}
               </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>Current system health</CardDescription>
+        <Card 
+          className="border-2 overflow-hidden"
+          style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
+        >
+          <CardHeader 
+            className="border-b-2"
+            style={{ borderColor: '#C5BF81', background: 'linear-gradient(135deg, rgba(197, 191, 129, 0.1), rgba(118, 112, 20, 0.05))' }}
+          >
+            <CardTitle style={{ color: '#767014' }}>System Status</CardTitle>
+            <CardDescription style={{ color: '#000000', opacity: 0.6 }}>Current system health</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse"></div>
-              <p className="text-sm font-medium">System Operational</p>
+          <CardContent className="pt-6">
+            <div 
+              className="flex items-center gap-3 mb-6 p-3 rounded-lg"
+              style={{ backgroundColor: 'rgba(197, 191, 129, 0.2)', borderLeft: '4px solid #767014' }}
+            >
+              <div 
+                className="h-3 w-3 rounded-full animate-pulse"
+                style={{ backgroundColor: '#767014' }}
+              />
+              <p className="text-sm font-semibold" style={{ color: '#767014' }}>System Operational</p>
             </div>
-            <div className="space-y-2">
-               <div className="text-sm text-muted-foreground">
-                  Last login: {new Date().toLocaleDateString()}
-               </div>
-               <div className="text-sm text-muted-foreground">
-                  Version: 1.0.0
-               </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>Last login</span>
+                <span className="text-sm font-medium" style={{ color: '#767014' }}>{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>Version</span>
+                <span 
+                  className="text-xs px-2 py-1 rounded-full font-medium"
+                  style={{ backgroundColor: '#C5BF81', color: '#ffffff' }}
+                >
+                  1.0.0
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
