@@ -118,12 +118,12 @@ export default function Services() {
               <FaMugHot className="h-16 w-16 mx-auto mb-4 animate-pulse" style={{ color: '#ffffff' }} />
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold mb-6 drop-shadow-2xl" style={{ color: '#ffffff' }}>
-              Our Tea Experiences
+              Our Services
             </h1>
             <div className="h-1 w-32 mx-auto mb-6 rounded-full" style={{ background: 'linear-gradient(to right, transparent, #ffffff, transparent)' }}></div>
-            <p className="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto drop-shadow-lg font-light" style={{ color: '#ffffff', opacity: 0.95 }}>
+            {/* <p className="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto drop-shadow-lg font-light" style={{ color: '#ffffff', opacity: 0.95 }}>
               Choose from our curated programs designed for every tea enthusiast
-            </p>
+            </p> */}
           </div>
         </section>
 

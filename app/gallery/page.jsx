@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
 import FloatingActionButtons from "@/components/FloatingActionButtons";
+import { FaImages } from "react-icons/fa";
 
 export default function Gallery() {
   const [isLoading, setIsLoading] = useState(true);
@@ -104,17 +105,21 @@ export default function Gallery() {
       <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <section className="py-28 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #767014 0%, #C5BF81 50%, #767014 100%)' }}>
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15), transparent)' }} />
+          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full translate-y-1/2 -translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15), transparent)' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
-              Gallery
+            <div className="inline-block mb-6">
+              <FaImages className="h-16 w-16 mx-auto mb-4 animate-pulse" style={{ color: '#ffffff' }} />
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold mb-6 drop-shadow-2xl" style={{ color: '#ffffff' }}>
+              Experience the Journey in Images
             </h1>
-            <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
-              Explore the beauty of our tea estates and experiences through
-              these curated moments
+            <div className="h-1 w-32 mx-auto mb-6 rounded-full" style={{ background: 'linear-gradient(to right, transparent, #ffffff, transparent)' }}></div>
+            <p className="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto drop-shadow-lg font-light" style={{ color: '#ffffff', opacity: 0.95 }}>
+              A glimpse into the craftsmanship, creativity, and flavours behind The Ceylon Tea Experience.
             </p>
           </div>
         </section>
@@ -122,15 +127,14 @@ export default function Gallery() {
         {/* Gallery Grid */}
         <section className="py-20 bg-gradient-to-b from-background via-secondary/5 to-primary/5 relative overflow-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-serif font-bold mb-4 text-primary">
+            {/* <div className="text-center mb-12">
+               <h2 className="text-3xl font-serif font-bold mb-4 text-primary">
                 Moments Captured in Time
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Every image tells a story of tradition, craftsmanship, and the
-                beauty of tea
+              </h2> 
+              <p className="text-muted-foreground max-w-2xl text-xl mx-auto">
+                A glimpse into the craftsmanship, creativity, and flavours behind The Ceylon Tea Experience.
               </p>
-            </div>
+            </div> */}
 
             <div
               className="grid gap-8"
