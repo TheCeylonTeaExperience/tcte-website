@@ -214,6 +214,31 @@ export default function BookingsPage() {
   );
 }
 
+function formatSessionTime(raw) {
+  if (!raw) {
+    return "--:--";
+  }
+
+  if (typeof raw === "string") {
+    if (/^\d{2}:\d{2}/.test(raw)) {
+      return raw.slice(0, 5);
+    }
+
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(11, 16);
+    }
+
+    return "--:--";
+  }
+
+  if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
+    return raw.toISOString().slice(11, 16);
+  }
+
+  return "--:--";
+}
+
 function BookingCard({ booking, onUpdate }) {
   const statusColor = {
     PENDING: "text-yellow-600 bg-yellow-50 border-yellow-200",
@@ -278,9 +303,7 @@ function BookingCard({ booking, onUpdate }) {
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
-                  {item.session?.startTime 
-                    ? new Date(item.session.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-                    : '--:--'}
+                  {formatSessionTime(item.session?.startTime)}
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" />
