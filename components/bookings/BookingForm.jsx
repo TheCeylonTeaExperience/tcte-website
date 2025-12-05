@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,8 +34,10 @@ import {
   RefreshCw,
   Trash2,
   Users,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
-
 function formatTimeLabel(value) {
   if (!value) return "";
   const parsed = new Date(value);
@@ -83,6 +95,10 @@ export default function BookingForm() {
   const [formError, setFormError] = useState("");
   const [submissionStatus, setSubmissionStatus] = useState("idle");
   const [submissionMessage, setSubmissionMessage] = useState("");
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const sessionsMap = useMemo(() => {
     const map = new Map();
@@ -645,6 +661,8 @@ export default function BookingForm() {
 
       setSubmissionStatus("success");
       setSubmissionMessage(data?.message || "Booking created successfully");
+      setSuccessMessage("Booking created successfully!");
+      setSuccessDialogOpen(true);
       setFormState({
         leaderId: "",
         bookedDate: "",
@@ -660,6 +678,8 @@ export default function BookingForm() {
           : error?.message || "Failed to create booking";
       setSubmissionStatus("error");
       setSubmissionMessage(message);
+      setErrorMessage(message);
+      setErrorDialogOpen(true);
     }
   }
 
@@ -1316,6 +1336,57 @@ export default function BookingForm() {
           </div>
         </CardContent>
       </Card>
+    
+    <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)' }}>
+              <CheckCircle className="h-8 w-8" style={{ color: '#ffffff' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Success!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {successMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Ok
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.3)' }}>
+              <XCircle className="h-8 w-8" style={{ color: '#767014' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Oops! Something went wrong
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ backgroundColor: '#767014', color: '#ffffff' }}
+            >
+              Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    
     </form>
   );
 }
+
+      
