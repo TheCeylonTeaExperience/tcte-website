@@ -74,7 +74,7 @@ export async function PUT(request, context) {
       );
     }
     const body = await request.json();
-    const { name, price, sessionId } = body;
+    const { name, price, specialPrice, sessionId } = body;
 
     // Check if session type exists
     const existingSessionType = await prisma.sessionType.findUnique({
@@ -100,6 +100,18 @@ export async function PUT(request, context) {
         );
       }
       updateData.price = parsedPrice;
+    }
+
+    if (specialPrice !== undefined) {
+      if (specialPrice === "" || specialPrice === null) {
+        updateData.specialPrice = null;
+      } else {
+        const parsedSpecialPrice = Number.parseFloat(specialPrice);
+        if (Number.isNaN(parsedSpecialPrice)) {
+          return NextResponse.json({ error: "Invalid special price" }, { status: 400 });
+        }
+        updateData.specialPrice = parsedSpecialPrice;
+      }
     }
 
     if (sessionId !== undefined) {

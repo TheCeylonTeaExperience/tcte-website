@@ -102,7 +102,7 @@ export async function PUT(request, context) {
       );
     }
     const body = await request.json();
-    const { name, startTime, endTime, price, programId } = body;
+    const { name, startTime, endTime, price, specialPrice, programId } = body;
 
     // Check if session exists
     const existingSession = await prisma.session.findUnique({
@@ -146,6 +146,18 @@ export async function PUT(request, context) {
           return NextResponse.json({ error: "Invalid price" }, { status: 400 });
         }
         updateData.price = parsedPrice;
+      }
+    }
+
+    if (specialPrice !== undefined) {
+      if (specialPrice === "" || specialPrice === null) {
+        updateData.specialPrice = null;
+      } else {
+        const parsedSpecialPrice = Number.parseFloat(specialPrice);
+        if (Number.isNaN(parsedSpecialPrice)) {
+          return NextResponse.json({ error: "Invalid special price" }, { status: 400 });
+        }
+        updateData.specialPrice = parsedSpecialPrice;
       }
     }
 

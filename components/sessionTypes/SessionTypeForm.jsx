@@ -25,6 +25,7 @@ const DEFAULT_FORM_STATE = {
   sessionId: "",
   name: "",
   price: "",
+  specialPrice: "",
 };
 
 export default function SessionTypeForm({
@@ -63,6 +64,10 @@ export default function SessionTypeForm({
         price:
           initialData.price !== undefined && initialData.price !== null
             ? String(initialData.price)
+            : "",
+        specialPrice:
+          initialData.specialPrice !== undefined && initialData.specialPrice !== null
+            ? String(initialData.specialPrice)
             : "",
       });
     } else {
@@ -205,21 +210,36 @@ export default function SessionTypeForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">
-              Price <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="price"
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              required
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="price">
+                Price <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="price"
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                required
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="specialPrice">Special Price</Label>
+              <Input
+                id="specialPrice"
+                type="number"
+                name="specialPrice"
+                value={formData.specialPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

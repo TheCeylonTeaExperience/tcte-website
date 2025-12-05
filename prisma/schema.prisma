@@ -109,6 +109,7 @@ model Session {
     startTime DateTime  @db.Time
     endTime   DateTime  @db.Time
     price     Float?
+    specialPrice Float?
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
@@ -126,6 +127,7 @@ model SessionType {
 
     name      String
     price     Float
+    specialPrice Float?
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?

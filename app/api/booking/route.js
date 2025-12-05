@@ -100,8 +100,9 @@ export async function POST(request) {
         startTime: true,
         endTime: true,
         price: true,
+        specialPrice: true,
         sessionTypes: {
-          select: { id: true, price: true },
+          select: { id: true, price: true, specialPrice: true },
         },
       },
     });
@@ -431,7 +432,7 @@ function calculatePrice(selections, sessionMap) {
       throw new HttpError(`Session ${selection.sessionId} not found`);
     }
 
-    let unitPrice = session.price ?? null;
+    let unitPrice = session.specialPrice ?? session.price ?? null;
 
     if (selection.sessionTypeId) {
       const sessionType = session.sessionTypes.find(
@@ -444,7 +445,7 @@ function calculatePrice(selections, sessionMap) {
         );
       }
 
-      unitPrice = sessionType.price;
+      unitPrice = sessionType.specialPrice ?? sessionType.price;
     }
 
     if (unitPrice === null || unitPrice === undefined) {

@@ -47,7 +47,7 @@ function formatTime(value) {
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
-  currency: "USD",
+  currency: "LKR",
   minimumFractionDigits: 2,
 });
 
@@ -359,14 +359,27 @@ export default function SessionList() {
                       </span>
                     </div>
                     
-                    {session.price != null && (
+                    {(session.price != null || session.specialPrice != null) && (
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
                           <DollarSign className="h-5 w-5 text-white" />
                         </div>
-                        <span className="text-sm font-medium text-green-900">
-                          {currencyFormatter.format(session.price)}
-                        </span>
+                        <div className="flex flex-col">
+                          {session.specialPrice ? (
+                            <>
+                              <span className="text-xs text-muted-foreground line-through">
+                                {currencyFormatter.format(session.price)}
+                              </span>
+                              <span className="text-sm font-bold text-red-600">
+                                {currencyFormatter.format(session.specialPrice)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium text-green-900">
+                              {currencyFormatter.format(session.price)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                     

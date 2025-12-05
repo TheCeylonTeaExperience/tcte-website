@@ -315,6 +315,7 @@ export default function BookNow() {
                 session?.amount ??
                 session?.cost ??
                 null,
+              specialPrice: session?.specialPrice ?? null,
               available: safeAvailable,
               capacity: safeActivityCapacity,
               startTime: session.startTime,
@@ -324,6 +325,7 @@ export default function BookNow() {
                     id: st.id,
                     name: st.name,
                     price: st.price,
+                    specialPrice: st.specialPrice ?? null,
                   }))
                 : [],
             };
@@ -609,6 +611,7 @@ export default function BookNow() {
     }
 
     const directPriceCandidates = [
+      activity.specialPrice,
       activity.price,
       activity.basePrice,
       activity.defaultPrice,
@@ -634,13 +637,26 @@ export default function BookNow() {
             }
             return Boolean(selectedSessionTypeIds[key]);
           })
-          .map((sessionType) => parsePriceValue(sessionType?.price))
+          .map((sessionType) => {
+            const special = parsePriceValue(sessionType?.specialPrice);
+            const regular = parsePriceValue(sessionType?.price);
+            return special !== null ? special : regular;
+          })
           .filter((value) => value !== null)
       : [];
 
     const directPrice = directPriceCandidates
       .map((candidate) => parsePriceValue(candidate))
       .find((value) => value !== null);
+
+    // Check if we are using the special price as the direct price
+    const isUsingSpecialPrice = 
+      directPrice !== null && 
+      activity.specialPrice !== null && 
+      activity.specialPrice !== undefined &&
+      directPrice === activity.specialPrice &&
+      activity.price !== null &&
+      activity.price !== undefined;
 
     const pricePool = selectedSessionTypePrices.length
       ? selectedSessionTypePrices
@@ -662,10 +678,22 @@ export default function BookNow() {
     const minPrice = Math.min(...pricePool);
     const maxPrice = Math.max(...pricePool);
 
-    const perSeatLabel =
-      minPrice === maxPrice
-        ? `${formatPrice(minPrice)} per guest`
-        : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)} per guest`;
+    let perSeatLabel;
+    
+    if (isUsingSpecialPrice && !selectedSessionTypePrices.length) {
+       perSeatLabel = (
+         <span className="flex items-center gap-1">
+           <span className="line-through opacity-70 text-[10px]">{formatPrice(activity.price)}</span>
+           <span className="font-bold text-red-600">{formatPrice(minPrice)}</span>
+           <span>per guest</span>
+         </span>
+       );
+    } else {
+      perSeatLabel =
+        minPrice === maxPrice
+          ? `${formatPrice(minPrice)} per guest`
+          : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)} per guest`;
+    }
 
     if (!seatCount || seatCount <= 0) {
       return { perSeatLabel, totalLabel: null };
@@ -674,10 +702,22 @@ export default function BookNow() {
     const minTotal = minPrice * seatCount;
     const maxTotal = maxPrice * seatCount;
 
-    const totalLabel =
-      minTotal === maxTotal
-        ? `${formatPrice(minTotal)} total for ${seatCount} seats`
-        : `${formatPrice(minTotal)} - ${formatPrice(maxTotal)} total for ${seatCount} seats`;
+    let totalLabel;
+    
+    if (isUsingSpecialPrice && !selectedSessionTypePrices.length) {
+       const originalTotal = (activity.price || 0) * seatCount;
+       totalLabel = (
+         <span className="flex items-center gap-1">
+           <span className="line-through opacity-70 text-[10px]">{formatPrice(originalTotal)}</span>
+           <span>{formatPrice(minTotal)} total for {seatCount} seats</span>
+         </span>
+       );
+    } else {
+      totalLabel =
+        minTotal === maxTotal
+          ? `${formatPrice(minTotal)} total for ${seatCount} seats`
+          : `${formatPrice(minTotal)} - ${formatPrice(maxTotal)} total for ${seatCount} seats`;
+    }
 
     return { perSeatLabel, totalLabel };
   };
@@ -2017,9 +2057,22 @@ export default function BookNow() {
                                                                   }`}
                                                                 >
                                                                   <span className="block truncate">{st.name}</span>
-                                                                  <span className="font-bold block">
-                                                                    {formatPrice(st.price)}
-                                                                  </span>
+                                                                  <div className="block">
+                                                                    {st.specialPrice ? (
+                                                                      <div className="flex flex-col items-start">
+                                                                        <span className="text-xs text-muted-foreground line-through">
+                                                                          {formatPrice(st.price)}
+                                                                        </span>
+                                                                        <span className="font-bold text-red-600">
+                                                                          {formatPrice(st.specialPrice)}
+                                                                        </span>
+                                                                      </div>
+                                                                    ) : (
+                                                                      <span className="font-bold block">
+                                                                        {formatPrice(st.price)}
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
                                                                 </label>
                                                               </div>
                                                             );
