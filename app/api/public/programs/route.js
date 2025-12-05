@@ -1,24 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-function buildDateRange(date) {
-  const baseDate = new Date(date);
-  if (Number.isNaN(baseDate.getTime())) {
-    return null;
-  }
-
-  const rangeStart = new Date(
-    Date.UTC(
-      baseDate.getUTCFullYear(),
-      baseDate.getUTCMonth(),
-      baseDate.getUTCDate()
-    )
-  );
-  const rangeEnd = new Date(rangeStart);
-  rangeEnd.setUTCDate(rangeEnd.getUTCDate() + 1);
-
-  return { rangeStart, rangeEnd };
-}
+import {
+  buildDateRange,
+  getSessionAvailability,
+} from "@/lib/availability";
 
 export async function GET(request) {
   try {
@@ -71,19 +56,10 @@ export async function GET(request) {
 
     let availabilityMap = new Map();
     if (range && sessionIds.length > 0) {
-      const availabilityRecords = await prisma.availability.findMany({
-        where: {
-          sessionId: { in: sessionIds },
-          deletedAt: null,
-          date: {
-            gte: range.rangeStart,
-            lt: range.rangeEnd,
-          },
-        },
-      });
-
-      availabilityMap = new Map(
-        availabilityRecords.map((record) => [record.sessionId, record])
+      availabilityMap = await getSessionAvailability(
+        prisma,
+        sessionIds,
+        range
       );
     }
 
@@ -98,21 +74,20 @@ export async function GET(request) {
 
       const sessions = program.sessions.map((session) => {
         const availabilityRecord = availabilityMap.get(session.id) || null;
-        const rawAvailable =
-          availabilityRecord?.availableSeats != null
-            ? availabilityRecord.availableSeats
-            : safeCapacity;
-        const parsedAvailable = Number.parseInt(rawAvailable ?? "", 10);
+        const rawAvailable = availabilityRecord?.available ?? safeCapacity;
+        const parsedAvailable = Number.parseInt(String(rawAvailable ?? ""), 10);
         const safeAvailable = Number.isNaN(parsedAvailable)
           ? safeCapacity ?? null
           : Math.max(0, parsedAvailable);
+        const reservedSeats = availabilityRecord?.reserved ?? 0;
 
         return {
           ...session,
           availabilityForDate: {
             availableSeats: safeAvailable,
             capacity: safeCapacity,
-            source: availabilityRecord ? "record" : "fallback",
+            reservedSeats,
+            source: range ? "booking_items" : "capacity",
           },
         };
       });

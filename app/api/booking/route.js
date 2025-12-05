@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import prisma from "@/lib/prisma";
+import {
+  buildDateRange,
+  getSessionAvailability,
+  lockSessions,
+} from "@/lib/availability";
 
 const PAYMENT_TYPES = new Set(["Full", "Installment"]);
 const PAYMENT_PROVIDERS = new Set(["MANUAL", "PAYHERE"]);
@@ -61,6 +66,14 @@ export async function POST(request) {
       );
     }
 
+    const bookingRange = buildDateRange(bookingDate);
+    if (!bookingRange) {
+      return NextResponse.json(
+        { success: false, error: "Unable to normalize bookedDate" },
+        { status: 400 }
+      );
+    }
+
     const leader = await prisma.leader.findFirst({
       where: { id: leaderId, deletedAt: null },
       select: {
@@ -100,16 +113,6 @@ export async function POST(request) {
       );
     }
 
-    const programIds = [...new Set(sessions.map((session) => session.programId))];
-    const programs = await prisma.program.findMany({
-      where: { id: { in: programIds } },
-      select: {
-        id: true,
-        seats: true,
-      },
-    });
-
-    const programMap = new Map(programs.map((program) => [program.id, program]));
     const sessionMap = new Map(sessions.map((session) => [session.id, session]));
 
     try {
@@ -152,13 +155,7 @@ export async function POST(request) {
     const customerDetails = buildCustomerDetails(customer, leader);
 
     const transactionResult = await prisma.$transaction(async (tx) => {
-      const availabilityRecords = await validateAvailability(
-        tx,
-        bookingDate,
-        selections,
-        sessionMap,
-        programMap
-      );
+      await validateAvailability(tx, bookingRange, selections, sessionMap);
 
       const paymentRecord = await tx.payment.create({
         data: {
@@ -200,43 +197,6 @@ export async function POST(request) {
         selections,
         selectionCustomerIds
       );
-
-      // Group decrements by sessionId
-      const decrementMap = new Map();
-      for (const selection of selections) {
-        const current = decrementMap.get(selection.sessionId) || 0;
-        decrementMap.set(selection.sessionId, current + selection.seatsRequested);
-      }
-
-      // Update availability for each unique session
-      for (const [sessionId, totalDecrement] of decrementMap) {
-        const availability = availabilityRecords.get(sessionId);
-
-        if (!availability) {
-          throw new HttpError(`Availability record not found for session ${sessionId}`);
-        }
-
-        const updateResult = await tx.availability.updateMany({
-          where: {
-            id: availability.id,
-            availableSeats: {
-              gte: totalDecrement,
-            },
-          },
-          data: {
-            availableSeats: {
-              decrement: totalDecrement,
-            },
-          },
-        });
-
-        if (updateResult.count === 0) {
-          throw new HttpError(
-            `Insufficient seats remaining for session ${sessionId}`,
-            409
-          );
-        }
-      }
 
       return { bookingRecord, paymentRecord };
     });
@@ -419,62 +379,48 @@ function validateSessionConflicts(selections, sessionMap) {
   }
 }
 
-async function validateAvailability(tx, bookedDate, selections, sessionMap, programMap) {
-  const availabilityRecords = new Map();
-  const sessionTotals = new Map();
+async function validateAvailability(tx, bookingRange, selections, sessionMap) {
+  if (!bookingRange) {
+    throw new HttpError("Invalid booking date supplied");
+  }
 
-  // Aggregate seats requested per session
+  const sessionTotals = new Map();
   for (const selection of selections) {
     const current = sessionTotals.get(selection.sessionId) || 0;
     sessionTotals.set(selection.sessionId, current + selection.seatsRequested);
   }
 
-  // For each unique session, find or create availability
+  const sessionIds = Array.from(sessionTotals.keys());
+  if (sessionIds.length === 0) {
+    throw new HttpError("No sessions supplied for availability validation");
+  }
+
+  await lockSessions(tx, sessionIds);
+  const availabilityMap = await getSessionAvailability(
+    tx,
+    sessionIds,
+    bookingRange
+  );
+
   for (const [sessionId, totalSeatsRequested] of sessionTotals) {
-    const session = sessionMap.get(sessionId);
-    if (!session) {
+    if (!sessionMap.has(sessionId)) {
       throw new HttpError(`Session ${sessionId} not found`);
     }
 
-    const program = programMap.get(session.programId);
-    if (!program) {
-      throw new HttpError(`Program ${session.programId} not found`);
-    }
-
-    let availability = await tx.availability.findFirst({
-      where: {
-        sessionId,
-        date: bookedDate,
-      },
-    });
-
+    const availability = availabilityMap.get(sessionId);
     if (!availability) {
-      // Create availability with full capacity
-      const fullCapacity = program.seats;
-      if (fullCapacity === null || fullCapacity === undefined) {
-        throw new HttpError(`Seats not configured for program ${session.programId}`);
-      }
-
-      availability = await tx.availability.create({
-        data: {
-          sessionId,
-          date: bookedDate,
-          availableSeats: fullCapacity,
-        },
-      });
+      throw new HttpError(
+        `Availability could not be derived for session ${sessionId}`
+      );
     }
 
-    if (availability.availableSeats < totalSeatsRequested) {
+    if (availability.available < totalSeatsRequested) {
       throw new HttpError(
         `Not enough seats available for session ${sessionId}`,
         409
       );
     }
-
-    availabilityRecords.set(sessionId, availability);
   }
-
-  return availabilityRecords;
 }
 
 function calculatePrice(selections, sessionMap) {

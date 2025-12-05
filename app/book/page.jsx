@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaCheckCircle, FaWhatsapp, FaCalendarAlt, FaUsers,FaCheck } from "react-icons/fa";
+import { FaCheckCircle, FaWhatsapp, FaCalendarAlt, FaCheck, FaUsers } from "react-icons/fa";
 import {
   getCountries,
   getCountryCallingCode,
@@ -466,11 +466,19 @@ export default function BookNow() {
     locationOptions.length > 0 ? locationOptions : FALLBACK_LOCATIONS;
 
   const totalSeatsRequested = useMemo(() => {
-    return Object.values(seasonSelections).reduce((acc, season) => {
-      const seats = typeof season?.seatsRequested === "number" ? season.seatsRequested : 0;
-      return acc + Math.max(0, seats);
-    }, 0);
-  }, [seasonSelections]);
+    // When using a global seat count, a single attendee can participate
+    // across multiple selected seasons/activities. Do not sum seats.
+    if (useGlobalSeatCount) {
+      return Math.max(0, Number.isFinite(globalSeatCount) ? globalSeatCount : 0);
+    }
+
+    // Otherwise, treat the requested seats as the maximum across seasons,
+    // representing the number of unique attendees rather than a sum.
+    const seatCounts = Object.values(seasonSelections).map((season) =>
+      typeof season?.seatsRequested === "number" ? Math.max(0, season.seatsRequested) : 0
+    );
+    return seatCounts.length ? Math.max(...seatCounts) : 0;
+  }, [seasonSelections, useGlobalSeatCount, globalSeatCount]);
 
   const guestDetailsComplete = useMemo(() => {
     if (guestDetails.length === 0) {
