@@ -66,6 +66,11 @@ const sidebarLinks = [
     href: "/dashboard/customers",
     icon: Users,
   },
+  {
+    label: "Leaders",
+    href: "/dashboard/leaders",
+    icon: Users,
+  },
 ];
 
 export default function Sidebar({

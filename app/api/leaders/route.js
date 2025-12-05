@@ -54,6 +54,7 @@ export async function GET(request) {
       contact: leader.contact,
       promoteCode: leader.promoteCode,
       role: leader.role,
+      status: leader.status,
       customersCount: leader._count.customers,
       bookingsCount: leader._count.bookings,
     }));
@@ -63,6 +64,61 @@ export async function GET(request) {
     console.error("Get leaders error", error);
     return NextResponse.json(
       { error: "Failed to fetch leaders" },
+      { status: 500 }
+    );
+  }
+}
+
+function generatePromoCode(name) {
+    const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
+    const random = Math.floor(1000 + Math.random() * 9000);
+    return `${prefix}${random}`;
+}
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { name, email, contact, role } = body;
+
+    if (!name || !email) {
+      return NextResponse.json(
+        { error: "Name and email are required" },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.leader.findUnique({
+      where: { email },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "Email already exists" },
+        { status: 400 }
+      );
+    }
+
+    let promoteCode = null;
+    if (role === "LEADER") {
+        promoteCode = generatePromoCode(name);
+    }
+
+    const leader = await prisma.leader.create({
+      data: {
+        name,
+        email,
+        contact,
+        role: role || "USER",
+        promoteCode,
+        status: "ACTIVE",
+      },
+    });
+
+    return NextResponse.json({ leader });
+  } catch (error) {
+    console.error("Create leader error", error);
+    return NextResponse.json(
+      { error: "Failed to create leader" },
       { status: 500 }
     );
   }

@@ -34,15 +34,26 @@ model RefreshToken {
     @@map("refresh_tokens")
 }
 
+enum LeaderRole {
+    USER
+    LEADER
+}
+
+enum LeaderStatus {
+    ACTIVE
+    DEACTIVATED
+}
+
 model Leader {
-    id          Int       @id @default(autoincrement())
+    id          Int          @id @default(autoincrement())
     name        String
-    email       String    @unique
+    email       String       @unique
     contact     String?
-    promoteCode String?   @unique
-    role        String    @default("user")
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    promoteCode String?      @unique
+    role        LeaderRole   @default(USER)
+    status      LeaderStatus @default(ACTIVE)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
     deletedAt   DateTime?
 
     customers Customer[]
