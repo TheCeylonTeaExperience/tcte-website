@@ -114,7 +114,6 @@ model Session {
     deletedAt DateTime?
 
     sessionTypes SessionType[]
-    availability Availability[]
     bookingItems BookingItem[]
 
     @@map("sessions")
@@ -247,20 +246,6 @@ model BookingItem {
     updatedAt DateTime @updatedAt
 
     @@map("booking_items")
-}
-
-model Availability {
-    id             Int      @id @default(autoincrement())
-    sessionId      Int
-    session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-    availableSeats Int
-    date           DateTime
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    deletedAt DateTime?
-
-    @@map("availability")
 }
 
 enum BookingStatus {
