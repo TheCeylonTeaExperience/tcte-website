@@ -34,15 +34,26 @@ model RefreshToken {
     @@map("refresh_tokens")
 }
 
+enum LeaderRole {
+    USER
+    LEADER
+}
+
+enum LeaderStatus {
+    ACTIVE
+    DEACTIVATED
+}
+
 model Leader {
-    id          Int       @id @default(autoincrement())
+    id          Int          @id @default(autoincrement())
     name        String
-    email       String    @unique
+    email       String       @unique
     contact     String?
-    promoteCode String?   @unique
-    role        String    @default("user")
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
+    promoteCode String?      @unique
+    role        LeaderRole   @default(USER)
+    status      LeaderStatus @default(ACTIVE)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
     deletedAt   DateTime?
 
     customers Customer[]
@@ -109,12 +120,12 @@ model Session {
     startTime DateTime  @db.Time
     endTime   DateTime  @db.Time
     price     Float?
+    specialPrice Float?
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
 
     sessionTypes SessionType[]
-    availability Availability[]
     bookingItems BookingItem[]
 
     @@map("sessions")
@@ -127,6 +138,7 @@ model SessionType {
 
     name      String
     price     Float
+    specialPrice Float?
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
@@ -182,13 +194,50 @@ model Booking {
     paymentId   Int
     payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
     status      BookingStatus @default(PENDING)
+    additionalNotes String?
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
     deletedAt   DateTime?
 
     items BookingItem[]
+    refunds Refund[]
+    history BookingHistory[]
 
     @@map("bookings")
+}
+
+model Refund {
+    id          String       @id @default(cuid())
+    bookingId   Int
+    booking     Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+    amount      Float
+    reason      String?
+    status      RefundStatus @default(PENDING)
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+
+    @@map("refunds")
+}
+
+enum RefundStatus {
+    PENDING
+    PROCESSED
+    FAILED
+}
+
+model BookingHistory {
+    id             Int           @id @default(autoincrement())
+    bookingId      Int
+    booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+    action         String        /// RESCHEDULE, CANCEL, REFUND
+    previousDate   DateTime?
+    newDate        DateTime?
+    previousStatus BookingStatus?
+    newStatus      BookingStatus?
+    reason         String?
+    createdAt      DateTime      @default(now())
+
+    @@map("booking_history")
 }
 
 model BookingItem {
@@ -213,20 +262,6 @@ model BookingItem {
     @@map("booking_items")
 }
 
-model Availability {
-    id             Int      @id @default(autoincrement())
-    sessionId      Int
-    session        Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-    availableSeats Int
-    date           DateTime
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-    deletedAt DateTime?
-
-    @@map("availability")
-}
-
 enum BookingStatus {
     PENDING
     PAID
@@ -236,5 +271,5 @@ enum BookingStatus {
 
 enum PaymentType {
     Full
-    Installment
+    Partial
 }

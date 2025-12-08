@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
 import FloatingActionButtons from "@/components/FloatingActionButtons";
+import { FaImages } from "react-icons/fa";
 
 export default function Gallery() {
   const [isLoading, setIsLoading] = useState(true);
@@ -19,7 +20,7 @@ export default function Gallery() {
     },
     {
       id: 2,
-      src: "https://images.unsplash.com/photo-1518989229641-1e87b979d145?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img6.jpg",
       alt: "Guided tea plucking tour",
       category: "Plucking Tour",
     },
@@ -49,7 +50,7 @@ export default function Gallery() {
     },
     {
       id: 7,
-      src: "https://images.unsplash.com/photo-1597318130702-690dd509c0cc?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img5.jpg",
       alt: "Fresh tea leaves close-up",
       category: "Tea Fields",
     },
@@ -61,25 +62,37 @@ export default function Gallery() {
     },
     {
       id: 9,
-      src: "https://images.unsplash.com/photo-1563822249366-163bd08f49fe?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img9.jpg",
       alt: "Panoramic tea estate view",
       category: "Tea Fields",
     },
     {
       id: 10,
-      src: "https://images.unsplash.com/photo-1573875376991-9625d31b7a03?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img2.jpg",
       alt: "Traditional wooden tea house",
       category: "Heritage",
     },
     {
       id: 11,
-      src: "https://images.unsplash.com/photo-1505731132160-eca3da39b807?auto=format&fit=crop&w=1200&q=80",
+      src: "/image/img8.jpg",
       alt: "Tea plantation workers harvesting",
       category: "Plucking Tour",
     },
     {
       id: 12,
       src: "https://images.unsplash.com/photo-1464306208223-e0b4495a5553?auto=format&fit=crop&w=1200&q=80",
+      alt: "Assortment of loose leaf teas",
+      category: "Tea Varietals",
+    },
+    {
+      id: 13,
+      src: "/image/img3.jpg",
+      alt: "Assortment of loose leaf teas",
+      category: "Tea Varietals",
+    },
+    {
+      id: 14,
+      src: "/image/img1.jpg",
       alt: "Assortment of loose leaf teas",
       category: "Tea Varietals",
     },
@@ -92,17 +105,21 @@ export default function Gallery() {
       <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-24 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <section className="py-28 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #767014 0%, #C5BF81 50%, #767014 100%)' }}>
+          <div className="absolute top-0 right-0 w-96 h-96 rounded-full -translate-y-1/2 translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15), transparent)' }} />
+          <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full translate-y-1/2 -translate-x-1/2" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.15), transparent)' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-6 drop-shadow-lg">
-              Gallery
+            <div className="inline-block mb-6">
+              <FaImages className="h-16 w-16 mx-auto mb-4 animate-pulse" style={{ color: '#ffffff' }} />
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold mb-6 drop-shadow-2xl" style={{ color: '#ffffff' }}>
+              Experience the Journey in Images
             </h1>
-            <p className="text-lg sm:text-xl opacity-95 max-w-2xl mx-auto drop-shadow">
-              Explore the beauty of our tea estates and experiences through
-              these curated moments
+            <div className="h-1 w-32 mx-auto mb-6 rounded-full" style={{ background: 'linear-gradient(to right, transparent, #ffffff, transparent)' }}></div>
+            <p className="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto drop-shadow-lg font-light" style={{ color: '#ffffff', opacity: 0.95 }}>
+              A glimpse into the craftsmanship, creativity, and flavours behind The Ceylon Tea Experience.
             </p>
           </div>
         </section>
@@ -110,15 +127,14 @@ export default function Gallery() {
         {/* Gallery Grid */}
         <section className="py-20 bg-gradient-to-b from-background via-secondary/5 to-primary/5 relative overflow-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-serif font-bold mb-4 text-primary">
+            {/* <div className="text-center mb-12">
+               <h2 className="text-3xl font-serif font-bold mb-4 text-primary">
                 Moments Captured in Time
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Every image tells a story of tradition, craftsmanship, and the
-                beauty of tea
+              </h2> 
+              <p className="text-muted-foreground max-w-2xl text-xl mx-auto">
+                A glimpse into the craftsmanship, creativity, and flavours behind The Ceylon Tea Experience.
               </p>
-            </div>
+            </div> */}
 
             <div
               className="grid gap-8"

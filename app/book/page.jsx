@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import Header from "@/components/Header";
@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaCheckCircle, FaWhatsapp } from "react-icons/fa";
+import { FaCheckCircle, FaWhatsapp, FaCalendarAlt, FaCheck, FaUsers } from "react-icons/fa";
+import {
+  getCountries,
+  getCountryCallingCode,
+  parsePhoneNumberFromString,
+} from "libphonenumber-js";
+import metadata from "libphonenumber-js/metadata.min.json";
 
 // Dummy availability data until the API layer is ready
 const SEASON_AVAILABILITY = {
@@ -113,17 +119,20 @@ const FALLBACK_LOCATIONS = [
 export default function BookNow() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calendarRef = useRef(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    countryCode: "+1",
+    countryCode: "LK",
     phone: "",
     location: "",
     programIds: [],
     packs: 1,
-    payment: "",
+    payment: "Full",
     notes: "",
     promoCode: "",
+    partialAmount: "",
   });
   const [seasonSelections, setSeasonSelections] = useState({});
   const [useGlobalSeatCount, setUseGlobalSeatCount] = useState(false);
@@ -138,25 +147,121 @@ export default function BookNow() {
   const [guestDetails, setGuestDetails] = useState([]);
   const [verifiedLeader, setVerifiedLeader] = useState(null);
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
+  const [phoneValidation, setPhoneValidation] = useState({ state: "idle", message: "" });
+  const [validatedPhoneNumber, setValidatedPhoneNumber] = useState(null);
+
+  // Close calendar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    if (showCalendar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCalendar]);
+
+  const regionDisplayNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" });
+    } catch (error) {
+      return null;
+    }
+  }, []);
+
+  const countryOptions = useMemo(() => {
+    const isoCodes = getCountries(metadata) ?? [];
+
+    return isoCodes
+      .map((isoCode) => {
+        try {
+          const dial = getCountryCallingCode(isoCode, metadata);
+          const countryName = regionDisplayNames?.of(isoCode) ?? isoCode;
+
+          if (!dial) {
+            return null;
+          }
+
+          return {
+            iso: isoCode,
+            dial: `+${dial}`,
+            label: `${countryName} (+${dial})`,
+            sortKey: countryName?.toUpperCase() ?? isoCode,
+          };
+        } catch (error) {
+          return null;
+        }
+      })
+      .filter((option) => option !== null)
+      .sort((a, b) => (a.sortKey > b.sortKey ? 1 : a.sortKey < b.sortKey ? -1 : 0));
+  }, [regionDisplayNames]);
+
+  useEffect(() => {
+    if (countryOptions.length === 0) {
+      return;
+    }
+
+    const hasSelectedCountry = countryOptions.some(
+      (option) => option.iso === formData.countryCode
+    );
+
+    if (!hasSelectedCountry) {
+      setFormData((prev) => ({
+        ...prev,
+        countryCode: countryOptions[0]?.iso ?? "",
+      }));
+    }
+  }, [countryOptions, formData.countryCode]);
+
+  const rangesOverlap = useCallback((first, second) => {
+    if (!first?.startTime || !first?.endTime || !second?.startTime || !second?.endTime) {
+      return false;
+    }
+
+    const firstStart = new Date(first.startTime).getTime();
+    const firstEnd = new Date(first.endTime).getTime();
+    const secondStart = new Date(second.startTime).getTime();
+    const secondEnd = new Date(second.endTime).getTime();
+
+    if (
+      Number.isNaN(firstStart) ||
+      Number.isNaN(firstEnd) ||
+      Number.isNaN(secondStart) ||
+      Number.isNaN(secondEnd)
+    ) {
+      return false;
+    }
+
+    return firstStart < secondEnd && firstEnd > secondStart;
+  }, []);
 
   const formatTimeRange = useCallback((startIso, endIso) => {
-    const formatUtcTime = (isoString) => {
+    const formatTimeOfDay = (isoString) => {
       if (!isoString) return "";
       const date = new Date(isoString);
-      if (Number.isNaN(date.getTime())) {
-        return "";
-      }
-      const hours = String(date.getUTCHours()).padStart(2, "0");
-      const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+      if (Number.isNaN(date.getTime())) return "";
+
+      // Sessions are stored in the DB as SQL TIME fields which Prisma maps
+      // to JS Date objects anchored at 1970-01-01 in UTC. When that's the
+      // case we should read the UTC hours/minutes to get the intended
+      // time-of-day (avoid local timezone shift). For full datetimes use
+      // local time display.
+      const useUtc = date.getUTCFullYear() === 1970;
+      const hours = String(useUtc ? date.getUTCHours() : date.getHours()).padStart(2, "0");
+      const minutes = String(useUtc ? date.getUTCMinutes() : date.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
     };
 
-    const startLabel = formatUtcTime(startIso);
-    const endLabel = formatUtcTime(endIso);
+    const startLabel = formatTimeOfDay(startIso);
+    const endLabel = formatTimeOfDay(endIso);
 
-    if (!startLabel || !endLabel) {
-      return "";
-    }
+    if (!startLabel || !endLabel) return "";
 
     return `${startLabel} - ${endLabel}`;
   }, []);
@@ -202,13 +307,26 @@ export default function BookNow() {
             return {
               id: session.id,
               name: session.name,
+              price:
+                session?.price ??
+                session?.basePrice ??
+                session?.defaultPrice ??
+                session?.minimumPrice ??
+                session?.minPrice ??
+                session?.amount ??
+                session?.cost ??
+                null,
+              specialPrice: session?.specialPrice ?? null,
               available: safeAvailable,
               capacity: safeActivityCapacity,
+              startTime: session.startTime,
+              endTime: session.endTime,
               sessionTypes: Array.isArray(session.sessionTypes)
                 ? session.sessionTypes.map((st) => ({
                     id: st.id,
                     name: st.name,
                     price: st.price,
+                    specialPrice: st.specialPrice ?? null,
                   }))
                 : [],
             };
@@ -223,6 +341,54 @@ export default function BookNow() {
       };
     });
   }, [selectedDate, programOptions, formatTimeRange]);
+
+  const collectSelectedSessions = useCallback(
+    (selectionsMap) => {
+      if (!availabilityForDate) {
+        return [];
+      }
+
+      const entries = [];
+
+      Object.entries(selectionsMap || {}).forEach(([seasonId, selection]) => {
+        if (!selection) {
+          return;
+        }
+
+        const season = availabilityForDate.find((entry) => entry.id === seasonId);
+        if (!season) {
+          return;
+        }
+
+        Object.entries(selection.activities || {}).forEach(([activityName, activityState]) => {
+          if (!activityState?.selected) {
+            return;
+          }
+
+          const session = season.activities.find((activity) => activity.name === activityName);
+          if (!session) {
+            return;
+          }
+
+          entries.push({
+            seasonId,
+            activityName,
+            sessionId: session.id,
+            startTime: session.startTime,
+            endTime: session.endTime,
+          });
+        });
+      });
+
+      return entries;
+    },
+    [availabilityForDate]
+  );
+
+  const selectedSessions = useMemo(
+    () => collectSelectedSessions(seasonSelections),
+    [collectSelectedSessions, seasonSelections]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -303,11 +469,19 @@ export default function BookNow() {
     locationOptions.length > 0 ? locationOptions : FALLBACK_LOCATIONS;
 
   const totalSeatsRequested = useMemo(() => {
-    return Object.values(seasonSelections).reduce((acc, season) => {
-      const seats = typeof season?.seatsRequested === "number" ? season.seatsRequested : 0;
-      return acc + Math.max(0, seats);
-    }, 0);
-  }, [seasonSelections]);
+    // When using a global seat count, a single attendee can participate
+    // across multiple selected seasons/activities. Do not sum seats.
+    if (useGlobalSeatCount) {
+      return Math.max(0, Number.isFinite(globalSeatCount) ? globalSeatCount : 0);
+    }
+
+    // Otherwise, treat the requested seats as the maximum across seasons,
+    // representing the number of unique attendees rather than a sum.
+    const seatCounts = Object.values(seasonSelections).map((season) =>
+      typeof season?.seatsRequested === "number" ? Math.max(0, season.seatsRequested) : 0
+    );
+    return seatCounts.length ? Math.max(...seatCounts) : 0;
+  }, [seasonSelections, useGlobalSeatCount, globalSeatCount]);
 
   const guestDetailsComplete = useMemo(() => {
     if (guestDetails.length === 0) {
@@ -361,6 +535,252 @@ export default function BookNow() {
       return String(value);
     }
     return `LKR ${numeric.toLocaleString()}`;
+  };
+
+  const parsePriceValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+    const numeric = typeof value === "number" ? value : Number.parseFloat(value);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const calculateTotalCost = useCallback(() => {
+    let total = 0;
+    Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+      const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
+      if (seatsRequested <= 0) return;
+
+      const resolvedProgramId = selection?.programId ?? seasonId;
+      const program = programOptions.find((programOption) => {
+        const optionId = programOption.id ?? programOption.title;
+        return String(optionId) === String(resolvedProgramId);
+      });
+
+      if (!program) return;
+
+      const activityEntries = Object.entries(selection.activities ?? {}).filter(
+        ([, details]) => details?.selected
+      );
+
+      activityEntries.forEach(([activityName, details]) => {
+        const session = program.sessions?.find(
+          (item) => item.name === activityName
+        );
+        if (!session) return;
+
+        const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+
+        if (sessionTypeIds.length === 0) {
+           // Use session price
+           const price = parsePriceValue(session.specialPrice) ?? parsePriceValue(session.price) ?? 0;
+           total += price * seatsRequested;
+        } else {
+           // Use session type prices
+           sessionTypeIds.forEach((typeId) => {
+             const sessionType = session.sessionTypes?.find(st => String(st.id) === String(typeId));
+             if (sessionType) {
+                const price = parsePriceValue(sessionType.specialPrice) ?? parsePriceValue(sessionType.price) ?? 0;
+                total += price * seatsRequested;
+             }
+           });
+        }
+      });
+    });
+    return total;
+  }, [seasonSelections, programOptions]);
+
+  const totalCost = useMemo(() => calculateTotalCost(), [calculateTotalCost]);
+
+  const handlePaymentTypeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      payment: value,
+      partialAmount: value === "Full" ? "" : prev.partialAmount
+    }));
+  };
+
+  const handlePartialAmountChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, partialAmount: value }));
+  };
+
+  const validatePhoneNumber = useCallback((countryIso, rawNumber) => {
+    const sanitizedNumber =
+      typeof rawNumber === "string" ? rawNumber.replace(/[^\d]/g, "") : "";
+
+    if (!sanitizedNumber) {
+      setPhoneValidation({ state: "idle", message: "" });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    if (!countryIso) {
+      setPhoneValidation({ state: "error", message: "Select a country first." });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    let dialPrefix = "";
+    try {
+      const dialDigits = getCountryCallingCode(countryIso, metadata);
+      dialPrefix = `+${dialDigits}`;
+    } catch (error) {
+      console.error(`Unable to resolve dial code for country ${countryIso}`, error);
+      setPhoneValidation({
+        state: "error",
+        message: "Unable to resolve the dial code for the selected country.",
+      });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+
+    try {
+      const candidate = parsePhoneNumberFromString(
+        `${dialPrefix}${sanitizedNumber}`
+      );
+
+      if (!candidate || !candidate.isValid()) {
+        setPhoneValidation({
+          state: "error",
+          message: "Enter a valid phone number for the selected country.",
+        });
+        setValidatedPhoneNumber(null);
+        return { isValid: false, parsed: null };
+      }
+
+      setPhoneValidation({
+        state: "success",
+        message: candidate.formatInternational(),
+      });
+      setValidatedPhoneNumber(candidate);
+      return { isValid: true, parsed: candidate };
+    } catch (error) {
+      setPhoneValidation({
+        state: "error",
+        message: "Enter a valid phone number for the selected country.",
+      });
+      setValidatedPhoneNumber(null);
+      return { isValid: false, parsed: null };
+    }
+  }, []);
+
+
+  const getActivityPricingDetails = (seasonId, activity) => {
+    if (!activity) {
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const directPriceCandidates = [
+      activity.specialPrice,
+      activity.price,
+      activity.basePrice,
+      activity.defaultPrice,
+      activity.minimumPrice,
+      activity.minPrice,
+      activity.amount,
+      activity.cost,
+    ];
+
+    const seatCount = Number(
+      seasonSelections?.[seasonId]?.seatsRequested ?? 0
+    );
+
+    const selectedSessionTypeIds =
+      seasonSelections?.[seasonId]?.activities?.[activity.name]?.sessionTypes ?? {};
+
+    const selectedSessionTypePrices = Array.isArray(activity.sessionTypes)
+      ? activity.sessionTypes
+          .filter((sessionType) => {
+            const key = sessionType?.id;
+            if (key === null || key === undefined) {
+              return false;
+            }
+            return Boolean(selectedSessionTypeIds[key]);
+          })
+          .map((sessionType) => {
+            const special = parsePriceValue(sessionType?.specialPrice);
+            const regular = parsePriceValue(sessionType?.price);
+            return special !== null ? special : regular;
+          })
+          .filter((value) => value !== null)
+      : [];
+
+    const directPrice = directPriceCandidates
+      .map((candidate) => parsePriceValue(candidate))
+      .find((value) => value !== null);
+
+    // Check if we are using the special price as the direct price
+    const isUsingSpecialPrice = 
+      directPrice !== null && 
+      activity.specialPrice !== null && 
+      activity.specialPrice !== undefined &&
+      directPrice === activity.specialPrice &&
+      activity.price !== null &&
+      activity.price !== undefined;
+
+    const pricePool = selectedSessionTypePrices.length
+      ? selectedSessionTypePrices
+      : directPrice !== null
+        ? [directPrice]
+        : [];
+
+    if (!pricePool.length) {
+      if (Array.isArray(activity.sessionTypes) && activity.sessionTypes.length > 0) {
+        return {
+          perSeatLabel: "Select a session type for pricing",
+          totalLabel: null,
+        };
+      }
+
+      return { perSeatLabel: null, totalLabel: null };
+    }
+
+    const minPrice = Math.min(...pricePool);
+    const maxPrice = Math.max(...pricePool);
+
+    let perSeatLabel;
+    
+    if (isUsingSpecialPrice && !selectedSessionTypePrices.length) {
+       perSeatLabel = (
+         <span className="flex items-center gap-1">
+           <span className="line-through opacity-70 text-[10px]">{formatPrice(activity.price)}</span>
+           <span className="font-bold text-red-600">{formatPrice(minPrice)}</span>
+           <span>per guest</span>
+         </span>
+       );
+    } else {
+      perSeatLabel =
+        minPrice === maxPrice
+          ? `${formatPrice(minPrice)} per guest`
+          : `${formatPrice(minPrice)} - ${formatPrice(maxPrice)} per guest`;
+    }
+
+    if (!seatCount || seatCount <= 0) {
+      return { perSeatLabel, totalLabel: null };
+    }
+
+    const minTotal = minPrice * seatCount;
+    const maxTotal = maxPrice * seatCount;
+
+    let totalLabel;
+    
+    if (isUsingSpecialPrice && !selectedSessionTypePrices.length) {
+       const originalTotal = (activity.price || 0) * seatCount;
+       totalLabel = (
+         <span className="flex items-center gap-1">
+           <span className="line-through opacity-70 text-[10px]">{formatPrice(originalTotal)}</span>
+           <span>{formatPrice(minTotal)} total for {seatCount} seats</span>
+         </span>
+       );
+    } else {
+      totalLabel =
+        minTotal === maxTotal
+          ? `${formatPrice(minTotal)} total for ${seatCount} seats`
+          : `${formatPrice(minTotal)} - ${formatPrice(maxTotal)} total for ${seatCount} seats`;
+    }
+
+    return { perSeatLabel, totalLabel };
   };
 
   const getSeasonAvailabilityTotal = (seasonId) => {
@@ -442,6 +862,9 @@ export default function BookNow() {
   const handleActivityToggle = (seasonId, activityName) => {
     const seasonMeta = availabilityForDate?.find((entry) => entry.id === seasonId);
     const normalizedProgramId = String(seasonMeta?.programId ?? seasonId);
+    const targetSession = seasonMeta?.activities?.find(
+      (activity) => activity.name === activityName
+    );
 
     setSeasonSelections((prev) => {
       const existing = prev[seasonId] ?? {
@@ -456,6 +879,23 @@ export default function BookNow() {
       if (activities[activityName]?.selected) {
         delete activities[activityName];
       } else {
+        if (targetSession?.startTime && targetSession?.endTime) {
+          const currentSelections = collectSelectedSessions(prev);
+          const hasConflict = currentSelections.some((entry) => {
+            if (entry.sessionId === targetSession.id) {
+              return false;
+            }
+            return rangesOverlap(entry, targetSession);
+          });
+
+          if (hasConflict) {
+            alert(
+              "You already selected another activity that overlaps with this time slot. Please choose a different session."
+            );
+            return prev;
+          }
+        }
+
         activities[activityName] = {
           selected: true,
           sessionTypes: {},
@@ -610,15 +1050,6 @@ export default function BookNow() {
     }
   );
 
-  const countryCodes = [
-    { code: "+1", country: "US/CA" },
-    { code: "+44", country: "UK" },
-    { code: "+91", country: "IN" },
-    { code: "+94", country: "LK" },
-    { code: "+61", country: "AU" },
-    { code: "+86", country: "CN" },
-  ];
-
   const handlePromoCodeChange = (value) => {
     setFormData((prev) => ({
       ...prev,
@@ -682,6 +1113,23 @@ export default function BookNow() {
       ...prev,
       promoCode: "",
     }));
+  };
+
+  const handleCountryCodeChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      countryCode: value,
+    }));
+    validatePhoneNumber(value, formData.phone);
+  };
+
+  const handlePhoneInputChange = (value) => {
+    const sanitizedValue = value.replace(/[^\d]/g, "");
+    setFormData((prev) => ({
+      ...prev,
+      phone: sanitizedValue,
+    }));
+    validatePhoneNumber(formData.countryCode, sanitizedValue);
   };
 
   const handleProgramToggle = (programId) => {
@@ -788,7 +1236,21 @@ export default function BookNow() {
         }
 
         if (!formData.phone?.trim()) {
-          alert("Enter a contact number before continuing.");
+          setPhoneValidation({
+            state: "error",
+            message: "Enter a phone number before continuing.",
+          });
+          alert("Enter a phone number before continuing.");
+          return;
+        }
+
+        const phoneCheck = validatePhoneNumber(
+          formData.countryCode,
+          formData.phone
+        );
+
+        if (!phoneCheck.isValid) {
+          alert("Enter a valid phone number before continuing.");
           return;
         }
       }
@@ -808,6 +1270,23 @@ export default function BookNow() {
       return;
     }
 
+    let bookingPhoneResult = validatedPhoneNumber;
+
+    if (!verifiedLeader) {
+      const latestPhoneCheck = validatePhoneNumber(
+        formData.countryCode,
+        formData.phone
+      );
+
+      if (!latestPhoneCheck.isValid) {
+        alert("Enter a valid phone number before confirming your booking.");
+        setCurrentStage("booking");
+        return;
+      }
+
+      bookingPhoneResult = latestPhoneCheck.parsed;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -815,13 +1294,31 @@ export default function BookNow() {
         throw new Error("Select a date before confirming your booking.");
       }
 
-      const bookingDate = new Date(selectedDate);
-      bookingDate.setUTCHours(0, 0, 0, 0);
+      // Send bookedDate as a date-only string (YYYY-MM-DD).
+      // The API expects a date-like value; using a plain date string
+      // avoids client/server timezone conversion issues.
+      const bookingDateString = format(selectedDate, "yyyy-MM-dd");
 
-      const contactNumber = [formData.countryCode, formData.phone]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
+      const fallbackDialPrefix = (() => {
+        try {
+          if (!formData.countryCode) {
+            return "";
+          }
+          return `+${getCountryCallingCode(formData.countryCode, metadata)}`;
+        } catch (error) {
+          console.error(
+            `Unable to compute fallback dial code for ${formData.countryCode}`,
+            error
+          );
+          return "";
+        }
+      })();
+
+      const fallbackContact = `${fallbackDialPrefix}${formData.phone ?? ""}`.replace(
+        /\s+/g,
+        ""
+      );
+      const contactNumber = bookingPhoneResult?.number ?? fallbackContact;
 
       let leaderId = verifiedLeader?.id;
 
@@ -938,10 +1435,12 @@ export default function BookNow() {
 
       const payload = {
         leaderId,
-        bookedDate: bookingDate.toISOString(),
+        bookedDate: bookingDateString,
+        additionalNotes: formData.notes,
         selections: bookingSelections,
         payment: {
-          paymentType: "Full",
+          paymentType: formData.payment,
+          amount: formData.payment === "Partial" ? Number(formData.partialAmount) : undefined,
           provider: "PAYHERE",
           currency: "LKR",
           method: "PayHere Checkout",
@@ -1115,64 +1614,96 @@ export default function BookNow() {
       <FloatingActionButtons />
       <main className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-16 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <section className="bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-primary-foreground py-20 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-yellow-300/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h1 className="text-4xl sm:text-5xl font-serif font-bold mb-4 drop-shadow-lg">
-              Book Your Experience
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 animate-fade-in">
+              <span className="w-2 h-2 bg-yellow-300 rounded-full animate-pulse"></span>
+              <span className="text-sm font-medium">Book Your Tea Experience</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold mb-4 drop-shadow-2xl animate-fade-in">
+              Reserve Your Perfect
+              <span className="block text-yellow-300 mt-2">Tea Journey</span>
             </h1>
-            <p className="text-lg opacity-95 drop-shadow">
-              Fill in your details to reserve your tea tour
+            <p className="text-lg sm:text-xl opacity-95 drop-shadow max-w-2xl mx-auto animate-fade-in">
+              Fill in your details below to reserve your authentic Ceylon tea experience
             </p>
           </div>
         </section>
 
         {/* Booking Form */}
-        <section className="py-12">
+        <section className="py-16 bg-gradient-to-b from-background via-secondary/5 to-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             
-            <Card className="max-w-3xl mx-auto">
-              <CardContent className="pt-6">
+            <Card className="max-w-6xl mx-auto border-2 border-primary/20 shadow-2xl bg-white/95 backdrop-blur overflow-hidden">
+              <CardContent className="pt-8 pb-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {currentStage === "booking" ? (
                     <>
                      {/* Booking Details */}
                       <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary">
+                        <h2 className="text-2xl font-serif font-bold text-primary text-center mb-8">
                           Booking Details
                         </h2>
-                         <div>
-                          <Label htmlFor="location">Select Location *</Label>
-                          <Select
-                            value={formData.location}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, location: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger id="location">
-                              <SelectValue placeholder="Choose a location" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {locationChoices.map((loc) => (
-                                <SelectItem key={loc} value={loc}>
-                                  {loc}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-<div>
-                          <Label>Select Date *</Label>
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={setSelectedDate}
-                            disabled={(date) => date < new Date()}
-                            className="rounded-md border"
-                          />
+                        <div className="grid gap-6 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="location" className="text-base font-semibold flex items-center gap-2">
+                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                              Select Location *
+                            </Label>
+                            <Select
+                              value={formData.location}
+                              onValueChange={(value) =>
+                                setFormData({ ...formData, location: value })
+                              }
+                            >
+                              <SelectTrigger id="location" className="h-12 w-full border-2 border-primary/30 focus:border-primary">
+                                <SelectValue placeholder="Choose your tea estate" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {locationChoices.map((loc) => (
+                                  <SelectItem key={loc} value={loc} className="cursor-pointer">
+                                    {loc}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-base font-semibold flex items-center gap-2">
+                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                              Select Date *
+                            </Label>
+                            <div className="relative" ref={calendarRef}>
+                              <div
+                                onClick={() => setShowCalendar(!showCalendar)}
+                                className="h-12 border-2 border-primary/30 rounded-lg px-3 bg-white flex items-center justify-between cursor-pointer hover:border-primary transition-colors"
+                              >
+                                <span className={selectedDate ? "text-foreground" : "text-muted-foreground"}>
+                                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                                </span>
+                                <FaCalendarAlt className="text-primary" />
+                              </div>
+                              {showCalendar && (
+                                <div className="absolute z-50 mt-2 border-2 border-primary/30 rounded-lg p-3 bg-white shadow-xl">
+                                  <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => {
+                                      setSelectedDate(date);
+                                      setShowCalendar(false);
+                                    }}
+                                    disabled={(date) => date < new Date()}
+                                    className="rounded-md"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                        
                         {/* <div className="space-y-3">
@@ -1257,40 +1788,54 @@ export default function BookNow() {
                         
 
                         {selectedDate && (
-                          <div className="space-y-4 rounded-lg border border-dashed border-muted p-4 bg-muted/10">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                              <h3 className="text-lg font-semibold text-primary">
-                                Availability Overview
-                              </h3>
-                              <span className="text-sm text-muted-foreground">
-                                {format(selectedDate, "PPP")} • Seasons & Activities
-                              </span>
+                          <div className="space-y-6 rounded-xl border border-primary/20 p-6 bg-gradient-to-br from-primary/5 via-background to-primary/3 shadow-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-2 h-8 bg-gradient-to-b from-primary to-primary/60 rounded-full" />
+                                <div>
+                                  <h3 className="text-xl font-bold text-primary">
+                                    Availability Overview
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Select your preferred time slots and activities
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                                  {format(selectedDate, "PPP")}
+                                </span>
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  Seasons & Activities
+                                </span>
+                              </div>
                             </div>
                             {availabilityForDate ? (
                               <div className="space-y-4">
-                                <div className="rounded-md border border-muted-foreground/20 bg-background/70 p-4">
-                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="flex items-center gap-2">
+                                <div className="rounded-lg border border-muted-foreground/20 bg-gradient-to-r from-background to-muted/30 p-5 shadow-sm">
+                                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex items-center gap-3">
                                       <Checkbox
                                         id="use-global-seats"
                                         checked={useGlobalSeatCount}
                                         onCheckedChange={(checked) =>
                                           handleGlobalSeatToggle(checked)
                                         }
+                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                       />
                                       <label
                                         htmlFor="use-global-seats"
-                                        className="cursor-pointer text-sm text-foreground"
+                                        className="cursor-pointer text-sm font-medium text-foreground"
                                       >
                                         Use the same seat count for every selected
                                         season
                                       </label>
                                     </div>
                                     {useGlobalSeatCount && (
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-3 bg-primary/5 px-3 py-2 rounded-md">
                                         <Label
                                           htmlFor="global-seat-count"
-                                          className="text-xs uppercase tracking-wide text-muted-foreground"
+                                          className="text-xs font-semibold uppercase tracking-wide text-primary"
                                         >
                                           Seats per season
                                         </Label>
@@ -1298,7 +1843,7 @@ export default function BookNow() {
                                           id="global-seat-count"
                                           type="number"
                                           min="0"
-                                          className="w-24"
+                                          className="w-20 text-center font-medium border-primary/30 focus:border-primary"
                                           value={
                                             Number.isNaN(globalSeatCount)
                                               ? ""
@@ -1338,7 +1883,11 @@ export default function BookNow() {
                                     return (
                                       <div
                                         key={season.id}
-                                        className="rounded-md border bg-background px-4 py-3 shadow-sm"
+                                        className={`rounded-xl border transition-all duration-200 px-5 py-4 shadow-md hover:shadow-lg ${
+                                          isSelected
+                                            ? "bg-gradient-to-br from-primary/10 via-background to-primary/5 border-primary/30"
+                                            : "bg-gradient-to-br from-background to-muted/20 border-muted-foreground/20 hover:border-primary/20"
+                                        }`}
                                       >
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                           <div className="flex items-start gap-3">
@@ -1354,18 +1903,32 @@ export default function BookNow() {
                                               htmlFor={`season-${season.id}`}
                                               className="cursor-pointer"
                                             >
-                                              <p className="font-medium text-primary">
-                                                {season.id} • {season.window}
-                                              </p>
-                                              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                                {totalAvailable} seats left today
-                                              </p>
+                                              <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-lg font-bold text-primary">
+                                                  {season.id}
+                                                </span>
+                                                <span className="text-sm text-muted-foreground">•</span>
+                                                <span className="text-sm font-medium text-foreground">
+                                                  {season.window}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${
+                                                  totalAvailable > 5 ? "bg-green-500" : 
+                                                  totalAvailable > 2 ? "bg-yellow-500" : "bg-red-500"
+                                                }`} />
+                                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                  {totalAvailable} seats available
+                                                </p>
+                                              </div>
                                             </label>
                                           </div>
-                                          <div className="flex items-center gap-2">
+                                          <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                                            isSelected ? "bg-primary/10" : "bg-muted/30"
+                                          }`}>
                                             <Label
                                               htmlFor={seatInputId}
-                                              className="text-xs uppercase tracking-wide text-muted-foreground"
+                                              className="text-xs font-semibold uppercase tracking-wide text-primary"
                                             >
                                               Seats needed
                                             </Label>
@@ -1374,7 +1937,11 @@ export default function BookNow() {
                                               type="number"
                                               min="0"
                                               max={totalAvailable}
-                                              className="w-24"
+                                              className={`w-20 text-center font-medium transition-colors ${
+                                                isSelected 
+                                                  ? "border-primary/30 focus:border-primary" 
+                                                  : "border-muted-foreground/30"
+                                              }`}
                                               value={isSelected ? seatValue : ""}
                                               onChange={(e) =>
                                                 handleSeatsChange(
@@ -1390,13 +1957,25 @@ export default function BookNow() {
                                             />
                                           </div>
                                         </div>
-                                        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                                        <div className="mt-4 grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                                           {season.activities.map((activity) => {
-                                            const seatsTaken = Math.max(
-                                              0,
-                                              activity.capacity - activity.available
+                                            const seatsTaken =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? Math.max(
+                                                    0,
+                                                    activity.capacity - activity.available
+                                                  )
+                                                : 0;
+                                            const capacityLabel =
+                                              activity.capacity !== null &&
+                                              activity.capacity !== undefined
+                                                ? `${activity.available} of ${activity.capacity} seats available`
+                                                : `${activity.available} seats available`;
+                                            const pricingDetails = getActivityPricingDetails(
+                                              season.id,
+                                              activity
                                             );
-                                            const capacityLabel = `${activity.available} of ${activity.capacity} seats available`;
                                             const fillPercent = activity.capacity
                                               ? Math.round(
                                                   (seatsTaken / activity.capacity) *
@@ -1413,47 +1992,78 @@ export default function BookNow() {
                                                 activity.name
                                               ]?.selected
                                             );
+                                            const conflictsWithSelection = selectedSessions.some(
+                                              (entry) => {
+                                                if (entry.sessionId === activity.id) {
+                                                  return false;
+                                                }
+                                                return rangesOverlap(entry, activity);
+                                              }
+                                            );
+                                            const activityDisabled =
+                                              !activitySelected && conflictsWithSelection;
                                             return (
                                               <div
                                                 key={activity.name}
-                                                className={`rounded border p-3 transition-colors ${
+                                                className={`rounded-lg border p-3 sm:p-4 transition-all duration-200 hover:shadow-md ${
                                                   activitySelected
-                                                    ? "border-primary bg-primary/5"
-                                                    : "border-muted-foreground/20 bg-muted/40"
+                                                    ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm"
+                                                    : "border-muted-foreground/20 bg-gradient-to-br from-muted/20 to-muted/10 hover:border-primary/30"
                                                 }`}
                                               >
-                                                <div className="flex items-start justify-between gap-2">
-                                                  <label
-                                                    htmlFor={activityCheckboxId}
-                                                    className={`flex items-center gap-2 text-sm font-semibold ${
-                                                      isSelected
-                                                        ? "text-foreground"
-                                                        : "text-muted-foreground"
-                                                    }`}
-                                                  >
-                                                    <Checkbox
-                                                      id={activityCheckboxId}
-                                                      checked={activitySelected}
-                                                      disabled={!isSelected}
-                                                      onCheckedChange={() =>
-                                                        handleActivityToggle(
-                                                          season.id,
-                                                          activity.name
-                                                        )
-                                                      }
-                                                    />
-                                                    {activity.name}
-                                                  </label>
-                                                  <span className="text-xs text-muted-foreground">
-                                                    {capacityLabel}
-                                                  </span>
+                                                <div className="flex flex-col gap-3">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <label
+                                                      htmlFor={activityCheckboxId}
+                                                      className={`flex items-center gap-2 text-sm font-bold transition-colors cursor-pointer flex-1 min-w-0 ${
+                                                        isSelected
+                                                          ? activitySelected 
+                                                            ? "text-primary" 
+                                                            : "text-foreground hover:text-primary"
+                                                          : "text-muted-foreground"
+                                                      }`}
+                                                    >
+                                                      <Checkbox
+                                                        id={activityCheckboxId}
+                                                        checked={activitySelected}
+                                                        disabled={!isSelected || activityDisabled}
+                                                        onCheckedChange={() =>
+                                                          handleActivityToggle(
+                                                            season.id,
+                                                            activity.name
+                                                          )
+                                                        }
+                                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                      />
+                                                      <span className="truncate">{activity.name}</span>
+                                                    </label>
+                                                  </div>
+                                                  <div className="flex flex-col gap-2 text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                                        activity.available > (activity.capacity || 10) * 0.7 ? "bg-green-500" : 
+                                                        activity.available > (activity.capacity || 10) * 0.3 ? "bg-yellow-500" : "bg-red-500"
+                                                      }`} />
+                                                      <span className="text-muted-foreground font-medium text-xs">{capacityLabel}</span>
+                                                    </div>
+                                                    {pricingDetails.perSeatLabel && (
+                                                      <div className="bg-primary/10 px-2 py-1 rounded text-primary font-semibold text-xs whitespace-nowrap">
+                                                        {pricingDetails.perSeatLabel}
+                                                      </div>
+                                                    )}
+                                                    {pricingDetails.totalLabel && (
+                                                      <div className="bg-primary text-primary-foreground px-2 py-1 rounded font-bold text-xs whitespace-nowrap">
+                                                        {pricingDetails.totalLabel}
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
-                                                <div className="mt-2 h-1.5 w-full overflow-hidden rounded bg-muted">
+                                                <div className="h-2 w-full overflow-hidden rounded-full bg-muted shadow-inner">
                                                   <div
-                                                    className={`h-full rounded ${
+                                                    className={`h-full rounded-full transition-all duration-500 ease-out ${
                                                       activitySelected
-                                                        ? "bg-primary"
-                                                        : "bg-primary/40"
+                                                        ? "bg-gradient-to-r from-primary to-primary/80"
+                                                        : "bg-gradient-to-r from-primary/40 to-primary/20"
                                                     }`}
                                                     style={{
                                                       width: `${Math.min(
@@ -1467,51 +2077,71 @@ export default function BookNow() {
                                                   activity.sessionTypes &&
                                                   activity.sessionTypes.length >
                                                     0 && (
-                                                    <div className="mt-3 space-y-2">
-                                                      <p className="text-xs font-medium text-muted-foreground">
+                                                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                                      <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">
                                                         Select session types:
                                                       </p>
-                                                      {activity.sessionTypes.map(
-                                                        (st) => {
-                                                          const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
-                                                          const stSelected =
-                                                            seasonSelection
-                                                              ?.activities?.[
-                                                              activity.name
-                                                            ]?.sessionTypes?.[
-                                                              st.id
-                                                            ] || false;
-                                                          return (
-                                                            <div
-                                                              key={st.id}
-                                                              className="flex items-center gap-2"
-                                                            >
-                                                              <Checkbox
-                                                                id={stCheckboxId}
-                                                                checked={stSelected}
-                                                                onCheckedChange={() =>
-                                                                  handleSessionTypeToggle(
-                                                                    season.id,
-                                                                    activity.name,
-                                                                    st.id
-                                                                  )
-                                                                }
-                                                              />
-                                                              <label
-                                                                htmlFor={
-                                                                  stCheckboxId
-                                                                }
-                                                                className="text-xs cursor-pointer"
+                                                      <div className="space-y-2">
+                                                        {activity.sessionTypes.map(
+                                                          (st) => {
+                                                            const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
+                                                            const stSelected =
+                                                              seasonSelection
+                                                                ?.activities?.[
+                                                                activity.name
+                                                              ]?.sessionTypes?.[
+                                                                st.id
+                                                              ] || false;
+                                                            return (
+                                                              <div
+                                                                key={st.id}
+                                                                className={`flex items-center gap-2 p-2 rounded transition-colors ${
+                                                                  stSelected ? "bg-primary/10" : "hover:bg-primary/5"
+                                                                }`}
                                                               >
-                                                                {st.name} -{" "}
-                                                                {formatPrice(
-                                                                  st.price
-                                                                )}
-                                                              </label>
-                                                            </div>
-                                                          );
-                                                        }
-                                                      )}
+                                                                <Checkbox
+                                                                  id={stCheckboxId}
+                                                                  checked={stSelected}
+                                                                  onCheckedChange={() =>
+                                                                    handleSessionTypeToggle(
+                                                                      season.id,
+                                                                      activity.name,
+                                                                      st.id
+                                                                    )
+                                                                  }
+                                                                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                                />
+                                                                <label
+                                                                  htmlFor={
+                                                                    stCheckboxId
+                                                                  }
+                                                                  className={`text-xs font-medium cursor-pointer flex-1 min-w-0 ${
+                                                                    stSelected ? "text-primary" : "text-foreground"
+                                                                  }`}
+                                                                >
+                                                                  <span className="block truncate">{st.name}</span>
+                                                                  <div className="block">
+                                                                    {st.specialPrice ? (
+                                                                      <div className="flex flex-col items-start">
+                                                                        <span className="text-xs text-muted-foreground line-through">
+                                                                          {formatPrice(st.price)}
+                                                                        </span>
+                                                                        <span className="font-bold text-red-600">
+                                                                          {formatPrice(st.specialPrice)}
+                                                                        </span>
+                                                                      </div>
+                                                                    ) : (
+                                                                      <span className="font-bold block">
+                                                                        {formatPrice(st.price)}
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
+                                                                </label>
+                                                              </div>
+                                                            );
+                                                          }
+                                                        )}
+                                                      </div>
                                                     </div>
                                                   )}
                                               </div>
@@ -1568,35 +2198,57 @@ export default function BookNow() {
                           </div>
                         )}
 
-                        {/* <div>
-                          <Label htmlFor="payment">Payment Option *</Label>
-                          <Select
-                            value={formData.payment}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, payment: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger id="payment">
-                              <SelectValue placeholder="Choose payment option" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="full">Full Payment</SelectItem>
-                              <SelectItem value="partial">
-                                Partial Payment (≥25% on arrival)
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {formData.payment === "partial" && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Note: Partial payment requires at least 25% payment
-                              upon arrival
-                            </p>
-                          )}
-                        </div> */}
+                        <div className="space-y-4 border-t pt-4">
+                          <h3 className="text-lg font-semibold">Payment Options</h3>
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="payment">Payment Type *</Label>
+                              <Select
+                                value={formData.payment}
+                                onValueChange={handlePaymentTypeChange}
+                                required
+                              >
+                                <SelectTrigger id="payment">
+                                  <SelectValue placeholder="Choose payment option" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Full">Full Payment ({formatPrice(totalCost)})</SelectItem>
+                                  <SelectItem value="Partial">Partial Payment (Total: {formatPrice(totalCost)})</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                        <div>
-                          <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                            {formData.payment === "Partial" && (
+                              <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
+                                <Label htmlFor="partialAmount">Enter Payment Amount (LKR)</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id="partialAmount"
+                                    type="number"
+                                    min="0"
+                                    max={totalCost}
+                                    value={formData.partialAmount}
+                                    onChange={handlePartialAmountChange}
+                                    placeholder="Enter amount to pay now"
+                                    className="border-primary/30"
+                                  />
+                                  <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+                                    of {formatPrice(totalCost)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
+                                  <span>Remaining Balance:</span>
+                                  <span className="font-bold text-primary">
+                                    {formatPrice(Math.max(0, totalCost - (Number(formData.partialAmount) || 0)))}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="notes" className="text-base font-semibold">Additional Notes (Optional)</Label>
                           <Textarea
                             id="notes"
                             value={formData.notes}
@@ -1605,6 +2257,7 @@ export default function BookNow() {
                             }
                             placeholder="Any special requirements or questions?"
                             rows={4}
+                            className="border-2 border-primary/30 focus:border-primary resize-none"
                           />
                         </div>
                       </div>
@@ -1613,15 +2266,18 @@ export default function BookNow() {
                         <h2 className="text-2xl font-serif font-bold text-primary">
                           Personal Information
                         </h2>
-                        <div>
-                          <Label htmlFor="promoCode">Promo Code (Optional)</Label>
-                          <div className="flex gap-2">
+                        <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+                          <Label htmlFor="promoCode" className="text-base font-semibold flex items-center gap-2">
+                            {/* <FaStar className="text-yellow-500" /> */}
+                            Enter Affiliate Code (Optional)
+                          </Label>
+                          <div className="flex gap-2 mt-2">
                             <Input
                               id="promoCode"
                               value={formData.promoCode || ""}
                               onChange={(e) => handlePromoCodeChange(e.target.value)}
                               placeholder="Enter promo code if you have one"
-                              className="flex-1"
+                              className="flex-1 h-12 border-2 border-primary/30 focus:border-primary"
                               disabled={promoStatus.state === "loading"}
                             />
                             {verifiedLeader ? (
@@ -1630,15 +2286,16 @@ export default function BookNow() {
                                 variant="outline"
                                 onClick={handleClearPromoCode}
                                 disabled={promoStatus.state === "loading"}
+                                className="h-12 border-2"
                               >
                                 Clear
                               </Button>
                             ) : (
                               <Button
                                 type="button"
-                                variant="outline"
                                 onClick={handleVerifyPromoCode}
                                 disabled={promoStatus.state === "loading"}
+                                className="h-12 bg-gradient-to-r from-primary to-primary/80"
                               >
                                 {promoStatus.state === "loading" ? "Verifying..." : "Verify"}
                               </Button>
@@ -1657,18 +2314,23 @@ export default function BookNow() {
                           )}
                         </div>
                         {verifiedLeader ? (
-                          <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
-                            Booking will be linked to promo leader
-                            {" "}
-                            <span className="font-semibold">
-                              {verifiedLeader.name || verifiedLeader.email}
-                            </span>
-                            .
+                          <div className="rounded-lg border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center">
+                                <FaCheck className="text-white" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-emerald-700">Promo Code Applied</p>
+                                <p className="text-base font-semibold text-emerald-900">
+                                  Linked to {verifiedLeader.name || verifiedLeader.email}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         ) : (
                           <>
-                            <div>
-                              <Label htmlFor="name">Full Name *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="name" className="text-base font-semibold">Full Name *</Label>
                               <Input
                                 id="name"
                                 required={!verifiedLeader}
@@ -1677,11 +2339,12 @@ export default function BookNow() {
                                   setFormData({ ...formData, name: e.target.value })
                                 }
                                 placeholder="John Doe"
+                                className="h-12 border-2 border-primary/30 focus:border-primary"
                               />
                             </div>
 
-                            <div>
-                              <Label htmlFor="email">Email *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-base font-semibold">Email *</Label>
                               <Input
                                 id="email"
                                 type="email"
@@ -1691,25 +2354,24 @@ export default function BookNow() {
                                   setFormData({ ...formData, email: e.target.value })
                                 }
                                 placeholder="john@example.com"
+                                className="h-12 border-2 border-primary/30 focus:border-primary"
                               />
                             </div>
 
-                            <div>
-                              <Label htmlFor="phone">Phone Number *</Label>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone" className="text-base font-semibold">Phone Number *</Label>
                               <div className="flex gap-2">
                                 <Select
                                   value={formData.countryCode}
-                                  onValueChange={(value) =>
-                                    setFormData({ ...formData, countryCode: value })
-                                  }
+                                  onValueChange={handleCountryCodeChange}
                                 >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
+                                  <SelectTrigger className="w-48 h-12 border-2 border-primary/30 focus:border-primary">
+                                    <SelectValue placeholder="Select country" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {countryCodes.map((item) => (
-                                      <SelectItem key={item.code} value={item.code}>
-                                        {item.code} {item.country}
+                                    {countryOptions.map((option) => (
+                                      <SelectItem key={option.iso} value={option.iso}>
+                                        {option.label}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
@@ -1718,14 +2380,29 @@ export default function BookNow() {
                                   id="phone"
                                   type="tel"
                                   required={!verifiedLeader}
-                                  className="flex-1"
+                                  className={`flex-1 h-12 border-2 ${phoneValidation.state === "error"
+                                      ? "border-red-500 focus-visible:ring-red-500"
+                                      : "border-primary/30 focus:border-primary"
+                                  }`}
                                   value={formData.phone}
                                   onChange={(e) =>
-                                    setFormData({ ...formData, phone: e.target.value })
+                                    handlePhoneInputChange(e.target.value)
                                   }
                                   placeholder="234567890"
+                                  aria-invalid={phoneValidation.state === "error"}
                                 />
                               </div>
+                              {phoneValidation.state === "error" && (
+                                <p className="mt-1 text-xs text-red-600">
+                                  {phoneValidation.message ||
+                                    "Enter a valid phone number for the selected country."}
+                                </p>
+                              )}
+                              {phoneValidation.state === "success" && (
+                                <p className="mt-1 text-xs text-emerald-600">
+                                  Verified: {phoneValidation.message}
+                                </p>
+                              )}
                             </div>
                           </>
                         )}
@@ -1750,12 +2427,22 @@ export default function BookNow() {
                     </>
                   ) : (
                     <>
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary">
-                          Guest Details
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                          We need information for each of the {totalSeatsRequested} people joining the tour. These details help our guides welcome everyone smoothly.
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3 pb-4 border-b-2 border-primary/20">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                            <FaUsers className="text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-primary">
+                              Guest Details
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                              {totalSeatsRequested} {totalSeatsRequested === 1 ? 'guest' : 'guests'} joining the tour
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                          Please provide information for each guest. These details help our guides welcome everyone smoothly.
                         </p>
 
                         <div className="space-y-4">
@@ -1767,20 +2454,25 @@ export default function BookNow() {
                             guestDetails.map((guest, index) => (
                               <div
                                 key={`guest-${index}`}
-                                className="rounded-lg border border-muted-foreground/30 bg-background p-4 shadow-sm"
+                                className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-white to-primary/5 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <h3 className="text-lg font-semibold text-primary">
-                                    Guest {index + 1}
-                                  </h3>
-                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                <div className="flex items-center justify-between gap-2 mb-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold">
+                                      {index + 1}
+                                    </div>
+                                    <h3 className="text-xl font-bold text-primary">
+                                      Guest {index + 1}
+                                    </h3>
+                                  </div>
+                                  <span className="text-xs font-semibold uppercase tracking-wide bg-primary/10 text-primary px-3 py-1 rounded-full">
                                     Seat #{index + 1}
                                   </span>
                                 </div>
-                                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                   <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-name-${index}`} className="text-sm">
-                                      Full Name
+                                    <Label htmlFor={`guest-name-${index}`} className="text-sm font-semibold">
+                                      Full Name *
                                     </Label>
                                     <Input
                                       id={`guest-name-${index}`}
@@ -1842,22 +2534,30 @@ export default function BookNow() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between border-t-2 border-primary/20">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={handleBackToBooking}
-                          className="sm:w-40"
+                          className="sm:w-48 h-14 text-base border-2 hover:bg-primary/5"
                         >
-                          Back
+                          ← Back to Booking
                         </Button>
                         <Button
                           type="submit"
                           size="lg"
-                          className="w-full sm:flex-1"
+                          className="w-full sm:flex-1 h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
                           disabled={isSubmitting || !guestDetailsComplete}
                         >
-                          {isSubmitting ? "Processing..." : "Confirm Booking"}
+                          {isSubmitting ? (
+                            <span className="flex items-center gap-2">
+                              <span className="animate-spin">⏳</span> Processing...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <FaCheck /> Confirm Booking
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </>

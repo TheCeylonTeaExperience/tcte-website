@@ -27,6 +27,7 @@ const DEFAULT_FORM_STATE = {
   startTime: "",
   endTime: "",
   price: "",
+  specialPrice: "",
 };
 
 function formatTimeForInput(value) {
@@ -87,6 +88,10 @@ export default function SessionForm({
         price:
           initialData.price !== undefined && initialData.price !== null
             ? String(initialData.price)
+            : "",
+        specialPrice:
+          initialData.specialPrice !== undefined && initialData.specialPrice !== null
+            ? String(initialData.specialPrice)
             : "",
       });
     } else {
@@ -166,11 +171,11 @@ export default function SessionForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
             {isEditMode ? "Update Session" : "Create New Session"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
               ? "Adjust the session details and save your changes."
               : "Fill out the fields below to add a new session."}
@@ -179,20 +184,20 @@ export default function SessionForm({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-destructive/15 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {error}
             </div>
           )}
 
           {success && !isEditMode && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {success}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="programId">
-              Program <span className="text-destructive">*</span>
+            <Label htmlFor="programId" style={{ color: '#767014', fontWeight: 600 }}>
+              Program <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.programId}
@@ -215,8 +220,8 @@ export default function SessionForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+            <Label htmlFor="name" style={{ color: '#767014', fontWeight: 600 }}>
+              Name <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Input
               id="name"
@@ -230,8 +235,8 @@ export default function SessionForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="startTime">
-                Start Time <span className="text-destructive">*</span>
+              <Label htmlFor="startTime" style={{ color: '#767014', fontWeight: 600 }}>
+                Start Time <span style={{ color: '#000000' }}>*</span>
               </Label>
               <Input
                 id="startTime"
@@ -243,8 +248,8 @@ export default function SessionForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endTime">
-                End Time <span className="text-destructive">*</span>
+              <Label htmlFor="endTime" style={{ color: '#767014', fontWeight: 600 }}>
+                End Time <span style={{ color: '#000000' }}>*</span>
               </Label>
               <Input
                 id="endTime"
@@ -257,18 +262,33 @@ export default function SessionForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price">Price</Label>
-            <Input
-              id="price"
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              placeholder="Optional"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="specialPrice">Special Price</Label>
+              <Input
+                id="specialPrice"
+                type="number"
+                name="specialPrice"
+                value={formData.specialPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -276,11 +296,17 @@ export default function SessionForm({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="flex-1 border-2"
+              style={{ borderColor: '#C5BF81', color: '#000000', backgroundColor: '#ffffff' }}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="flex-1"
+              style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
+            >
               {loading
                 ? isEditMode
                   ? "Updating..."

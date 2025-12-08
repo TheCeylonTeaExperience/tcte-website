@@ -14,16 +14,16 @@ import {
   FaStar,
   FaChevronLeft,
   FaChevronRight,
+  FaHandsHelping,
+  FaHeart,
+  FaMapMarkedAlt,
 } from "react-icons/fa";
 
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [carouselPosition, setCarouselPosition] = useState(0);
 
   const heroImages = [
-    // {
-    //   url: "/image/PluckingTour.jpg",
-    //   alt: "Lush tea fields at sunrise",
-    // },
     {
       url: "/image/g1.jpg",
       alt: "Lush tea fields at sunrise",
@@ -31,6 +31,10 @@ export default function Home() {
     {
       url: "/image/g2.jpg",
       alt: "Green tea plantation",
+    },
+    {
+      url: "/image/img13.jpg",
+      alt: "Lush tea fields at sunrise",
     },
     {
       url: "/image/g3.jpg",
@@ -55,26 +59,63 @@ export default function Home() {
       (prev) => (prev - 1 + heroImages.length) % heroImages.length
     );
   };
+
+  // Carousel scroll functions
+  const scrollCarouselLeft = () => {
+    setCarouselPosition((prev) => Math.min(prev + 350, 0));
+  };
+
+  const scrollCarouselRight = () => {
+    setCarouselPosition((prev) => prev - 350);
+  };
+
+  // Auto-scroll carousel
+  useEffect(() => {
+    const autoScroll = setInterval(() => {
+      setCarouselPosition((prev) => {
+        // Calculate max scroll (negative value)
+        const maxScroll = -((13 * 2) * (320 + 24)); // 13 images * 2 duplicates * (width + gap)
+        // Reset to 0 when reaching halfway point for seamless loop
+        if (prev <= maxScroll / 2) {
+          return 0;
+        }
+        return prev - 1; // Scroll 1px at a time for smooth animation
+      });
+    }, 20); // Update every 20ms for smooth 60fps animation
+
+    return () => clearInterval(autoScroll);
+  }, []);
+
   const features = [
     {
+      icon: FaMapMarkedAlt,
+      description: "The only interactive tea experience in Southern Sri Lanka",
+      gradient: "linear-gradient(135deg, #767014, #C5BF81)",
+    },
+    {
+      icon: FaHandsHelping,
+      description: "Hands-on tea making & tasting sessions",
+      gradient: "linear-gradient(135deg, #C5BF81, #767014)",
+    },
+    {
       icon: FaLeaf,
-      title: "Authentic Experience",
-      description: "From leaf to cup, experience the complete tea journey",
-    },
-    {
-      icon: FaClock,
-      title: "Flexible Sessions",
-      description: "Multiple time slots to fit your schedule",
-    },
-    {
-      icon: FaUsers,
-      title: "Expert Guides",
-      description: "Learn from passionate tea masters",
+      description: "Build-Your-Own Tea Library — personalised blends",
+      gradient: "linear-gradient(135deg, #767014, #C5BF81)",
     },
     {
       icon: FaStar,
-      title: "Premium Quality",
-      description: "Experience the finest teas in scenic estates",
+      description: "Premium tea café serving curated Ceylon teas",
+      gradient: "linear-gradient(135deg, #C5BF81, #767014)",
+    },
+    {
+      icon: FaHeart,
+      description: "Perfect for families, couples, and cultural travellers",
+      gradient: "linear-gradient(135deg, #767014, #C5BF81)",
+    },
+    {
+      icon: FaClock,
+      description: "Quick, curated, high-value experience — no full-day travel required",
+      gradient: "linear-gradient(135deg, #C5BF81, #767014)",
     },
   ];
 
@@ -89,9 +130,8 @@ export default function Home() {
             {heroImages.map((image, index) => (
               <div
                 key={image.url}
-                className={`absolute inset-0 transition-opacity duration-1000 ${
-                  index === currentSlide ? "opacity-100" : "opacity-0"
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? "opacity-100" : "opacity-0"
+                  }`}
                 aria-hidden={index !== currentSlide}
               >
                 <div className="relative h-full w-full">
@@ -102,6 +142,7 @@ export default function Home() {
                     priority={index === 0}
                     sizes="100vw"
                     className="object-cover"
+                    quality={100}
                   />
                   {/* Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
@@ -132,11 +173,10 @@ export default function Home() {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                  index === currentSlide
-                    ? "bg-white w-8"
-                    : "bg-white/50 hover:bg-white/75"
-                }`}
+                className={`w-3 h-3 rounded-full transition-all duration-200 ${index === currentSlide
+                  ? "bg-white w-8"
+                  : "bg-white/50 hover:bg-white/75"
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
@@ -147,31 +187,30 @@ export default function Home() {
             <div className="space-y-8 fade-in">
               <div>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-white mb-6 max-w-4xl mx-auto leading-tight drop-shadow-lg">
-                  Discover the Art of{" "}
-                  <span className="text-yellow-300">Tea</span> in Paradise
+                  “Don’t Just Drink Ceylon Tea - {" "}
+                  <span className="text-yellow-300">Experience It</span>”
                 </h1>
               </div>
               <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-12 max-w-2xl mx-auto drop-shadow-md">
-                Immerse yourself in authentic tea tourism experiences. From
-                plucking to tasting, journey through the world of premium tea in
-                our scenic estates.
+                Journey into the art, heritage, and flavour of Sri Lanka’s world-famous tea.
+                Craft your own blend, taste teas from every region, and immerse yourself in a hands-on experience unlike anything in the South.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button
                   asChild
                   size="lg"
-                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-colors duration-200"
+                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-colors duration-200 justify-center font-bold rounded-full"
                 >
-                  <Link href="/book">Book Now</Link>
+                  <Link href="/book">Book Your Experience</Link>
                 </Button>
-                <Button
+                {/* <Button
                   asChild
                   size="lg"
                   variant="outline"
                   className="text-lg px-8 py-6 bg-white/10 hover:bg-white/20 text-white border-white/50 backdrop-blur-sm transition-colors duration-200"
                 >
                   <Link href="/gallery">View Gallery</Link>
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>
@@ -182,29 +221,35 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16 fade-in-up">
               <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
-                Why Choose THE CEYLON TEA
+                Why Choose Us
               </h2>
+              <p className="max-w-3xl mx-auto" style={{ color: '#1e1e0bff' }}>
+                Discover Sri Lanka&apos;s Tea Story - in the Heart of Galle
+              </p>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Experience the finest tea tourism with our expertly curated
-                programs
+                The Ceylon Tea Experience (TCTE) brings the magic of the tea highlands to the Southern Coast.
+                More than a cafe, we are an interactive tea journey where you learn, create, and taste.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
                 <Card
                   key={index}
-                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-lg bg-white/90 backdrop-blur-sm group"
+                  className="border-2 hover:border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/95 backdrop-blur-sm group overflow-hidden"
+                  style={{ borderColor: '#C5BF81' }}
                 >
-                  <CardContent className="pt-8 text-center">
-                    <div className="bg-gradient-to-br from-primary via-primary/80 to-primary/60 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                      <feature.icon className="h-10 w-10 text-white" />
+                  <CardContent className="pt-8 text-center relative">
+                    <div 
+                      className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                      style={{ background: feature.gradient }}
+                    >
+                      <feature.icon className="h-10 w-10" style={{ color: '#ffffff' }} />
                     </div>
-                    <h3 className="font-serif font-bold text-xl mb-3 text-primary">
-                      {feature.title}
-                    </h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-base leading-relaxed px-2" style={{ color: '#000000' }}>
                       {feature.description}
                     </p>
+                    {/* Decorative gradient line */}
+                    {/* <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div> */}
                   </CardContent>
                 </Card>
               ))}
@@ -217,14 +262,81 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16 fade-in-up">
               <h2 className="text-3xl sm:text-4xl font-serif font-bold mb-4 text-primary">
-                Our Tea Experiences
+                Our Experience
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Choose from our curated tea tourism programs designed for every
-                tea enthusiast
+              <p className="text-muted-foreground max-w-2xl mx-auto text-center">
+                At TCTE, every visitor becomes part of the tea-making process.
+              </p><br />
+              <p className="text-muted-foreground max-w-2xl mx-auto text-center">
+                From plucking leaves and rolling your own tea, to crafting a personalised blend with herbs and flavours, the experience is designed to be immersive, educational, and unforgettable.
+              </p><br />
+              <p className="text-muted-foreground max-w-2xl mx-auto text-center">
+                Whether you have 30 minutes or two hours, you walk away with a deeper appreciation of the craftsmanship behind Ceylon Tea — and a blend you can call your own.
               </p>
             </div>
-            <div
+
+            {/* Scrolling Images Carousel */}
+            <div className="mb-16 overflow-hidden relative">
+              {/* Left Arrow */}
+              <button
+                onClick={scrollCarouselLeft}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition-colors duration-200 shadow-lg"
+                aria-label="Scroll left"
+              >
+                <FaChevronLeft className="h-6 w-6" />
+              </button>
+
+              {/* Right Arrow */}
+              <button
+                onClick={scrollCarouselRight}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition-colors duration-200 shadow-lg"
+                aria-label="Scroll right"
+              >
+                <FaChevronRight className="h-6 w-6" />
+              </button>
+
+              <div
+                className="flex gap-6 w-fit"
+                style={{ transform: `translateX(${carouselPosition}px)` }}
+              >
+                {/* Duplicate the images twice for seamless loop */}
+                {[...Array(2)].map((_, duplicateIndex) => (
+                  <div key={duplicateIndex} className="flex gap-6">
+                    {[
+                      "/image/PluckingTour.jpg",
+                      "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=800&q=80",
+                      "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&q=80",
+                      "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&q=80",
+                      "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=800&q=80",
+                      "/image/img1.jpg",
+                      "/image/img2.jpg",
+                      "/image/img3.jpg",
+                      "/image/img5.jpg",
+                      "/image/img6.jpg",
+                      "/image/img7.jpg",
+                      "/image/img8.jpg",
+                      "/image/img9.jpg",
+
+                    ].map((image, index) => (
+                      <div
+                        key={`${duplicateIndex}-${index}`}
+                        className="relative flex-shrink-0 w-80 h-100 rounded-xl overflow-hidden shadow-lg border-2 border-primary/20 hover:border-primary/50 transition-all duration-300"
+                      >
+                        <Image
+                          src={image}
+                          alt={`Tea experience ${index + 1}`}
+                          fill
+                          sizes="320px"
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* <div
               className="grid gap-8"
               style={{
                 gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
@@ -298,7 +410,7 @@ export default function Home() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
         </section>
 
@@ -308,12 +420,12 @@ export default function Home() {
             <div className="max-w-4xl mx-auto space-y-8 fade-in-up">
               <div>
                 <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6 drop-shadow-xl text-white">
-                  Ready to Begin Your Tea Journey?
+                  Ready to Discover Ceylon Tea?
                 </h2>
               </div>
               <p className="text-lg md:text-2xl mb-12 opacity-95 drop-shadow-lg max-w-3xl mx-auto">
-                Book your authentic tea tourism experience today and create
-                unforgettable memories in our scenic tea estates.
+                Create. Taste. Explore. <br/>
+                Your journey into Sri Lanka’s most iconic heritage begins here.
               </p>
 
               <div>
@@ -321,9 +433,9 @@ export default function Home() {
                   asChild
                   size="lg"
                   variant="secondary"
-                  className="text-xl px-12 py-8 bg-white text-primary hover:bg-white/90 font-bold rounded-full transition-colors duration-300"
+                  className="text-base sm:text-lg md:text-xl px-6 py-4 sm:px-8 sm:py-6 md:px-12 md:py-8 bg-white text-primary hover:bg-white/90 font-bold rounded-full transition-colors duration-300"
                 >
-                  <Link href="/book">Book Your Experience</Link>
+                  <Link href="/book">Reserve Your Experience</Link>
                 </Button>
               </div>
 

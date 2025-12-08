@@ -134,19 +134,6 @@ CREATE TABLE `booking_items` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `availability` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `sessionId` INTEGER NOT NULL,
-    `availableSeats` INTEGER NOT NULL,
-    `date` DATETIME(3) NOT NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-    `deletedAt` DATETIME(3) NULL,
-
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- AddForeignKey
 ALTER TABLE `customers` ADD CONSTRAINT `customers_leaderId_fkey` FOREIGN KEY (`leaderId`) REFERENCES `leaders`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -177,5 +164,3 @@ ALTER TABLE `booking_items` ADD CONSTRAINT `booking_items_sessionTypeId_fkey` FO
 -- AddForeignKey
 ALTER TABLE `booking_items` ADD CONSTRAINT `booking_items_customerId_fkey` FOREIGN KEY (`customerId`) REFERENCES `customers`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
--- AddForeignKey
-ALTER TABLE `availability` ADD CONSTRAINT `availability_sessionId_fkey` FOREIGN KEY (`sessionId`) REFERENCES `sessions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

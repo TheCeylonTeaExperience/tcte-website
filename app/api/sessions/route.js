@@ -102,7 +102,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { programId, name, startTime, endTime, price } = body;
+    const { programId, name, startTime, endTime, price, specialPrice } = body;
 
     // Validation
     if (!programId || !name || !startTime || !endTime) {
@@ -141,6 +141,7 @@ export async function POST(request) {
         startTime: parsedStartTime,
         endTime: parsedEndTime,
         price: price ? parseFloat(price) : null,
+        specialPrice: specialPrice ? parseFloat(specialPrice) : null,
       },
       include: {
         program: {

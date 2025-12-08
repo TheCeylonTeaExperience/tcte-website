@@ -20,6 +20,7 @@ import {
   ChevronRight,
   ChevronDown,
   Layers3,
+  MapPin,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -27,6 +28,11 @@ const sidebarLinks = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Locations",
+    href: "/dashboard/locations",
+    icon: MapPin,
   },
   {
     label: "Program Settings",
@@ -47,6 +53,7 @@ const sidebarLinks = [
         href: "/dashboard/session-types",
         icon: Layers3,
       },
+
     ],
   },
   {
@@ -57,6 +64,11 @@ const sidebarLinks = [
   {
     label: "Customers",
     href: "/dashboard/customers",
+    icon: Users,
+  },
+  {
+    label: "Leaders",
+    href: "/dashboard/leaders",
     icon: Users,
   },
 ];
@@ -137,19 +149,17 @@ export default function Sidebar({
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-20 items-center border-b border-border px-4 justify-center md:justify-start">
-            <Link href="/" className={cn("flex items-center", isCollapsed ? "justify-center" : "space-x-3") }>
+            <Link href="/" className={cn("flex items-center", isCollapsed ? "justify-center" : "space-x-3")}>
               <Image
                 src="/image/logo/logo.png"
                 alt="Reviva logo"
-                width={isCollapsed ? 50 : 66}
-                height={isCollapsed ? 50 : 66}
-                className={cn(
-                  "object-contain filter brightness-0 drop-shadow-sm",
-                  isCollapsed ? "h-40 w-40" : "h-40 w-40"
-                )}
+                width={200}
+                height={200}
+                className=" object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-110 filter brightness-0"
                 priority
+                quality={70}
               />
-             
+
             </Link>
           </div>
 
