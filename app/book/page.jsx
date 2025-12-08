@@ -129,9 +129,10 @@ export default function BookNow() {
     location: "",
     programIds: [],
     packs: 1,
-    payment: "",
+    payment: "Full",
     notes: "",
     promoCode: "",
+    partialAmount: "",
   });
   const [seasonSelections, setSeasonSelections] = useState({});
   const [useGlobalSeatCount, setUseGlobalSeatCount] = useState(false);
@@ -542,6 +543,66 @@ export default function BookNow() {
     }
     const numeric = typeof value === "number" ? value : Number.parseFloat(value);
     return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const calculateTotalCost = useCallback(() => {
+    let total = 0;
+    Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+      const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
+      if (seatsRequested <= 0) return;
+
+      const resolvedProgramId = selection?.programId ?? seasonId;
+      const program = programOptions.find((programOption) => {
+        const optionId = programOption.id ?? programOption.title;
+        return String(optionId) === String(resolvedProgramId);
+      });
+
+      if (!program) return;
+
+      const activityEntries = Object.entries(selection.activities ?? {}).filter(
+        ([, details]) => details?.selected
+      );
+
+      activityEntries.forEach(([activityName, details]) => {
+        const session = program.sessions?.find(
+          (item) => item.name === activityName
+        );
+        if (!session) return;
+
+        const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+
+        if (sessionTypeIds.length === 0) {
+           // Use session price
+           const price = parsePriceValue(session.specialPrice) ?? parsePriceValue(session.price) ?? 0;
+           total += price * seatsRequested;
+        } else {
+           // Use session type prices
+           sessionTypeIds.forEach((typeId) => {
+             const sessionType = session.sessionTypes?.find(st => String(st.id) === String(typeId));
+             if (sessionType) {
+                const price = parsePriceValue(sessionType.specialPrice) ?? parsePriceValue(sessionType.price) ?? 0;
+                total += price * seatsRequested;
+             }
+           });
+        }
+      });
+    });
+    return total;
+  }, [seasonSelections, programOptions]);
+
+  const totalCost = useMemo(() => calculateTotalCost(), [calculateTotalCost]);
+
+  const handlePaymentTypeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      payment: value,
+      partialAmount: value === "Full" ? "" : prev.partialAmount
+    }));
+  };
+
+  const handlePartialAmountChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, partialAmount: value }));
   };
 
   const validatePhoneNumber = useCallback((countryIso, rawNumber) => {
@@ -1377,7 +1438,8 @@ export default function BookNow() {
         bookedDate: bookingDateString,
         selections: bookingSelections,
         payment: {
-          paymentType: "Full",
+          paymentType: formData.payment,
+          amount: formData.payment === "Partial" ? Number(formData.partialAmount) : undefined,
           provider: "PAYHERE",
           currency: "LKR",
           method: "PayHere Checkout",
@@ -2135,32 +2197,53 @@ export default function BookNow() {
                           </div>
                         )}
 
-                        {/* <div>
-                          <Label htmlFor="payment">Payment Option *</Label>
-                          <Select
-                            value={formData.payment}
-                            onValueChange={(value) =>
-                              setFormData({ ...formData, payment: value })
-                            }
-                            required
-                          >
-                            <SelectTrigger id="payment">
-                              <SelectValue placeholder="Choose payment option" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="full">Full Payment</SelectItem>
-                              <SelectItem value="partial">
-                                Partial Payment (≥25% on arrival)
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {formData.payment === "partial" && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Note: Partial payment requires at least 25% payment
-                              upon arrival
-                            </p>
-                          )}
-                        </div> */}
+                        <div className="space-y-4 border-t pt-4">
+                          <h3 className="text-lg font-semibold">Payment Options</h3>
+                          <div className="grid gap-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="payment">Payment Type *</Label>
+                              <Select
+                                value={formData.payment}
+                                onValueChange={handlePaymentTypeChange}
+                                required
+                              >
+                                <SelectTrigger id="payment">
+                                  <SelectValue placeholder="Choose payment option" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Full">Full Payment ({formatPrice(totalCost)})</SelectItem>
+                                  <SelectItem value="Partial">Partial Payment</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {formData.payment === "Partial" && (
+                              <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
+                                <div className="flex justify-between text-sm mb-2">
+                                  <span>Total Amount:</span>
+                                  <span className="font-bold">{formatPrice(totalCost)}</span>
+                                </div>
+                                <Label htmlFor="partialAmount">Enter Payment Amount (LKR)</Label>
+                                <Input
+                                  id="partialAmount"
+                                  type="number"
+                                  min="0"
+                                  max={totalCost}
+                                  value={formData.partialAmount}
+                                  onChange={handlePartialAmountChange}
+                                  placeholder="Enter amount to pay now"
+                                  className="border-primary/30"
+                                />
+                                <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
+                                  <span>Remaining Balance:</span>
+                                  <span className="font-bold text-primary">
+                                    {formatPrice(Math.max(0, totalCost - (Number(formData.partialAmount) || 0)))}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="notes" className="text-base font-semibold">Additional Notes (Optional)</Label>
