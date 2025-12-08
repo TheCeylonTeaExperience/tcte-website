@@ -182,11 +182,11 @@ export default function ProgramForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
             {isEditMode ? "Update Program" : "Create New Program"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
               ? "Modify the fields below to update this program."
               : "Fill in the details below to create a new training program."}
@@ -195,20 +195,20 @@ export default function ProgramForm({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-destructive/15 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {error}
             </div>
           )}
 
           {success && !isEditMode && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {success}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="title">
-              Program Title <span className="text-destructive">*</span>
+            <Label htmlFor="title" style={{ color: '#767014', fontWeight: 600 }}>
+              Program Title <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Input
               id="title"
@@ -221,7 +221,7 @@ export default function ProgramForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description" style={{ color: '#767014', fontWeight: 600 }}>Description</Label>
             <Textarea
               id="description"
               name="description"
@@ -234,8 +234,8 @@ export default function ProgramForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime">
-                Start Time <span className="text-destructive">*</span>
+              <Label htmlFor="startTime" style={{ color: '#767014', fontWeight: 600 }}>
+                Start Time <span style={{ color: '#000000' }}>*</span>
               </Label>
               <Input
                 id="startTime"
@@ -248,8 +248,8 @@ export default function ProgramForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endTime">
-                End Time <span className="text-destructive">*</span>
+              <Label htmlFor="endTime" style={{ color: '#767014', fontWeight: 600 }}>
+                End Time <span style={{ color: '#000000' }}>*</span>
               </Label>
               <Input
                 id="endTime"
@@ -263,8 +263,8 @@ export default function ProgramForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="locationId">
-              Location <span className="text-destructive">*</span>
+            <Label htmlFor="locationId" style={{ color: '#767014', fontWeight: 600 }}>
+              Location <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.locationId}
@@ -288,8 +288,8 @@ export default function ProgramForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="seats">
-                Number of Seats <span className="text-destructive">*</span>
+              <Label htmlFor="seats" style={{ color: '#767014', fontWeight: 600 }}>
+                Number of Seats <span style={{ color: '#000000' }}>*</span>
               </Label>
               <Input
                 id="seats"
@@ -309,7 +309,7 @@ export default function ProgramForm({
                 checked={formData.isActive}
                 onCheckedChange={handleCheckboxChange}
               />
-              <Label htmlFor="isActive" className="text-sm font-medium">
+              <Label htmlFor="isActive" className="text-sm font-medium" style={{ color: '#767014' }}>
                 Active Program
               </Label>
             </div>
@@ -320,11 +320,17 @@ export default function ProgramForm({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="flex-1 border-2"
+              style={{ borderColor: '#C5BF81', color: '#000000', backgroundColor: '#ffffff' }}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="flex-1"
+              style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
+            >
               {loading
                 ? isEditMode
                   ? "Updating..."

@@ -36,9 +36,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import { useDashboard } from "../layout";
-import { Loader2, Plus, Pencil } from "lucide-react";
+import { Loader2, Plus, Pencil, CheckCircle, XCircle } from "lucide-react";
 
 export default function LeadersPage() {
   useDashboard();
@@ -48,6 +58,10 @@ export default function LeadersPage() {
   const [error, setError] = React.useState(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingLeader, setEditingLeader] = React.useState(null);
+  const [successDialogOpen, setSuccessDialogOpen] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState("");
+  const [errorDialogOpen, setErrorDialogOpen] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -122,12 +136,14 @@ export default function LeadersPage() {
         throw new Error(errorData.error || "Failed to save leader");
       }
 
-      alert(`Leader ${editingLeader ? "updated" : "created"} successfully.`);
+      setSuccessMessage(`Leader ${editingLeader ? "updated" : "created"} successfully.`);
+      setSuccessDialogOpen(true);
       setIsDialogOpen(false);
       loadLeaders();
     } catch (err) {
       console.error("Save error:", err);
-      alert(err.message);
+      setErrorMessage(err.message);
+      setErrorDialogOpen(true);
     }
   };
 
@@ -135,61 +151,81 @@ export default function LeadersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Leaders</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#767014' }}>Leaders</h2>
+          <p style={{ color: '#000000', opacity: 0.7 }}>
             Manage leaders, roles, and promo codes.
           </p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button 
+          onClick={handleCreate}
+          style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Add Leader
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle>All Leaders</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#767014' }}>All Leaders</CardTitle>
+          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
             A list of all registered leaders and users.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#767014' }} />
             </div>
           ) : error ? (
-            <div className="text-destructive p-4">{error}</div>
+            <div className="p-4 rounded-md border" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>{error}</div>
           ) : (
             <ScrollArea className="h-[600px]">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Promo Code</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Name</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Email</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Role</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Promo Code</TableHead>
+                    <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leaders.map((leader) => (
                     <TableRow key={leader.id}>
-                      <TableCell className="font-medium">{leader.name}</TableCell>
-                      <TableCell>{leader.email}</TableCell>
+                      <TableCell className="font-medium" style={{ color: '#000000' }}>{leader.name}</TableCell>
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.email}</TableCell>
                       <TableCell>
-                        <Badge variant={leader.role === "LEADER" ? "default" : "secondary"}>
+                        <Badge 
+                          className="border-0"
+                          style={{ 
+                            backgroundColor: leader.role === "LEADER" ? '#767014' : '#C5BF81', 
+                            color: leader.role === "LEADER" ? '#ffffff' : '#000000' 
+                          }}
+                        >
                           {leader.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                         <Badge variant={leader.status === "DEACTIVATED" ? "destructive" : "outline"}>
+                         <Badge 
+                           variant="outline" 
+                           style={{ 
+                             borderColor: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014', 
+                             color: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014' 
+                           }}
+                         >
                           {leader.status || "ACTIVE"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{leader.promoteCode || "-"}</TableCell>
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.promoteCode || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(leader)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEdit(leader)}
+                          style={{ color: '#767014' }}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -203,10 +239,10 @@ export default function LeadersPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
           <DialogHeader>
-            <DialogTitle>{editingLeader ? "Edit Leader" : "Add Leader"}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle style={{ color: '#767014' }}>{editingLeader ? "Edit Leader" : "Add Leader"}</DialogTitle>
+            <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
               {editingLeader
                 ? "Update leader details, role, and status."
                 : "Create a new leader account."}
@@ -214,16 +250,17 @@ export default function LeadersPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name" style={{ color: '#767014' }}>Name</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                className="focus-visible:ring-[#767014]"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" style={{ color: '#767014' }}>Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -231,24 +268,26 @@ export default function LeadersPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 disabled={!!editingLeader} // Disable email edit for existing
+                className="focus-visible:ring-[#767014]"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="contact">Contact</Label>
+              <Label htmlFor="contact" style={{ color: '#767014' }}>Contact</Label>
               <Input
                 id="contact"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                className="focus-visible:ring-[#767014]"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role" style={{ color: '#767014' }}>Role</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value) => setFormData({ ...formData, role: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="focus:ring-[#767014]">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -258,12 +297,12 @@ export default function LeadersPage() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" style={{ color: '#767014' }}>Status</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData({ ...formData, status: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="focus:ring-[#767014]">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -274,11 +313,65 @@ export default function LeadersPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Save Changes</Button>
+              <Button 
+                type="submit"
+                style={{ backgroundColor: '#767014', color: '#ffffff' }}
+              >
+                Save Changes
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Success Dialog */}
+      <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)' }}>
+              <CheckCircle className="h-8 w-8" style={{ color: '#ffffff' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Success!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {successMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Ok
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.3)' }}>
+              <XCircle className="h-8 w-8" style={{ color: '#767014' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Oops! Something went wrong
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ backgroundColor: '#767014', color: '#ffffff' }}
+            >
+              Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

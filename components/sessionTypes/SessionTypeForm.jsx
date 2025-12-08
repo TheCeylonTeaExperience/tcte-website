@@ -147,11 +147,11 @@ export default function SessionTypeForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
             {isEditMode ? "Update Session Type" : "Create Session Type"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
               ? "Adjust the session type details to keep information up to date."
               : "Provide the session information and pricing to add a new type."}
@@ -160,20 +160,20 @@ export default function SessionTypeForm({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-destructive/15 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {error}
             </div>
           )}
 
           {success && !isEditMode && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+            <div className="border px-4 py-3 rounded-md" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>
               {success}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="sessionId">
-              Session <span className="text-destructive">*</span>
+            <Label htmlFor="sessionId" style={{ color: '#767014', fontWeight: 600 }}>
+              Session <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.sessionId}
@@ -197,8 +197,8 @@ export default function SessionTypeForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+            <Label htmlFor="name" style={{ color: '#767014', fontWeight: 600 }}>
+              Name <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Input
               id="name"
@@ -247,11 +247,12 @@ export default function SessionTypeForm({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="flex-1 border-2"
+              style={{ borderColor: '#C5BF81', color: '#000000', backgroundColor: '#ffffff' }}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
+            <Button type="submit" disabled={loading} className="flex-1" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}>
               {loading
                 ? isEditMode
                   ? "Updating..."
