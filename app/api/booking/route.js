@@ -7,7 +7,7 @@ import {
   lockSessions,
 } from "@/lib/availability";
 
-const PAYMENT_TYPES = new Set(["Full", "Installment"]);
+const PAYMENT_TYPES = new Set(["Full", "Partial"]);
 const PAYMENT_PROVIDERS = new Set(["MANUAL", "PAYHERE"]);
 const DEFAULT_CURRENCY = "LKR";
 const PAYHERE_DEFAULT_ACTION_URL =
@@ -38,6 +38,7 @@ export async function POST(request) {
     const {
       leaderId,
       bookedDate,
+      additionalNotes,
       selections,
       payment = {},
       customer = {},
@@ -45,6 +46,7 @@ export async function POST(request) {
 
     const {
       paymentType,
+      amount: partialAmount,
       provider: rawProvider,
       method,
       transactionId,
@@ -137,6 +139,17 @@ export async function POST(request) {
     }
 
     const totalAmount = pricing.reduce((sum, item) => sum + item.total, 0);
+    
+    let paidAmount = totalAmount;
+    if (paymentType === "Partial") {
+        paidAmount = typeof partialAmount === 'number' ? partialAmount : totalAmount;
+        // Ensure paid amount doesn't exceed total
+        if (paidAmount > totalAmount) paidAmount = totalAmount;
+        // Ensure paid amount is not negative
+        if (paidAmount < 0) paidAmount = 0;
+    }
+
+    const balance = totalAmount - paidAmount;
 
     const currency =
       typeof paymentCurrency === "string" && paymentCurrency.trim().length > 0
@@ -162,7 +175,7 @@ export async function POST(request) {
         data: {
           provider: paymentProvider,
           status: paymentProvider === "PAYHERE" ? "PENDING" : "SUCCESS",
-          amount: totalAmount,
+          amount: paidAmount,
           currency,
           method: paymentMethodName,
           orderId: resolvedOrderId,
@@ -177,11 +190,12 @@ export async function POST(request) {
         data: {
           leaderId,
           bookedDate: bookingDate,
-          paymentType,
+          paymentType: paymentType === "Partial" ? "Partial" : "Full",
           amount: totalAmount,
-          balance: paymentType === "Full" ? 0 : totalAmount,
+          balance: balance,
           paymentId: paymentRecord.id,
           status: "PENDING",
+          additionalNotes: additionalNotes,
         },
       });
 
@@ -210,7 +224,7 @@ export async function POST(request) {
 
     if (paymentProvider === "PAYHERE") {
       const payHereConfig = getPayHereConfig();
-      const amountFormatted = formatPayHereAmount(totalAmount);
+      const amountFormatted = formatPayHereAmount(paymentRecord.amount);
       const hashedSecret = md5Upper(payHereConfig.merchantSecret);
       const hash = md5Upper(
         `${payHereConfig.merchantId}${paymentRecord.orderId}${amountFormatted}${currency}${hashedSecret}`
