@@ -38,6 +38,7 @@ export async function POST(request) {
     const {
       leaderId,
       bookedDate,
+      additionalNotes,
       selections,
       payment = {},
       customer = {},
@@ -194,6 +195,7 @@ export async function POST(request) {
           balance: balance,
           paymentId: paymentRecord.id,
           status: "PENDING",
+          additionalNotes: additionalNotes,
         },
       });
 

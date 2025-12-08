@@ -298,18 +298,40 @@ function BookingCard({ booking, onUpdate }) {
         </div>
 
         {/* Footer: Payment */}
-        <div className="flex items-center justify-between pt-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <CreditCard className="h-4 w-4" />
-            <span>{booking.paymentType} Payment</span>
+        <div className="flex flex-col gap-2 pt-2 text-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <CreditCard className="h-4 w-4" />
+              <span>{booking.paymentType} Payment</span>
+            </div>
+            <div className="font-bold text-lg">
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "LKR",
+              }).format(booking.amount - booking.balance)}
+            </div>
           </div>
-          <div className="font-bold text-lg">
-            {new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "LKR",
-            }).format(booking.amount)}
-          </div>
+          
+          {booking.paymentType === "Partial" && (
+            <div className="flex items-center justify-between bg-secondary/20 p-2 rounded text-xs">
+              <div className="flex gap-4">
+                <span className="text-muted-foreground">
+                  Total Amount: <span className="font-medium text-foreground">{new Intl.NumberFormat("en-US", { style: "currency", currency: "LKR" }).format(booking.amount)}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Balance: <span className="font-bold text-red-600">{new Intl.NumberFormat("en-US", { style: "currency", currency: "LKR" }).format(booking.balance)}</span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
+
+        {booking.additionalNotes && (
+          <div className="mt-2 pt-2 border-t">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">Additional Notes:</p>
+            <p className="text-sm bg-muted/30 p-2 rounded-md whitespace-pre-wrap">{booking.additionalNotes}</p>
+          </div>
+        )}
       </div>
     </Card>
   );

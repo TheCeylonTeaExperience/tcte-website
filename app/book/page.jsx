@@ -1436,6 +1436,7 @@ export default function BookNow() {
       const payload = {
         leaderId,
         bookedDate: bookingDateString,
+        additionalNotes: formData.notes,
         selections: bookingSelections,
         payment: {
           paymentType: formData.payment,
@@ -2212,28 +2213,29 @@ export default function BookNow() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="Full">Full Payment ({formatPrice(totalCost)})</SelectItem>
-                                  <SelectItem value="Partial">Partial Payment</SelectItem>
+                                  <SelectItem value="Partial">Partial Payment (Total: {formatPrice(totalCost)})</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
                             {formData.payment === "Partial" && (
                               <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
-                                <div className="flex justify-between text-sm mb-2">
-                                  <span>Total Amount:</span>
-                                  <span className="font-bold">{formatPrice(totalCost)}</span>
-                                </div>
                                 <Label htmlFor="partialAmount">Enter Payment Amount (LKR)</Label>
-                                <Input
-                                  id="partialAmount"
-                                  type="number"
-                                  min="0"
-                                  max={totalCost}
-                                  value={formData.partialAmount}
-                                  onChange={handlePartialAmountChange}
-                                  placeholder="Enter amount to pay now"
-                                  className="border-primary/30"
-                                />
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    id="partialAmount"
+                                    type="number"
+                                    min="0"
+                                    max={totalCost}
+                                    value={formData.partialAmount}
+                                    onChange={handlePartialAmountChange}
+                                    placeholder="Enter amount to pay now"
+                                    className="border-primary/30"
+                                  />
+                                  <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+                                    of {formatPrice(totalCost)}
+                                  </span>
+                                </div>
                                 <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
                                   <span>Remaining Balance:</span>
                                   <span className="font-bold text-primary">
