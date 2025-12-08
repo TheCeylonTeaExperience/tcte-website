@@ -224,7 +224,7 @@ export default function Home() {
                 Why Choose Us
               </h2>
               <p className="max-w-3xl mx-auto" style={{ color: '#1e1e0bff' }}>
-                Discover Sri Lanka's Tea Story - in the Heart of Galle
+                Discover Sri Lanka&apos;s Tea Story - in the Heart of Galle
               </p>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 The Ceylon Tea Experience (TCTE) brings the magic of the tea highlands to the Southern Coast.

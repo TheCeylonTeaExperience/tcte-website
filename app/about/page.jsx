@@ -139,7 +139,7 @@ export default function About() {
                     <div className="h-1 w-20 mx-auto mb-6 rounded-full" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)' }}></div>
                     
                     <p className="text-base sm:text-lg leading-relaxed text-center" style={{ color: '#000000', opacity: 0.85 }}>
-                      To become Sri Lanka's most iconic tea experience brand - connecting global travelers to the story, soul, and flavours of Ceylon Tea.
+                      To become Sri Lanka&apos;s most iconic tea experience brand - connecting global travelers to the story, soul, and flavours of Ceylon Tea.
                     </p>
                   </div>
                 </div>
@@ -217,12 +217,12 @@ export default function About() {
               <div className="max-w-3xl mx-auto rounded-2xl p-8 shadow-xl" style={{ backgroundColor: 'rgba(255,255,255,0.95)' }}>
                 <p className="text-lg sm:text-xl mb-6" style={{ color: '#000000', opacity: 0.8 }}>
                   A team of tea experts, storytellers, artisans, and hospitality professionals dedicated to 
-                  preserving and celebrating Sri Lanka's tea legacy.
+                  preserving and celebrating Sri Lanka&apos;s tea legacy.
                 </p>
                 <div className="pt-6 border-t-2" style={{ borderColor: '#C5BF81' }}>
                   <p className="text-lg" style={{ color: '#767014' }}>The brand operates on one philosophy:</p>
                   <p className="text-xl sm:text-2xl font-bold mt-2" style={{ color: '#000000' }}>
-                    "Don't just drink Ceylon Tea — experience it."
+                    &quot;Don&apos;t just drink Ceylon Tea — experience it.&quot;
                   </p>
                 </div>
               </div>
