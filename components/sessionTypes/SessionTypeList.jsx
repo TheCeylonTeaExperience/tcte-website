@@ -46,7 +46,7 @@ import {
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
-  currency: "USD",
+  currency: "LKR",
   minimumFractionDigits: 2,
 });
 
@@ -379,9 +379,22 @@ export default function SessionTypeList() {
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#767014' }}>
                         <DollarSign className="h-5 w-5" style={{ color: '#ffffff' }} />
                       </div>
-                      <span className="text-sm font-medium" style={{ color: '#000000' }}>
-                        {currencyFormatter.format(sessionType.price ?? 0)}
-                      </span>
+                      <div className="flex flex-col">
+                        {sessionType.specialPrice ? (
+                          <>
+                            <span className="text-xs text-muted-foreground line-through">
+                              {currencyFormatter.format(sessionType.price ?? 0)}
+                            </span>
+                            <span className="text-sm font-bold text-red-600">
+                              {currencyFormatter.format(sessionType.specialPrice)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-medium text-green-900">
+                            {currencyFormatter.format(sessionType.price ?? 0)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {sessionType.session?.program?.location?.name && (

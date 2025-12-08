@@ -27,6 +27,7 @@ const DEFAULT_FORM_STATE = {
   startTime: "",
   endTime: "",
   price: "",
+  specialPrice: "",
 };
 
 function formatTimeForInput(value) {
@@ -87,6 +88,10 @@ export default function SessionForm({
         price:
           initialData.price !== undefined && initialData.price !== null
             ? String(initialData.price)
+            : "",
+        specialPrice:
+          initialData.specialPrice !== undefined && initialData.specialPrice !== null
+            ? String(initialData.specialPrice)
             : "",
       });
     } else {
@@ -257,18 +262,33 @@ export default function SessionForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="price" style={{ color: '#767014', fontWeight: 600 }}>Price</Label>
-            <Input
-              id="price"
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              placeholder="Optional"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="specialPrice">Special Price</Label>
+              <Input
+                id="specialPrice"
+                type="number"
+                name="specialPrice"
+                value={formData.specialPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                placeholder="Optional"
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

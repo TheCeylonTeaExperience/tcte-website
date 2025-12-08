@@ -60,7 +60,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { sessionId, name, price } = body;
+    const { sessionId, name, price, specialPrice } = body;
 
     // Validation
     if (!sessionId || !name || price === undefined) {
@@ -92,6 +92,7 @@ export async function POST(request) {
         sessionId: parseInt(sessionId),
         name,
         price: parseFloat(price),
+        specialPrice: specialPrice ? parseFloat(specialPrice) : null,
       },
       include: {
         session: {

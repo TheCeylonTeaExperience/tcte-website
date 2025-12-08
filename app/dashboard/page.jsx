@@ -118,22 +118,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header Section */}
-      <div 
-        className="rounded-2xl p-8 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #767014 0%, #C5BF81 50%, #767014 100%)' }}
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
-        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #ffffff, transparent)' }} />
-        
-        <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight" style={{ color: '#ffffff' }}>
-              Dashboard
-            </h1>
-            <p className="mt-2 text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
-              Welcome back, <span className="font-semibold">{user?.name || user?.email}</span>! Here's what's happening today.
-            </p>
-          </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, {user?.name || user?.email}! Here&apos;s what&apos;s happening today.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={handleLogout}
