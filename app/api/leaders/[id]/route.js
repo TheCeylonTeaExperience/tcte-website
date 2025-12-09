@@ -57,6 +57,31 @@ export async function PUT(request, { params }) {
   }
 }
 
+export async function DELETE(request, { params }) {
+  try {
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
+
+    const existingLeader = await prisma.leader.findUnique({
+      where: { id },
+    });
+
+    if (!existingLeader) {
+      return NextResponse.json({ error: "Leader not found" }, { status: 404 });
+    }
+
+    await prisma.leader.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    return NextResponse.json({ message: "Leader deleted successfully" });
+  } catch (error) {
+    console.error("Delete leader error", error);
+    return NextResponse.json({ error: "Failed to delete leader" }, { status: 500 });
+  }
+}
+
 function generatePromoCode(name) {
     const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
     const random = Math.floor(1000 + Math.random() * 9000);
