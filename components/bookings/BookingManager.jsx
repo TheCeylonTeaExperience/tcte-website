@@ -12,12 +12,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchWithAuth } from "@/lib/apiClient";
-import { Calendar as CalendarIcon, AlertTriangle, RefreshCw, XCircle, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, AlertTriangle, RefreshCw, XCircle, CheckCircle2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BookingManager({ booking, onUpdate }) {
@@ -25,6 +35,12 @@ export default function BookingManager({ booking, onUpdate }) {
   const [mode, setMode] = useState("menu"); // menu, reschedule, cancel
   const [loading, setLoading] = useState(false);
   
+  // Alert Dialog State
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   // Reschedule State
   const [newDate, setNewDate] = useState(null);
   
@@ -47,14 +63,17 @@ export default function BookingManager({ booking, onUpdate }) {
       
       if (res.ok) {
         setOpen(false);
-        if (onUpdate) onUpdate();
+        setSuccessMessage("Booking rescheduled successfully!");
+        setSuccessDialogOpen(true);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to reschedule");
+        setErrorMessage(data.error || "Failed to reschedule");
+        setErrorDialogOpen(true);
       }
     } catch (error) {
       console.error(error);
-      alert("An error occurred");
+      setErrorMessage("An error occurred");
+      setErrorDialogOpen(true);
     } finally {
       setLoading(false);
     }
@@ -74,14 +93,17 @@ export default function BookingManager({ booking, onUpdate }) {
       
       if (res.ok) {
         setOpen(false);
-        if (onUpdate) onUpdate();
+        setSuccessMessage("Booking cancelled successfully!");
+        setSuccessDialogOpen(true);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to cancel");
+        setErrorMessage(data.error || "Failed to cancel");
+        setErrorDialogOpen(true);
       }
     } catch (error) {
       console.error(error);
-      alert("An error occurred");
+      setErrorMessage("An error occurred");
+      setErrorDialogOpen(true);
     } finally {
       setLoading(false);
     }
@@ -95,6 +117,7 @@ export default function BookingManager({ booking, onUpdate }) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetState(); }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">Manage</Button>
@@ -208,5 +231,58 @@ export default function BookingManager({ booking, onUpdate }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+      <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+        <AlertDialogHeader>
+          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)' }}>
+            <CheckCircle className="h-8 w-8" style={{ color: '#ffffff' }} />
+          </div>
+          <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+            Success!
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+            {successMessage}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="sm:justify-center">
+          <AlertDialogAction
+            onClick={() => {
+              setSuccessDialogOpen(false);
+              if (onUpdate) onUpdate();
+            }}
+            style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Ok
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+      <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+        <AlertDialogHeader>
+          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.3)' }}>
+            <XCircle className="h-8 w-8" style={{ color: '#767014' }} />
+          </div>
+          <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+            Oops! Something went wrong
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+            {errorMessage}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="sm:justify-center">
+          <AlertDialogAction
+            onClick={() => setErrorDialogOpen(false)}
+            style={{ backgroundColor: '#767014', color: '#ffffff' }}
+          >
+            Try Again
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
