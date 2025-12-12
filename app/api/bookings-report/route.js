@@ -57,3 +57,117 @@ export async function GET(request) {
     );
   }
 }
+
+export async function POST(request) {
+  try {
+    const body = await request.json();
+    const { order_id, status } = body;
+
+    if (!order_id) {
+      return NextResponse.json(
+        { success: false, error: "order_id is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the payment by order_id
+    const payment = await prisma.payment.findUnique({
+      where: { orderId: order_id },
+    });
+
+    if (!payment) {
+      return NextResponse.json(
+        { success: false, error: "Payment not found for the given order_id" },
+        { status: 404 }
+      );
+    }
+
+    // Find the booking associated with this payment
+    const booking = await prisma.booking.findFirst({
+      where: { paymentId: payment.id, deletedAt: null },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: "Booking not found for this payment" },
+        { status: 404 }
+      );
+    }
+
+    // Check if payment is successful
+    if (status !== "TRUE") {
+      return NextResponse.json({
+        success: false,
+        error: "Payment status is not successful",
+        status: status,
+      });
+    }
+
+    // Store the current balance before updating
+    const previousBalance = booking.balance;
+
+    if (previousBalance <= 0) {
+      return NextResponse.json({
+        success: false,
+        error: "No balance to settle. Booking already fully paid.",
+      });
+    }
+
+    // Generate a new order_id for the POS payment
+    const posOrderId = `POS-${order_id}-${Date.now().toString(36).toUpperCase()}`;
+
+    // Transaction: Update booking and create POS payment
+    const result = await prisma.$transaction(async (tx) => {
+      // Update booking: set paymentType to Full and balance to 0
+      const updatedBooking = await tx.booking.update({
+        where: { id: booking.id },
+        data: {
+          paymentType: "Full",
+          balance: 0,
+        },
+      });
+
+      // Create a new payment record for the balance amount (POS payment)
+      const posPayment = await tx.payment.create({
+        data: {
+          provider: "MANUAL",
+          status: "SUCCESS",
+          amount: previousBalance,
+          currency: payment.currency || "LKR",
+          method: "POS Payment",
+          orderId: posOrderId,
+          transactionId: `POS-TXN-${Date.now()}`,
+        },
+      });
+
+      return { updatedBooking, posPayment };
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Payment completed successfully. Booking is now fully paid.",
+      booking: {
+        id: result.updatedBooking.id,
+        paymentType: result.updatedBooking.paymentType,
+        amount: result.updatedBooking.amount,
+        balance: result.updatedBooking.balance,
+        previousBalance: previousBalance,
+      },
+      posPayment: {
+        id: result.posPayment.id,
+        order_id: result.posPayment.orderId,
+        amount: result.posPayment.amount,
+        currency: result.posPayment.currency,
+        method: result.posPayment.method,
+        status: result.posPayment.status,
+        createdAt: result.posPayment.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to process payment" },
+      { status: 500 }
+    );
+  }
+}
