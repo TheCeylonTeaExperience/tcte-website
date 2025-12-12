@@ -20,8 +20,7 @@ export default function Footer() {
             <h3 className="text-2xl font-serif font-bold">THE CEYLON TEA EXPERIENCE</h3>
         
             <p className="text-sm opacity-90">
-              Discover the art of Ceylon tea experience. Experience the authentic journey from tea leaf to cup in our
-              scenic tea estates.
+              DISCOVER THE ART OF CEYLON TEA
             </p>
           </div>
 
@@ -32,14 +31,6 @@ export default function Footer() {
               <li>
                 <Link href="/" className="text-sm opacity-90 hover:opacity-100">
                   Home
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/gallery"
-                  className="text-sm opacity-90 hover:opacity-100"
-                >
-                  Gallery
                 </Link>
               </li>
               <li>
@@ -58,6 +49,14 @@ export default function Footer() {
                   Services
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/gallery"
+                  className="text-sm opacity-90 hover:opacity-100"
+                >
+                  Gallery
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -65,18 +64,35 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Contact</h4>
             <ul className="space-y-2 text-sm opacity-90">
-              <li>Tea Estate Road, Hill Country</li>
+              {/* <li>Tea Estate Road, Hill Country</li> */}
               <li>
+                
                 <a href="tel:+1234567890" className="hover:opacity-100">
-                  +1 (234) 567-890
+                  (+94) XXX XXX XXXX
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:info@ceylontea.com"
+                  href="mailto:info@ceylonteaexperience.com"
                   className="hover:opacity-100"
                 >
-                  info@ceylontea.com
+                  info@ceylonteaexperience.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="mailto:bookings@ceylonteaexperience.com"
+                  className="hover:opacity-100"
+                >
+                  bookings@ceylonteaexperience.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.ceylonteaexperience.com"
+                  className="hover:opacity-100"
+                >
+                  www.ceylonteaexperience.com
                 </a>
               </li>
             </ul>

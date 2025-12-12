@@ -36,11 +36,12 @@ export default function BookingManager({ booking, onUpdate }) {
     if (!newDate) return;
     setLoading(true);
     try {
+      const newDateString = format(newDate, "yyyy-MM-dd");
       const res = await fetchWithAuth(`/api/bookings/${booking.id}/manage`, {
         method: "POST",
         body: JSON.stringify({
           action: "reschedule",
-          newDate: newDate,
+          newDate: newDateString,
           reason: "User requested reschedule"
         })
       });

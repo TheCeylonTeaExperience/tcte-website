@@ -19,7 +19,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MapPin, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { MapPin, Pencil, Trash2, Plus, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
 export default function LocationList() {
   const [locations, setLocations] = useState([]);
@@ -28,6 +38,14 @@ export default function LocationList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(null);
+  
+  // Alert Dialog States
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [locationToDelete, setLocationToDelete] = useState(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     fetchLocations();
@@ -53,34 +71,53 @@ export default function LocationList() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Are you sure you want to delete this location?")) return;
+    const location = locations.find((loc) => loc.id === id);
+    setLocationToDelete(location);
+    setDeleteDialogOpen(true);
+  }
 
-    setDeleteLoading(id);
+  async function confirmDelete() {
+    if (!locationToDelete) return;
+    
+    setDeleteLoading(locationToDelete.id);
+    setDeleteDialogOpen(false);
+    
     try {
-      const response = await fetchWithAuth(`/api/locations/${id}`, {
+      const response = await fetchWithAuth(`/api/locations/${locationToDelete.id}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        setLocations(locations.filter((loc) => loc.id !== id));
+        setLocations(locations.filter((loc) => loc.id !== locationToDelete.id));
+        setSuccessMessage("Location deleted successfully!");
+        setSuccessDialogOpen(true);
       } else {
         const data = await response.json();
-        alert(data.error || "Failed to delete location");
+        setErrorMessage(data.error || "Failed to delete location");
+        setErrorDialogOpen(true);
       }
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete location");
+      setErrorMessage("Failed to delete location. Please try again.");
+      setErrorDialogOpen(true);
     } finally {
       setDeleteLoading(null);
+      setLocationToDelete(null);
     }
+  }
+
+  function handleLocationSaved() {
+    fetchLocations();
+    setSuccessMessage(editingLocation ? "Location updated successfully!" : "Location created successfully!");
+    setSuccessDialogOpen(true);
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Locations</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#767014' }}>Locations</h2>
+          <p style={{ color: '#000000', opacity: 0.7 }}>
             Manage your physical locations and venues.
           </p>
         </div>
@@ -89,36 +126,37 @@ export default function LocationList() {
             setEditingLocation(null);
             setFormOpen(true);
           }}
+          style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Location
         </Button>
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-4 rounded-md">{error}</div>
+        <div className="p-4 rounded-md border" style={{ backgroundColor: '#C5BF81', borderColor: '#767014', color: '#000000' }}>{error}</div>
       )}
 
-      <Card>
+      <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle>All Locations</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#767014' }}>All Locations</CardTitle>
+          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
             A list of all active locations in the system.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">Loading locations...</div>
+            <div className="text-center py-4" style={{ color: '#000000', opacity: 0.7 }}>Loading locations...</div>
           ) : locations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8" style={{ color: '#000000', opacity: 0.7 }}>
               No locations found. Create one to get started.
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Name</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Address</TableHead>
+                  <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -126,11 +164,11 @@ export default function LocationList() {
                   <TableRow key={location.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        {location.name}
+                        <MapPin className="h-4 w-4" style={{ color: '#767014' }} />
+                        <span style={{ color: '#000000' }}>{location.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{location.address || "—"}</TableCell>
+                    <TableCell style={{ color: '#000000', opacity: 0.7 }}>{location.address || "—"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -140,15 +178,16 @@ export default function LocationList() {
                             setEditingLocation(location);
                             setFormOpen(true);
                           }}
+                          style={{ color: '#767014' }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
                           onClick={() => handleDelete(location.id)}
                           disabled={deleteLoading === location.id}
+                          style={{ color: '#000000' }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -166,8 +205,94 @@ export default function LocationList() {
         open={formOpen}
         onOpenChange={setFormOpen}
         initialData={editingLocation}
-        onSuccess={fetchLocations}
+        onSuccess={handleLocationSaved}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.2)' }}>
+              <AlertTriangle className="h-8 w-8" style={{ color: '#767014' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Delete Location?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center" style={{ color: '#000000', opacity: 0.7 }}>
+              Are you want to sure delete this location?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-3">
+            <AlertDialogCancel 
+              className="border-2"
+              style={{ borderColor: '#C5BF81', color: '#767014' }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="border-0"
+              style={{ backgroundColor: '#767014', color: '#ffffff' }}
+            >
+              {deleteLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Success Dialog */}
+      <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)' }}>
+              <CheckCircle className="h-8 w-8" style={{ color: '#ffffff' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Success!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {successMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Ok
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.3)' }}>
+              <XCircle className="h-8 w-8" style={{ color: '#767014' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Oops! Something went wrong
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              style={{ backgroundColor: '#767014', color: '#ffffff' }}
+            >
+              Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

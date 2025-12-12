@@ -38,6 +38,16 @@ const statusVariantMap = {
   "No Sessions": "outline",
 };
 
+const getStatusStyle = (status) => {
+  if (status === "Active") {
+    return { background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff', border: 'none' };
+  }
+  if (status === "At Risk") {
+    return { backgroundColor: '#000000', color: '#ffffff', border: 'none' };
+  }
+  return { backgroundColor: '#C5BF81', color: '#000000', border: `1px solid #767014` };
+};
+
 export default function CustomersPage() {
   useDashboard();
 
@@ -126,17 +136,17 @@ export default function CustomersPage() {
     <div className="max-w-6xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Customer Relationships</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold" style={{ color: '#767014' }}>Customer Relationships</h1>
+          <p className="mt-1" style={{ color: '#000000', opacity: 0.7 }}>
             Monitor how your leaders are paired with active customers.
           </p>
         </div>
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle>Leader to Customer Overview</CardTitle>
-          <CardDescription>
+          <CardTitle style={{ color: '#767014' }}>Leader to Customer Overview</CardTitle>
+          <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
             Snapshot of leadership assignments, engagement, and recent activity.
           </CardDescription>
         </CardHeader>
@@ -145,17 +155,17 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Leader</TableHead>
-                  <TableHead className="hidden md:table-cell">Title</TableHead>
-                  <TableHead className="hidden lg:table-cell text-center">
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Leader</TableHead>
+                  <TableHead className="hidden md:table-cell" style={{ color: '#767014', fontWeight: 600 }}>Title</TableHead>
+                  <TableHead className="hidden lg:table-cell text-center" style={{ color: '#767014', fontWeight: 600 }}>
                     Customers
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell text-center">
+                  <TableHead className="hidden lg:table-cell text-center" style={{ color: '#767014', fontWeight: 600 }}>
                     Sessions
                   </TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Last Session</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell" style={{ color: '#767014', fontWeight: 600 }}>Last Session</TableHead>
+                  <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,7 +173,7 @@ export default function CustomersPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="p-8">
                       <div className="flex justify-center">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>
                           Loading assignments...
                         </span>
                       </div>
@@ -175,7 +185,7 @@ export default function CustomersPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="p-8">
                       <div className="flex justify-center">
-                        <span className="text-sm text-destructive">
+                        <span className="text-sm" style={{ color: '#000000' }}>
                           {error}
                         </span>
                       </div>
@@ -187,7 +197,7 @@ export default function CustomersPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="p-8">
                       <div className="flex justify-center">
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>
                           No customer assignments yet.
                         </span>
                       </div>
@@ -200,13 +210,13 @@ export default function CustomersPage() {
                     <TableRow key={leader.leaderId}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{leader.leaderName}</span>
-                          <span className="text-xs text-muted-foreground md:hidden">
+                          <span className="font-medium" style={{ color: '#000000' }}>{leader.leaderName}</span>
+                          <span className="text-xs md:hidden" style={{ color: '#000000', opacity: 0.6 }}>
                             {leader.leaderRole ?? "Leader"}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                      <TableCell className="hidden md:table-cell" style={{ color: '#000000', opacity: 0.7 }}>
                         {leader.leaderRole ?? "Leader"}
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-center">
@@ -218,11 +228,12 @@ export default function CustomersPage() {
                       <TableCell>
                         <Badge
                           variant={statusVariantMap[leader.status] ?? "secondary"}
+                          style={getStatusStyle(leader.status)}
                         >
                           {leader.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground">
+                      <TableCell className="hidden lg:table-cell" style={{ color: '#000000', opacity: 0.7 }}>
                         {formatLastSession(leader.latestSessionDate)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -230,6 +241,7 @@ export default function CustomersPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewCustomers(leader)}
+                          style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}
                         >
                           View
                         </Button>
@@ -245,10 +257,10 @@ export default function CustomersPage() {
       <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle style={{ color: '#767014' }}>
               {activeLeader ? activeLeader.leaderName : "Leader customers"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
               {activeLeader
                 ? `${activeLeader.totalCustomers} customers assigned to this leader.`
                 : "Customers assigned to this leader."}
@@ -261,32 +273,34 @@ export default function CustomersPage() {
                 activeLeader.customers.map((customer) => (
                   <div
                     key={customer.customerId}
-                    className="rounded-lg border bg-card p-4 shadow-sm"
+                    className="rounded-lg border p-4 shadow-sm"
+                    style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
                   >
                     <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="font-medium">{customer.customerName}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-medium" style={{ color: '#000000' }}>{customer.customerName}</p>
+                        <p className="text-xs" style={{ color: '#000000', opacity: 0.6 }}>
                           {customer.customerEmail}
                         </p>
                       </div>
                       <Badge
                         variant={statusVariantMap[customer.status] ?? "secondary"}
+                        style={getStatusStyle(customer.status)}
                       >
                         {customer.status}
                       </Badge>
                     </div>
-                    <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+                    <div className="mt-3 grid gap-2 text-sm md:grid-cols-3" style={{ color: '#000000', opacity: 0.7 }}>
                       <span>
-                        <strong className="text-foreground">Sessions:</strong>{" "}
+                        <strong style={{ color: '#767014' }}>Sessions:</strong>{" "}
                         {customer.sessionsCount ?? 0}
                       </span>
                       <span>
-                        <strong className="text-foreground">Program:</strong>{" "}
+                        <strong style={{ color: '#767014' }}>Program:</strong>{" "}
                         {customer.programTitle ?? "–"}
                       </span>
                       <span>
-                        <strong className="text-foreground">Last Session:</strong>{" "}
+                        <strong style={{ color: '#767014' }}>Last Session:</strong>{" "}
                         {formatLastSession(customer.lastSessionDate)}
                       </span>
                     </div>
@@ -294,7 +308,7 @@ export default function CustomersPage() {
                 ))
               ) : (
                 <div className="flex justify-center py-8">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>
                     No customers assigned yet.
                   </span>
                 </div>
@@ -303,7 +317,7 @@ export default function CustomersPage() {
           </ScrollArea>
 
           <div className="flex justify-end">
-            <Button variant="outline" onClick={() => handleDialogChange(false)}>
+            <Button variant="outline" onClick={() => handleDialogChange(false)} style={{ borderColor: '#C5BF81', color: '#000000', backgroundColor: '#ffffff' }}>
               Close
             </Button>
           </div>
