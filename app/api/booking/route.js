@@ -23,6 +23,37 @@ class HttpError extends Error {
   }
 }
 
+class ConcurrencyError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ConcurrencyError";
+    this.retryable = true;
+  }
+}
+
+const MAX_RETRY_ATTEMPTS = 3;
+const INITIAL_RETRY_DELAY_MS = 100;
+
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableError(error) {
+  const message = error?.message?.toLowerCase() || "";
+  const code = error?.code || "";
+  
+  // Deadlock detected
+  if (message.includes("deadlock") || code === "40001") return true;
+  // Lock wait timeout
+  if (message.includes("lock wait timeout") || code === "HY000") return true;
+  // Serialization failure
+  if (message.includes("could not serialize") || code === "40001") return true;
+  // Concurrency error thrown by our code
+  if (error instanceof ConcurrencyError) return true;
+  
+  return false;
+}
+
 export async function POST(request) {
   try {
     const payload = await request.json();
@@ -168,53 +199,87 @@ export async function POST(request) {
 
     const customerDetails = buildCustomerDetails(customer, leader);
 
-    const transactionResult = await prisma.$transaction(async (tx) => {
-      await validateAvailability(tx, bookingRange, selections, sessionMap);
+    // Retry logic for handling concurrent booking conflicts
+    let transactionResult;
+    let lastError;
+    
+    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        transactionResult = await prisma.$transaction(
+          async (tx) => {
+            await validateAvailability(tx, bookingRange, selections, sessionMap);
 
-      const paymentRecord = await tx.payment.create({
-        data: {
-          provider: paymentProvider,
-          status: paymentProvider === "PAYHERE" ? "PENDING" : "SUCCESS",
-          amount: paidAmount,
-          currency,
-          method: paymentMethodName,
-          orderId: resolvedOrderId,
-          transactionId:
-            paymentProvider === "MANUAL" && transactionId
-              ? transactionId
-              : null,
-        },
-      });
+            const paymentRecord = await tx.payment.create({
+              data: {
+                provider: paymentProvider,
+                status: paymentProvider === "PAYHERE" ? "PENDING" : "SUCCESS",
+                amount: paidAmount,
+                currency,
+                method: paymentMethodName,
+                orderId: resolvedOrderId,
+                transactionId:
+                  paymentProvider === "MANUAL" && transactionId
+                    ? transactionId
+                    : null,
+              },
+            });
 
-      const bookingRecord = await tx.booking.create({
-        data: {
-          leaderId,
-          bookedDate: bookingDate,
-          paymentType: paymentType === "Partial" ? "Partial" : "Full",
-          amount: totalAmount,
-          balance: balance,
-          paymentId: paymentRecord.id,
-          status: "PENDING",
-          additionalNotes: additionalNotes,
-        },
-      });
+            const bookingRecord = await tx.booking.create({
+              data: {
+                leaderId,
+                bookedDate: bookingDate,
+                paymentType: paymentType === "Partial" ? "Partial" : "Full",
+                amount: totalAmount,
+                balance: balance,
+                paymentId: paymentRecord.id,
+                status: "PENDING",
+                additionalNotes: additionalNotes,
+              },
+            });
 
-      const selectionCustomerIds = await createCustomerRecords(
-        tx,
-        leaderId,
-        selections
-      );
+            const selectionCustomerIds = await createCustomerRecords(
+              tx,
+              leaderId,
+              selections
+            );
 
-      await createBookingItems(
-        tx,
-        bookingRecord.id,
-        bookingDate,
-        selections,
-        selectionCustomerIds
-      );
+            await createBookingItems(
+              tx,
+              bookingRecord.id,
+              bookingDate,
+              selections,
+              selectionCustomerIds
+            );
 
-      return { bookingRecord, paymentRecord };
-    });
+            return { bookingRecord, paymentRecord };
+          },
+          {
+            isolationLevel: "Serializable", // Strongest isolation to prevent race conditions
+            timeout: 15000, // 15 second timeout
+          }
+        );
+        
+        // Success - break out of retry loop
+        break;
+      } catch (error) {
+        lastError = error;
+        
+        if (isRetryableError(error) && attempt < MAX_RETRY_ATTEMPTS) {
+          // Exponential backoff: 100ms, 200ms, 400ms...
+          const delayMs = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+          console.log(`Booking attempt ${attempt} failed due to concurrency, retrying in ${delayMs}ms...`);
+          await sleep(delayMs);
+          continue;
+        }
+        
+        // Non-retryable error or max attempts reached
+        throw error;
+      }
+    }
+    
+    if (!transactionResult) {
+      throw lastError || new Error("Booking transaction failed after all retry attempts");
+    }
 
     const { bookingRecord, paymentRecord } = transactionResult;
 
@@ -281,6 +346,19 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Booking creation failed", error);
+    
+    // Handle specific concurrency-related errors with user-friendly messages
+    if (isRetryableError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This session is experiencing high demand. Please try again in a moment.",
+          code: "CONCURRENCY_ERROR",
+        },
+        { status: 409 }
+      );
+    }
+    
     const status = error instanceof HttpError ? error.status : 500;
     const message =
       error?.message || "An unexpected error occurred while creating the booking";
@@ -430,8 +508,9 @@ async function validateAvailability(tx, bookingRange, selections, sessionMap) {
     }
 
     if (availability.available < totalSeatsRequested) {
+      const sessionInfo = sessionMap.get(sessionId);
       throw new HttpError(
-        `Not enough seats available for session ${sessionId}`,
+        `Sorry, only ${availability.available} seat(s) remaining for this session. You requested ${totalSeatsRequested}. Please reduce the number of seats or choose a different session.`,
         409
       );
     }
