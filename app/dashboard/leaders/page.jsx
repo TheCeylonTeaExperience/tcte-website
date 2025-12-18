@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import { useDashboard } from "../layout";
-import { Loader2, Plus, Pencil, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Plus, Pencil, CheckCircle, XCircle, Trash2, AlertTriangle, Eye } from "lucide-react";
 
 export default function LeadersPage() {
   useDashboard();
@@ -58,6 +58,10 @@ export default function LeadersPage() {
   const [error, setError] = React.useState(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingLeader, setEditingLeader] = React.useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = React.useState(false);
+  const [viewingLeader, setViewingLeader] = React.useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [leaderToDelete, setLeaderToDelete] = React.useState(null);
   const [successDialogOpen, setSuccessDialogOpen] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState("");
   const [errorDialogOpen, setErrorDialogOpen] = React.useState(false);
@@ -115,6 +119,41 @@ export default function LeadersPage() {
       status: "ACTIVE",
     });
     setIsDialogOpen(true);
+  };
+
+  const handleView = (leader) => {
+    setViewingLeader(leader);
+    setViewDialogOpen(true);
+  };
+
+  const handleDelete = (leader) => {
+    setLeaderToDelete(leader);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!leaderToDelete) return;
+    
+    try {
+      const response = await fetchWithAuth(`/api/leaders/${leaderToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete leader");
+      }
+
+      setSuccessMessage("Leader deleted successfully.");
+      setSuccessDialogOpen(true);
+      setDeleteDialogOpen(false);
+      loadLeaders();
+    } catch (err) {
+      console.error("Delete error:", err);
+      setErrorMessage(err.message);
+      setErrorDialogOpen(true);
+      setDeleteDialogOpen(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -220,14 +259,32 @@ export default function LeadersPage() {
                       </TableCell>
                       <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.promoteCode || "-"}</TableCell>
                       <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleEdit(leader)}
-                          style={{ color: '#767014' }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleView(leader)}
+                            style={{ color: '#767014' }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleEdit(leader)}
+                            style={{ color: '#767014' }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDelete(leader)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -276,7 +333,12 @@ export default function LeadersPage() {
               <Input
                 id="contact"
                 value={formData.contact}
-                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^[0-9+\-\s()]*$/.test(value)) {
+                    setFormData({ ...formData, contact: value });
+                  }
+                }}
                 className="focus-visible:ring-[#767014]"
               />
             </div>
@@ -323,6 +385,104 @@ export default function LeadersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <DialogHeader>
+            <DialogTitle style={{ color: '#767014' }}>Leader Details</DialogTitle>
+            <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
+              View full details for this leader.
+            </DialogDescription>
+          </DialogHeader>
+          {viewingLeader && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Name</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.name}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Email</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.email}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Contact</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.contact || "-"}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Role</Label>
+                <div className="col-span-3">
+                  <Badge 
+                    className="border-0"
+                    style={{ 
+                      backgroundColor: viewingLeader.role === "LEADER" ? '#767014' : '#C5BF81', 
+                      color: viewingLeader.role === "LEADER" ? '#ffffff' : '#000000' 
+                    }}
+                  >
+                    {viewingLeader.role}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Status</Label>
+                <div className="col-span-3">
+                  <Badge 
+                    variant="outline" 
+                    style={{ 
+                      borderColor: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014', 
+                      color: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014' 
+                    }}
+                  >
+                    {viewingLeader.status || "ACTIVE"}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Promo Code</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.promoteCode || "-"}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setViewDialogOpen(false)} style={{ backgroundColor: '#767014', color: '#ffffff' }}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
+          <AlertDialogHeader>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(197, 191, 129, 0.2)' }}>
+              <AlertTriangle className="h-8 w-8" style={{ color: '#767014' }} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
+              Delete Leader?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
+              Are you sure you want to delete {leaderToDelete?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-3">
+            <AlertDialogCancel 
+              className="border-2"
+              style={{ borderColor: '#C5BF81', color: '#767014' }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="border-0"
+              style={{ backgroundColor: '#767014', color: '#ffffff' }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Success Dialog */}
       <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
