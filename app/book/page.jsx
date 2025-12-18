@@ -1821,7 +1821,7 @@ export default function BookNow() {
                                         onCheckedChange={(checked) =>
                                           handleGlobalSeatToggle(checked)
                                         }
-                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                        className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                       />
                                       <label
                                         htmlFor="use-global-seats"
@@ -1898,6 +1898,7 @@ export default function BookNow() {
                                                 handleSeasonToggle(season.id)
                                               }
                                               aria-label={`Select ${season.id}`}
+                                              className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                                             />
                                             <label
                                               htmlFor={`season-${season.id}`}
@@ -2033,7 +2034,7 @@ export default function BookNow() {
                                                             activity.name
                                                           )
                                                         }
-                                                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                        className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                                                       />
                                                       <span className="truncate">{activity.name}</span>
                                                     </label>
@@ -2109,7 +2110,7 @@ export default function BookNow() {
                                                                       st.id
                                                                     )
                                                                   }
-                                                                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
+                                                                  className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
                                                                 />
                                                                 <label
                                                                   htmlFor={

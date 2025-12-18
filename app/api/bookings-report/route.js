@@ -1,7 +1,32 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+const API_KEY = process.env.BOOKINGS_REPORT_API_KEY;
+
+function unauthorizedResponse() {
+  return NextResponse.json(
+    { success: false, error: "Unauthorized" },
+    { status: 401 }
+  );
+}
+
+function isAuthorized(request) {
+  if (!API_KEY) {
+    console.error("BOOKINGS_REPORT_API_KEY is not configured");
+    return false;
+  }
+
+  const authHeader = request.headers.get("authorization") || "";
+  const [scheme, token] = authHeader.split(" ");
+
+  return scheme === "Bearer" && token === API_KEY;
+}
+
 export async function GET(request) {
+  if (!isAuthorized(request)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const bookings = await prisma.booking.findMany({
       where: {
@@ -59,6 +84,10 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!isAuthorized(request)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const body = await request.json();
     const { order_id, status } = body;
