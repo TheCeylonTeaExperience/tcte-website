@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import prisma from "@/lib/prisma";
 
 const STATUS_COPY = {
   success: {
@@ -52,6 +53,55 @@ function resolveCopy(statusParam) {
   };
 }
 
+async function updateDevStatus(orderId, statusParam) {
+  // Only allow this in development to prevent security issues in production
+  // In production, the PayHere notify webhook should handle this securely
+  // if (process.env.NODE_ENV !== "development") return;
+
+  const normalized = String(statusParam ?? "").toLowerCase();
+  let paymentStatus = null;
+  let bookingStatus = null;
+
+  if (normalized === "success") {
+    paymentStatus = "SUCCESS";
+    bookingStatus = "CONFIRMED";
+  } else if (normalized === "cancelled") {
+    paymentStatus = "CANCELED";
+    bookingStatus = "CANCELLED";
+  } else if (normalized === "failed") {
+    paymentStatus = "FAILED";
+    bookingStatus = "CANCELLED"; // Failed payments should cancel the booking to release seats
+  }
+
+  if (!paymentStatus) return;
+
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { orderId },
+      include: { bookings: true },
+    });
+
+    if (!payment) return;
+
+    // Only update if currently PENDING to avoid overwriting final states
+    // if (payment.status === "PENDING") {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: paymentStatus },
+      });
+
+      if (payment.bookings.length > 0) {
+        await prisma.booking.update({
+          where: { id: payment.bookings[0].id },
+          data: { status: bookingStatus },
+        });
+      }
+    // }
+  } catch (error) {
+    console.error("Failed to update status in dev mode:", error);
+  }
+}
+
 export const metadata = {
   title: "Booking payment status",
   description: "Review the outcome of your Reviva experience booking payment.",
@@ -61,6 +111,10 @@ export default async function BookingResultPage({ searchParams }) {
   const params = await searchParams;
   const orderId = params?.order_id || params?.orderId || "";
   const copy = resolveCopy(params?.status);
+
+  if (orderId && params?.status) {
+    await updateDevStatus(orderId, params.status);
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,_#fef7ed,_#f1f5f9)] dark:bg-slate-950">

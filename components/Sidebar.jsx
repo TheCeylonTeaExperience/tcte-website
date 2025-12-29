@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Layers3,
   MapPin,
+  Percent,
+  DollarSign,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -70,6 +72,22 @@ const sidebarLinks = [
     label: "Leaders",
     href: "/dashboard/leaders",
     icon: Users,
+  },
+  {
+    label: "Commission",
+    icon: DollarSign,
+    children: [
+      {
+        label: "Commission Rules",
+        href: "/dashboard/commission-rules",
+        icon: Percent,
+      },
+      {
+        label: "Affiliate Earnings",
+        href: "/dashboard/affiliate-earnings",
+        icon: DollarSign,
+      },
+    ],
   },
 ];
 
