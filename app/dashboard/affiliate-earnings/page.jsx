@@ -527,7 +527,7 @@ export default function AffiliateEarningsPage() {
 
       {/* Leader Details Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] max-h-[90vh] border-0 bg-white dark:bg-slate-900 shadow-2xl rounded-xl p-0 flex flex-col overflow-hidden">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] border-0 bg-white dark:bg-slate-900 shadow-2xl rounded-xl overflow-hidden p-0 flex flex-col" role="dialog" aria-modal="true">
           {/* Fixed Header */}
           <div className="bg-[#767014] p-4 sm:p-6 text-white flex-shrink-0">
             <DialogHeader className="space-y-2">
@@ -544,39 +544,11 @@ export default function AffiliateEarningsPage() {
               </DialogDescription>
             </DialogHeader>
 
-            {/* Leader Summary Cards */}
-            {selectedLeader && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-                <div className="bg-white/15 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-white/25">
-                  <div className="text-xs font-semibold text-white/80 uppercase tracking-wider mb-1">
-                    Total Earned
-                  </div>
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-                    {formatCurrency(selectedLeader.totalCommission)}
-                  </div>
-                </div>
-                <div className="bg-emerald-500/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-emerald-300/40">
-                  <div className="text-xs font-semibold text-emerald-50 uppercase tracking-wider mb-1">
-                    Paid Out
-                  </div>
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-                    {formatCurrency(selectedLeader.paidCommission)}
-                  </div>
-                </div>
-                <div className="bg-amber-500/30 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-amber-300/40">
-                  <div className="text-xs font-semibold text-amber-50 uppercase tracking-wider mb-1">
-                    Pending
-                  </div>
-                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-                    {formatCurrency(selectedLeader.pendingCommission)}
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Summary cards intentionally removed */}
           </div>
 
           {/* Scrollable Body */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 min-h-0" style={{ scrollbarGutter: "stable both-edges" }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
                 Commission History
@@ -601,9 +573,9 @@ export default function AffiliateEarningsPage() {
             ) : (
               <>
                 {/* Desktop Table View */}
-                <div className="hidden sm:block rounded-lg border border-slate-200 dark:border-slate-700">
-                  <div className="max-h-[320px] overflow-y-auto overflow-x-hidden" style={{ scrollbarGutter: "stable" }}>
-                    <Table className="w-full table-auto">
+                <div className="hidden sm:block rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  <div className="max-h-[300px] overflow-y-auto overflow-x-hidden" style={{ scrollbarGutter: "stable both-edges" }}>
+                    <Table className="min-w-[680px]">
                       <TableHeader className="bg-slate-50 dark:bg-slate-800 sticky top-0 z-10">
                         <TableRow>
                           <TableHead className="font-semibold text-slate-600 dark:text-slate-300">Date</TableHead>
@@ -639,7 +611,7 @@ export default function AffiliateEarningsPage() {
                             <TableCell className="text-center">
                               <Badge 
                                 variant="outline" 
-                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${
+                                className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${
                                   c.paymentStatus === "PAID" 
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
                                     : c.paymentStatus === "PARTIALLY_PAID"
@@ -674,7 +646,7 @@ export default function AffiliateEarningsPage() {
                 </div>
 
                 {/* Mobile Card View */}
-                <div className="sm:hidden space-y-3 max-h-[350px] overflow-y-auto pr-1" style={{ scrollbarGutter: "stable" }}>
+                <div className="sm:hidden space-y-3 max-h-[350px] overflow-y-auto pr-1" style={{ scrollbarGutter: "stable both-edges" }}>
                   {leaderCommissions.map((c) => (
                     <div 
                       key={c.id} 
@@ -691,11 +663,9 @@ export default function AffiliateEarningsPage() {
                         </div>
                         <Badge 
                           variant="outline" 
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${
                             c.paymentStatus === "PAID" 
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
-                              : c.paymentStatus === "PARTIALLY_PAID"
-                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                               : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
                           }`}
                         >
@@ -704,7 +674,7 @@ export default function AffiliateEarningsPage() {
                           ) : (
                             <Clock className="h-3 w-3" />
                           )}
-                          {c.paymentStatus === "PAID" ? "Paid" : c.paymentStatus === "PARTIALLY_PAID" ? "Partial" : "Pending"}
+                          {c.paymentStatus === "PAID" ? "Paid" : "Pending"}
                         </Badge>
                       </div>
                       <div className="flex items-end justify-between">
@@ -730,10 +700,10 @@ export default function AffiliateEarningsPage() {
           </div>
 
           {/* Fixed Footer */}
-          <div className="bg-slate-50 dark:bg-slate-800/80 px-4 sm:px-6 py-5 flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div className="bg-slate-50 dark:bg-slate-800/80 px-4 sm:px-6 py-4 flex justify-end gap-3 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
             <Button
               onClick={() => setDetailDialogOpen(false)}
-              className="bg-[#767014] hover:bg-[#5a5410] text-white px-6"
+              className="bg-[#767014] hover:bg-[#5a5410] text-white px-6 py-2"
             >
               Close Details
             </Button>
