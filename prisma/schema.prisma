@@ -56,8 +56,9 @@ model Leader {
     updatedAt   DateTime     @updatedAt
     deletedAt   DateTime?
 
-    customers Customer[]
-    bookings  Booking[]
+    customers   Customer[]
+    bookings    Booking[]
+    commissions Commission[]
 
     @@index([promoteCode])
     @@map("leaders")
@@ -68,7 +69,7 @@ model Customer {
     leaderId     Int
     leader       Leader        @relation(fields: [leaderId], references: [id], onDelete: Cascade)
     name         String
-    email        String        @unique
+    email        String
     phone        String?
     nic          String?
     createdAt    DateTime      @default(now())
@@ -199,9 +200,10 @@ model Booking {
     updatedAt   DateTime      @updatedAt
     deletedAt   DateTime?
 
-    items BookingItem[]
-    refunds Refund[]
-    history BookingHistory[]
+    items      BookingItem[]
+    refunds    Refund[]
+    history    BookingHistory[]
+    commission Commission?
 
     @@map("bookings")
 }
@@ -272,4 +274,47 @@ enum BookingStatus {
 enum PaymentType {
     Full
     Partial
+}
+
+// Commission Rules - Define commission percentages based on seat ranges
+model CommissionRule {
+    id              Int       @id @default(autoincrement())
+    minSeats        Int       // Minimum seats for this rule
+    maxSeats        Int?      // Maximum seats (null means unlimited)
+    commissionRate  Float     // Percentage (e.g., 10.0 for 10%)
+    isActive        Boolean   @default(true)
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+    deletedAt       DateTime?
+
+    @@map("commission_rules")
+}
+
+// Commission record for each booking made through a leader
+model Commission {
+    id              Int               @id @default(autoincrement())
+    bookingId       Int               @unique
+    booking         Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+    leaderId        Int
+    leader          Leader            @relation(fields: [leaderId], references: [id], onDelete: Cascade)
+    totalSeats      Int               // Total seats in the booking
+    bookingAmount   Float             // Original booking amount
+    commissionRate  Float             // Applied commission rate percentage
+    commissionAmount Float            // Calculated commission amount
+    paymentStatus   CommissionPaymentStatus @default(PENDING)
+    paidAt          DateTime?
+    paidAmount      Float?
+    notes           String?
+    createdAt       DateTime          @default(now())
+    updatedAt       DateTime          @updatedAt
+
+    @@index([leaderId])
+    @@index([paymentStatus])
+    @@map("commissions")
+}
+
+enum CommissionPaymentStatus {
+    PENDING
+    PAID
+    PARTIALLY_PAID
 }

@@ -199,6 +199,9 @@ export async function POST(request) {
 
     const customerDetails = buildCustomerDetails(customer, leader);
 
+    // Calculate total seats for commission
+    const totalSeats = selections.reduce((sum, sel) => sum + sel.seatsRequested, 0);
+
     // Retry logic for handling concurrent booking conflicts
     let transactionResult;
     let lastError;
@@ -251,7 +254,16 @@ export async function POST(request) {
               selectionCustomerIds
             );
 
-            return { bookingRecord, paymentRecord };
+            // Create commission record if applicable
+            const commissionRecord = await createCommissionRecord(
+              tx,
+              bookingRecord.id,
+              leaderId,
+              totalSeats,
+              totalAmount
+            );
+
+            return { bookingRecord, paymentRecord, commissionRecord };
           },
           {
             isolationLevel: "Serializable", // Strongest isolation to prevent race conditions
@@ -576,40 +588,19 @@ async function createCustomerRecords(tx, leaderId, selections) {
           throw new HttpError("Customer name and email are required");
         }
 
-        const existingCustomer = await tx.customer.findUnique({
-          where: { email: customerData.email },
+        // Create a new customer record for every booking to allow reusability
+        // and avoid conflicts between leaders or previous bookings.
+        const createdCustomer = await tx.customer.create({
+          data: {
+            leaderId,
+            name: customerData.name,
+            email: customerData.email,
+            phone: customerData.phone ?? null,
+            nic: customerData.nic ?? null,
+          },
         });
 
-        if (existingCustomer) {
-          if (existingCustomer.leaderId !== leaderId) {
-            throw new HttpError(
-              `Customer ${customerData.email} is already registered with another leader`
-            );
-          }
-
-          const updatedCustomer = await tx.customer.update({
-            where: { id: existingCustomer.id },
-            data: {
-              name: customerData.name,
-              phone: customerData.phone ?? existingCustomer.phone,
-              nic: customerData.nic ?? existingCustomer.nic,
-            },
-          });
-
-          customerIds.push(updatedCustomer.id);
-        } else {
-          const createdCustomer = await tx.customer.create({
-            data: {
-              leaderId,
-              name: customerData.name,
-              email: customerData.email,
-              phone: customerData.phone ?? null,
-              nic: customerData.nic ?? null,
-            },
-          });
-
-          customerIds.push(createdCustomer.id);
-        }
+        customerIds.push(createdCustomer.id);
       }
 
       selectionCustomerIds.push(customerIds);
@@ -624,40 +615,18 @@ async function createCustomerRecords(tx, leaderId, selections) {
         throw new HttpError("Customer name and email are required");
       }
 
-      const existingCustomer = await tx.customer.findUnique({
-        where: { email: customerData.email },
+      // Create a new customer record for every booking
+      const createdCustomer = await tx.customer.create({
+        data: {
+          leaderId,
+          name: customerData.name,
+          email: customerData.email,
+          phone: customerData.phone ?? null,
+          nic: customerData.nic ?? null,
+        },
       });
 
-      if (existingCustomer) {
-        if (existingCustomer.leaderId !== leaderId) {
-          throw new HttpError(
-            `Customer ${customerData.email} is already registered with another leader`
-          );
-        }
-
-        const updatedCustomer = await tx.customer.update({
-          where: { id: existingCustomer.id },
-          data: {
-            name: customerData.name,
-            phone: customerData.phone ?? existingCustomer.phone,
-            nic: customerData.nic ?? existingCustomer.nic,
-          },
-        });
-
-        selectionCustomerIds.push([updatedCustomer.id]);
-      } else {
-        const createdCustomer = await tx.customer.create({
-          data: {
-            leaderId,
-            name: customerData.name,
-            email: customerData.email,
-            phone: customerData.phone ?? null,
-            nic: customerData.nic ?? null,
-          },
-        });
-
-        selectionCustomerIds.push([createdCustomer.id]);
-      }
+      selectionCustomerIds.push([createdCustomer.id]);
     } else {
       selectionCustomerIds.push([]);
     }
@@ -809,3 +778,55 @@ async function createBookingItems(
     }
   }
 }
+
+// Calculate and create commission record for a booking
+async function createCommissionRecord(tx, bookingId, leaderId, totalSeats, bookingAmount) {
+  // Check if the leader has role LEADER (only leaders with promo codes can earn commission)
+  const leader = await tx.leader.findFirst({
+    where: { id: leaderId, deletedAt: null },
+    select: { role: true, promoteCode: true },
+  });
+
+  // Only create commission for LEADERs with promo codes
+  if (!leader || leader.role !== "LEADER" || !leader.promoteCode) {
+    return null;
+  }
+
+  // Find the applicable commission rule based on total seats
+  const commissionRule = await tx.commissionRule.findFirst({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      minSeats: { lte: totalSeats },
+      OR: [
+        { maxSeats: { gte: totalSeats } },
+        { maxSeats: null }, // Unlimited max seats
+      ],
+    },
+    orderBy: { minSeats: "desc" }, // Get the most specific rule
+  });
+
+  // No applicable commission rule found
+  if (!commissionRule) {
+    return null;
+  }
+
+  // Calculate commission amount
+  const commissionAmount = (bookingAmount * commissionRule.commissionRate) / 100;
+
+  // Create the commission record
+  const commission = await tx.commission.create({
+    data: {
+      bookingId,
+      leaderId,
+      totalSeats,
+      bookingAmount,
+      commissionRate: commissionRule.commissionRate,
+      commissionAmount,
+      paymentStatus: "PENDING",
+    },
+  });
+
+  return commission;
+}
+
