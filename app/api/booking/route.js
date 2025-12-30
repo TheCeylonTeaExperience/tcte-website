@@ -309,12 +309,16 @@ export async function POST(request) {
 
       const itemsLabel = buildPayHereItems(selections, sessionMap);
 
+      // Append order_id to return and cancel URLs so the result page can update the DB
+      const returnUrlWithOrder = `${payHereConfig.returnUrl}&order_id=${paymentRecord.orderId}`;
+      const cancelUrlWithOrder = `${payHereConfig.cancelUrl}&order_id=${paymentRecord.orderId}`;
+
       paymentRedirect = {
         actionUrl: payHereConfig.actionUrl,
         params: {
           merchant_id: payHereConfig.merchantId,
-          return_url: payHereConfig.returnUrl,
-          cancel_url: payHereConfig.cancelUrl,
+          return_url: returnUrlWithOrder,
+          cancel_url: cancelUrlWithOrder,
           notify_url: payHereConfig.notifyUrl,
           order_id: paymentRecord.orderId,
           items: itemsLabel,
