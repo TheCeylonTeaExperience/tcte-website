@@ -111,6 +111,10 @@ export default async function BookingResultPage({ searchParams }) {
   const params = await searchParams;
   const orderId = params?.order_id || params?.orderId || "";
   const copy = resolveCopy(params?.status);
+  const normalizedStatus = String(params?.status ?? "").toLowerCase();
+  const shouldShowOrderReference = Boolean(
+    orderId && normalizedStatus && normalizedStatus !== "cancelled"
+  );
 
   if (orderId && params?.status) {
     await updateDevStatus(orderId, params.status);
@@ -131,7 +135,7 @@ export default async function BookingResultPage({ searchParams }) {
           </CardHeader>
           <CardContent className="space-y-6 text-center text-slate-700 dark:text-slate-300">
             <p>{copy.description}</p>
-            {orderId ? (
+            {shouldShowOrderReference ? (
               <div className="mx-auto inline-flex flex-col items-center rounded-2xl border border-dashed border-emerald-300/60 bg-emerald-50/70 px-6 py-3 text-center text-sm font-medium text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-900/40 dark:text-emerald-200">
                 <span className="uppercase tracking-[0.3em] text-xs text-emerald-500">
                   Order reference
