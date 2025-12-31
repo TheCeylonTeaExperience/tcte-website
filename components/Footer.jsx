@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="space-y-4">
             <h3 className="text-2xl font-serif font-bold">THE CEYLON TEA EXPERIENCE</h3>
@@ -55,6 +55,37 @@ export default function Footer() {
                   className="text-sm opacity-90 hover:opacity-100"
                 >
                   Gallery
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Policies */}
+          <div>
+            <h4 className="font-semibold mb-4">Policies</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/privacy-policy"
+                  className="text-sm opacity-90 hover:opacity-100"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/refund-policy"
+                  className="text-sm opacity-90 hover:opacity-100"
+                >
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms-and-conditions"
+                  className="text-sm opacity-90 hover:opacity-100"
+                >
+                  Terms & Conditions
                 </Link>
               </li>
             </ul>
