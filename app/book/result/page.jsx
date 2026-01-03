@@ -109,7 +109,11 @@ export const metadata = {
 
 export default async function BookingResultPage({ searchParams }) {
   const params = await searchParams;
-  const orderId = params?.order_id || params?.orderId || "";
+  
+  // Handle potential array from duplicate query params
+  const rawOrderId = params?.order_id || params?.orderId || "";
+  const orderId = Array.isArray(rawOrderId) ? rawOrderId[0] : rawOrderId;
+
   const copy = resolveCopy(params?.status);
   const normalizedStatus = String(params?.status ?? "").toLowerCase();
   const shouldShowOrderReference = Boolean(
