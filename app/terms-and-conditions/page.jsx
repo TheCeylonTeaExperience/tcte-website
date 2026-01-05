@@ -198,7 +198,7 @@ export default function TermsAndConditions() {
                         If you have any questions about these Terms and Conditions, please contact us.
                       </p>
                       <p className="text-muted-foreground">
-                        Email: <a href="mailto:info@ceylonteaexperience.com" className="text-primary hover:underline">info@ceylonteaexperience.com</a>
+                        Email: <a href="mailto:reservations@theceylonteaexperience.com" className="text-primary hover:underline">info@ceylonteaexperience.com</a>
                       </p>
                     </div>
                   </div>

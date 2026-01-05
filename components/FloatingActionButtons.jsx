@@ -33,19 +33,19 @@ export default function FloatingActionButtons() {
     {
       icon: FaWhatsapp,
       label: "WhatsApp",
-      href: "https://wa.me/1234567890",
+      href: "https://wa.me/+94 702900500",
       color: "bg-green-500 hover:bg-green-600",
     },
     {
       icon: FaPhone,
       label: "Call Us",
-      href: "tel:+1234567890",
+      href: "tel:+94 702900500",
       color: "bg-blue-500 hover:bg-blue-600",
     },
     {
       icon: FaEnvelope,
       label: "Email",
-      href: "mailto:info@teatourism.com",
+      href: "mailto:reservations@theceylonteaexperience.com",
       color: "bg-purple-500 hover:bg-purple-600",
     },
   ];

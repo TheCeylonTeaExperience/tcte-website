@@ -534,7 +534,7 @@ export default function BookNow() {
     if (Number.isNaN(numeric)) {
       return String(value);
     }
-    return `LKR ${numeric.toLocaleString()}`;
+    return `USD ${numeric.toLocaleString()}`;
   };
 
   const parsePriceValue = (value) => {
@@ -1442,7 +1442,7 @@ export default function BookNow() {
           paymentType: formData.payment,
           amount: formData.payment === "Partial" ? Number(formData.partialAmount) : undefined,
           provider: "PAYHERE",
-          currency: "LKR",
+          currency: "USD",
           method: "PayHere Checkout",
         },
         customer: {
@@ -2221,7 +2221,7 @@ export default function BookNow() {
 
                             {formData.payment === "Partial" && (
                               <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
-                                <Label htmlFor="partialAmount">Enter Payment Amount (LKR)</Label>
+                                <Label htmlFor="partialAmount">Enter Payment Amount (USD)</Label>
                                 <div className="flex items-center gap-2">
                                   <Input
                                     id="partialAmount"

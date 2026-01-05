@@ -162,7 +162,7 @@ export async function POST(request) {
           provider: "MANUAL",
           status: "SUCCESS",
           amount: previousBalance,
-          currency: payment.currency || "LKR",
+          currency: payment.currency || "USD",
           method: "POS Payment",
           orderId: posOrderId,
           transactionId: `POS-TXN-${Date.now()}`,
