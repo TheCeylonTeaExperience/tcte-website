@@ -100,7 +100,7 @@ export default function Footer() {
               <li>
                 
                 <a href="tel:+1234567890" className="hover:opacity-100">
-                  (+94) XXX XXX XXXX
+                  (+94) 70 290 0500
                 </a>
               </li>
               <li>
@@ -113,18 +113,18 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="mailto:bookings@ceylonteaexperience.com"
+                  href="mailto:reservations@theceylonteaexperience.com"
                   className="hover:opacity-100"
                 >
-                  bookings@ceylonteaexperience.com
+                reservations@theceylonteaexperience.com
                 </a>
               </li>
               <li>
                 <a
-                  href="https://www.ceylonteaexperience.com"
+                  href="https://www.theceylonteaexperience.com"
                   className="hover:opacity-100"
                 >
-                  www.ceylonteaexperience.com
+                  www.theceylonteaexperience.com
                 </a>
               </li>
             </ul>

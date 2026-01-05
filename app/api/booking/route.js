@@ -9,7 +9,7 @@ import {
 
 const PAYMENT_TYPES = new Set(["Full", "Partial"]);
 const PAYMENT_PROVIDERS = new Set(["MANUAL", "PAYHERE"]);
-const DEFAULT_CURRENCY = "LKR";
+const DEFAULT_CURRENCY = "USD";
 const PAYHERE_DEFAULT_ACTION_URL =
   process.env.PAYHERE_CHECKOUT_URL ||
   (process.env.NODE_ENV === "production"

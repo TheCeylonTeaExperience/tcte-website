@@ -156,7 +156,7 @@ export default function PrivacyPolicy() {
                         If you have any questions, concerns, or requests regarding our Privacy Policy or the handling of your personal information, please contact us using the information provided below.
                       </p>
                       <p className="text-muted-foreground">
-                        Email: <a href="mailto:info@ceylonteaexperience.com" className="text-primary hover:underline">info@ceylonteaexperience.com</a>
+                        Email: <a href="mailto:reservations@theceylonteaexperience.com" className="text-primary hover:underline">info@ceylonteaexperience.com</a>
                       </p>
                     </div>
                   </div>

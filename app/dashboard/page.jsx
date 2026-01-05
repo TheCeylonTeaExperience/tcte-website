@@ -104,10 +104,10 @@ export default function DashboardPage() {
     {
       title: "Revenue",
       value: isLoading
-        ? "LKR 0.00"
+        ? "USD 0.00"
         : new Intl.NumberFormat("en-US", {
             style: "currency",
-            currency: "LKR",
+            currency: "USD",
           }).format(stats.revenue),
       subtitle: "Total revenue",
       icon: CreditCard,

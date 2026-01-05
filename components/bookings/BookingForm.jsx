@@ -1114,7 +1114,7 @@ export default function BookingForm() {
                                                       <span>{type.name}</span>
                                                       <span className="text-xs text-muted-foreground">
                                                         {type.price != null
-                                                          ? `LKR ${type.price.toLocaleString()}`
+                                                          ? `USD ${type.price.toLocaleString()}`
                                                           : "Included"}
                                                       </span>
                                                     </div>
@@ -1300,7 +1300,7 @@ export default function BookingForm() {
 
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="text-sm" style={{ color: '#767014', fontWeight: 600 }}>
-              Estimated total: {estimatedTotal > 0 ? `LKR ${estimatedTotal.toLocaleString()}` : "—"}
+              Estimated total: {estimatedTotal > 0 ? `USD ${estimatedTotal.toLocaleString()}` : "—"}
             </div>
             <div className="flex gap-3">
               <Button

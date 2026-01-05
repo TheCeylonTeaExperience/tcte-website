@@ -174,7 +174,7 @@ export default function BookingsPage() {
             </div>
             {dayStats.revenue > 0 && (
               <Badge variant="secondary" className="text-lg px-3 py-1 font-medium">
-                {new Intl.NumberFormat("en-US", { style: "currency", currency: "LKR" }).format(dayStats.revenue)}
+                {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(dayStats.revenue)}
               </Badge>
             )}
           </div>
@@ -330,7 +330,7 @@ function BookingCard({ booking, onUpdate }) {
             <div className="font-bold text-lg">
               {new Intl.NumberFormat("en-US", {
                 style: "currency",
-                currency: "LKR",
+                currency: "USD",
               }).format(booking.amount - booking.balance)}
             </div>
           </div>
@@ -339,10 +339,10 @@ function BookingCard({ booking, onUpdate }) {
             <div className="flex items-center justify-between bg-secondary/20 p-2 rounded text-xs">
               <div className="flex gap-4">
                 <span className="text-muted-foreground">
-                  Total Amount: <span className="font-medium text-foreground">{new Intl.NumberFormat("en-US", { style: "currency", currency: "LKR" }).format(booking.amount)}</span>
+                  Total Amount: <span className="font-medium text-foreground">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(booking.amount)}</span>
                 </span>
                 <span className="text-muted-foreground">
-                  Balance: <span className="font-bold text-red-600">{new Intl.NumberFormat("en-US", { style: "currency", currency: "LKR" }).format(booking.balance)}</span>
+                  Balance: <span className="font-bold text-red-600">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(booking.balance)}</span>
                 </span>
               </div>
             </div>

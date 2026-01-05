@@ -192,7 +192,7 @@ export default function BookingManager({ booking, onUpdate }) {
             </div>
             
             <div className="space-y-2">
-              <Label>Refund Amount (LKR)</Label>
+              <Label>Refund Amount (USD)</Label>
               <Input 
                 type="number" 
                 value={refundAmount} 

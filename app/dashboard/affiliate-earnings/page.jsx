@@ -198,9 +198,9 @@ export default function AffiliateEarningsPage() {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-LK", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "LKR",
+      currency: "USD",
       minimumFractionDigits: 2,
     }).format(amount || 0);
   };

@@ -60,7 +60,7 @@ function formatTime(value) {
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
-  currency: "LKR",
+  currency: "USD",
   minimumFractionDigits: 2,
 });
 
