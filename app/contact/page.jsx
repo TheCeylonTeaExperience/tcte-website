@@ -26,19 +26,19 @@ export default function Contact() {
     {
       icon: FaMapMarkerAlt,
       title: "Location",
-      details: ["Galle, Sri Lanka"],
+      details: ["146A, Sea Street Galle, Sri Lanka"],
     },
     {
       icon: FaPhone,
       title: "Phone",
-      details: ["(+94) XXX XXX XXXX"],
-      link: "tel:(+94) XXX XXX XXXX",
+      details: ["(+94) 70 290 0500"],
+      link: "tel:(+94) 70 290 0500",
     },
     {
       icon: FaEnvelope,
       title: "Email",
-      details: ["info@ceylonteaexperience.com", "bookings@ceylonteaexperience.com"],
-      links: ["mailto:info@ceylonteaexperience.com", "mailto:bookings@ceylonteaexperience.com"],
+      details: ["reservations@theceylonteaexperience.com",],
+      links: ["mailto:reservations@theceylonteaexperience.com",],
     },
     {
       icon: FaGlobe,
@@ -57,7 +57,7 @@ export default function Contact() {
   const whatsappMessage = encodeURIComponent(
     "Hello! I'm interested in booking a tea tour experience at THE CEYLON TEA."
   );
-  const whatsappLink = `https://wa.me/1234567890?text=${whatsappMessage}`;
+  const whatsappLink = `https://wa.me/0702900500?text=${whatsappMessage}`;
 
   return (
     <>
@@ -87,46 +87,55 @@ export default function Contact() {
 
         {/* Contact Info Grid */}
         <section className="py-16">
-          <div className="container mx-auto px-8 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap justify-center gap-6 mb-12">
-              {contactInfo.map((info, index) => (
-                <Card
-                  key={index}
-                  className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary flex-1 min-w-[300px] max-w-[380px]"
-                >
-                  <CardContent className="pt-6">
-                    <div className="bg-gradient-to-br from-primary to-primary/70 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <info.icon className="h-8 w-8 text-white" />
-                    </div>
-                    <h3 className="font-bold text-lg mb-3 text-primary">
-                      {info.title}
-                    </h3>
-                    <div className="text-muted-foreground space-y-1">
-                      {info.details.map((detail, idx) => (
-                        <p key={idx}>
-                          {info.links && info.links[idx] ? (
-                            <a
-                              href={info.links[idx]}
-                              className="hover:text-primary transition-colors font-medium"
-                            >
-                              {detail}
-                            </a>
-                          ) : info.link && idx === 0 ? (
-                            <a
-                              href={info.link}
-                              className="hover:text-primary transition-colors font-medium"
-                            >
-                              {detail}
-                            </a>
-                          ) : (
-                            detail
-                          )}
-                        </p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          <div className="container mx-auto px-10 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
+                  {contactInfo.map((info, index) => {
+                        const isEmailCard = info.title === "Email";
+                        const cardClass = 'text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border-2 hover:border-primary h-full';
+
+                    const containerSizeClass = 'w-16 h-16';
+                    const iconSizeClass = 'h-8 w-8';
+                    const titleClass = 'font-bold text-lg mb-3 text-primary';
+                        const detailLineClass = isEmailCard
+                          ? 'block text-center whitespace-normal break-words leading-relaxed max-w-[260px] mx-auto'
+                          : undefined;
+
+                    return (
+                      <Card key={index} className={cardClass}>
+                        <CardContent className="pt-6">
+                          <div className={`bg-gradient-to-br from-primary to-primary/70 ${containerSizeClass} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                            <info.icon className={`${iconSizeClass} text-white`} />
+                          </div>
+                          <h3 className={titleClass}>
+                            {info.title}
+                          </h3>
+                          <div className="text-muted-foreground space-y-1">
+                            {info.details.map((detail, idx) => (
+                              <p key={idx} className={detailLineClass}>
+                                {info.links && info.links[idx] ? (
+                                  <a
+                                    href={info.links[idx]}
+                                    className="hover:text-primary transition-colors font-medium"
+                                  >
+                                    {detail}
+                                  </a>
+                                ) : info.link && idx === 0 ? (
+                                  <a
+                                    href={info.link}
+                                    className="hover:text-primary transition-colors font-medium"
+                                  >
+                                    {detail}
+                                  </a>
+                                ) : (
+                                  detail
+                                )}
+                              </p>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
             </div>
 
             {/* WhatsApp CTA */}
@@ -166,7 +175,7 @@ export default function Contact() {
             <div className="max-w-4xl mx-auto">
               <div className="aspect-video w-full rounded-lg overflow-hidden shadow-lg">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31685.984768749877!2d80.59668!3d6.94106!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae38173f1e09701%3A0x4ef18e3c9b3c9e0!2sNuwara%20Eliya%2C%20Sri%20Lanka!5e0!3m2!1sen!2sus!4v1234567890"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3590.5526402215646!2d80.2246648!3d6.037233199999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae1736b35262d13%3A0x993881923260c1bd!2sThe%20Ceylon%20Tea%20Experience%20-%20Galle!5e1!3m2!1sen!2slk!4v1767592375175!5m2!1sen!2slk"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

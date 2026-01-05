@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { FaFacebook, FaInstagram, FaTwitter, FaWhatsapp } from "react-icons/fa";
+import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { SiTiktok } from "react-icons/si";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { icon: FaFacebook, href: "https://facebook.com", label: "Facebook" },
-    { icon: FaInstagram, href: "https://instagram.com", label: "Instagram" },
-    { icon: FaTwitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: FaWhatsapp, href: "https://wa.me/1234567890", label: "WhatsApp" },
+    { icon: FaFacebook, href: "https://www.facebook.com/share/1C8jGDQwgq/", label: "Facebook" },
+    { icon: FaInstagram, href: "https://www.instagram.com/theceylonteaexperience?igsh=dDhtdXIwbzM0OGRh", label: "Instagram" },
+    { icon: SiTiktok, href: "https://www.tiktok.com/@theceylonteaexper?_r=1&_t=ZS-92jKpR4JwXa", label: "TikTok" },
+    
   ];
 
   return (
