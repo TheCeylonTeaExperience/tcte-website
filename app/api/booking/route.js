@@ -480,6 +480,11 @@ function validateSessionConflicts(selections, sessionMap) {
     const previous = intervals[index - 1];
     const current = intervals[index];
 
+    // If IDs are the same, it's the same session (e.g. split by session type), so no conflict
+    if (previous.sessionId === current.sessionId) {
+      continue;
+    }
+
     if (previous.start < current.end && previous.end > current.start) {
       throw new HttpError(
         `Session ${previous.sessionId} overlaps with session ${current.sessionId}`

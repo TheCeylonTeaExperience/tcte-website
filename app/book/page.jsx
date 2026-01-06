@@ -483,6 +483,41 @@ export default function BookNow() {
     return seatCounts.length ? Math.max(...seatCounts) : 0;
   }, [seasonSelections, useGlobalSeatCount, globalSeatCount]);
 
+  // Collect all selected session types from all seasons/activities
+  const allSelectedSessionTypes = useMemo(() => {
+    const sessionTypes = [];
+    Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+      if (!selection || selection.seatsRequested <= 0) return;
+      
+      const season = availabilityForDate?.find((entry) => entry.id === seasonId);
+      if (!season) return;
+      
+      Object.entries(selection.activities ?? {}).forEach(([activityName, activityState]) => {
+        if (!activityState?.selected) return;
+        
+        const activity = season.activities?.find((a) => a.name === activityName);
+        if (!activity) return;
+        
+        const selectedTypeIds = Object.keys(activityState.sessionTypes ?? {});
+        if (selectedTypeIds.length > 0 && Array.isArray(activity.sessionTypes)) {
+          selectedTypeIds.forEach((typeId) => {
+            const sessionType = activity.sessionTypes.find((st) => String(st.id) === String(typeId));
+            if (sessionType) {
+              sessionTypes.push({
+                sessionId: activity.id,
+                sessionTypeId: sessionType.id,
+                sessionTypeName: sessionType.name,
+                activityName: activity.name,
+                seasonId,
+              });
+            }
+          });
+        }
+      });
+    });
+    return sessionTypes;
+  }, [seasonSelections, availabilityForDate]);
+
   const guestDetailsComplete = useMemo(() => {
     if (guestDetails.length === 0) {
       return false;
@@ -492,9 +527,16 @@ export default function BookNow() {
       const idValid = Boolean(guest?.idNumber && guest.idNumber.trim());
       const phoneValid = Boolean(guest?.phone && guest.phone.trim());
       const emailValid = Boolean(guest?.email && guest.email.trim());
+      
+      // If there are session types to select, each guest must select at least one
+      if (allSelectedSessionTypes.length > 0) {
+        const hasSelectedTypes = guest.selectedSessionTypes && Object.keys(guest.selectedSessionTypes).length > 0;
+        return nameValid && idValid && phoneValid && emailValid && hasSelectedTypes;
+      }
+      
       return nameValid && idValid && phoneValid && emailValid;
     });
-  }, [guestDetails]);
+  }, [guestDetails, allSelectedSessionTypes]);
 
   useEffect(() => {
     if (currentStage !== "guests") {
@@ -518,6 +560,7 @@ export default function BookNow() {
           idNumber: "",
           phone: "",
           email: "",
+          selectedSessionTypes: {},
         }));
         return [...prev, ...additional];
       }
@@ -1155,10 +1198,38 @@ export default function BookNow() {
         idNumber: "",
         phone: "",
         email: "",
+        selectedSessionTypes: {},
       };
       next[index] = {
         ...existing,
         [field]: value,
+      };
+      return next;
+    });
+  };
+
+  const handleGuestSessionTypeToggle = (guestIndex, sessionTypeId) => {
+    setGuestDetails((prev) => {
+      const next = [...prev];
+      const guest = next[guestIndex] ?? {
+        name: "",
+        idNumber: "",
+        phone: "",
+        email: "",
+        selectedSessionTypes: {},
+      };
+      const currentSelections = guest.selectedSessionTypes ?? {};
+      const newSelections = { ...currentSelections };
+      
+      if (newSelections[sessionTypeId]) {
+        delete newSelections[sessionTypeId];
+      } else {
+        newSelections[sessionTypeId] = true;
+      }
+      
+      next[guestIndex] = {
+        ...guest,
+        selectedSessionTypes: newSelections,
       };
       return next;
     });
@@ -1368,6 +1439,12 @@ export default function BookNow() {
 
       const bookingSelections = [];
 
+      // Build a map of session type info for quick lookup
+      const sessionTypeInfoMap = new Map();
+      allSelectedSessionTypes.forEach((st) => {
+        sessionTypeInfoMap.set(String(st.sessionTypeId), st);
+      });
+
       Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
         const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
         if (seatsRequested <= 0) {
@@ -1405,6 +1482,7 @@ export default function BookNow() {
           const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
 
           if (sessionTypeIds.length === 0) {
+            // No session types - all guests go to this session
             bookingSelections.push({
               sessionId: parsedSessionId,
               seatsRequested,
@@ -1413,18 +1491,34 @@ export default function BookNow() {
             return;
           }
 
+          // Group guests by their selected session types for this session
           sessionTypeIds.forEach((typeId) => {
             const parsedTypeId = Number.parseInt(typeId, 10);
             if (Number.isNaN(parsedTypeId)) {
               return;
             }
 
-            bookingSelections.push({
-              sessionId: parsedSessionId,
-              sessionTypeId: parsedTypeId,
-              seatsRequested,
-              customers: customersPayload,
-            });
+            // Find guests who selected this session type
+            const guestsForThisType = guestDetails
+              .filter((guest) => {
+                const selectedTypes = guest.selectedSessionTypes ?? {};
+                return selectedTypes[typeId] === true;
+              })
+              .map((guest) => ({
+                name: guest.name.trim(),
+                email: guest.email.trim(),
+                phone: guest.phone?.trim() || null,
+                nic: guest.idNumber?.trim() || null,
+              }));
+
+            if (guestsForThisType.length > 0) {
+              bookingSelections.push({
+                sessionId: parsedSessionId,
+                sessionTypeId: parsedTypeId,
+                seatsRequested: guestsForThisType.length,
+                customers: guestsForThisType,
+              });
+            }
           });
         });
       });
@@ -2529,6 +2623,54 @@ export default function BookNow() {
                                     />
                                   </div>
                                 </div>
+                                
+                                {/* Session Type Selection for this guest */}
+                                {allSelectedSessionTypes.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-primary/20">
+                                    <Label className="text-sm font-semibold text-primary mb-3 block">
+                                      Select Session Type(s) for this guest *
+                                    </Label>
+                                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                      {allSelectedSessionTypes.map((st) => {
+                                        const checkboxId = `guest-${index}-st-${st.sessionTypeId}`;
+                                        const isSelected = guest.selectedSessionTypes?.[st.sessionTypeId] === true;
+                                        return (
+                                          <div
+                                            key={checkboxId}
+                                            className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
+                                              isSelected
+                                                ? "border-primary bg-primary/10"
+                                                : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
+                                            }`}
+                                          >
+                                            <Checkbox
+                                              id={checkboxId}
+                                              checked={isSelected}
+                                              onCheckedChange={() => handleGuestSessionTypeToggle(index, st.sessionTypeId)}
+                                              className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                            />
+                                            <label
+                                              htmlFor={checkboxId}
+                                              className="text-sm cursor-pointer flex-1"
+                                            >
+                                              <span className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
+                                                {st.sessionTypeName}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground block">
+                                                {st.activityName}
+                                              </span>
+                                            </label>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    {Object.keys(guest.selectedSessionTypes ?? {}).length === 0 && (
+                                      <p className="text-xs text-amber-600 mt-2">
+                                        Please select at least one session type for this guest.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             ))
                           )}
