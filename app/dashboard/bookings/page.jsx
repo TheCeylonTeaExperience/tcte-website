@@ -294,6 +294,12 @@ function BookingCard({ booking, onUpdate }) {
                   {item.session?.program?.title}
                   <span className="text-muted-foreground mx-1">•</span>
                   <span className="text-primary">{item.session?.name}</span>
+                  {item.sessionType && (
+                    <>
+                       <span className="text-muted-foreground mx-1">•</span>
+                       <span className="text-blue-600 font-semibold">{item.sessionType.name}</span>
+                    </>
+                  )}
                 </div>
                 <Badge variant="outline" className="bg-background shrink-0">
                   {item.quantity} Seat{item.quantity !== 1 ? "s" : ""}
