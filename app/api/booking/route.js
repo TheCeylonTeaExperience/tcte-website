@@ -170,17 +170,57 @@ export async function POST(request) {
     }
 
     const totalAmount = pricing.reduce((sum, item) => sum + item.total, 0);
-    
-    let paidAmount = totalAmount;
+
+    // Calculate Pax Count (proxy for number of people)
+    const paxCount = selections.length > 0 ? Math.max(...selections.map(s => s.seatsRequested)) : 0;
+
+    // Apply additional charges from discount rules
+    let additionalCharge = 0;
+    const programId = sessions[0]?.programId;
+    if (programId) {
+      const discountRules = await prisma.discountRule.findMany({
+        where: {
+          programId: programId,
+          isActive: true,
+          deletedAt: null,
+        },
+        orderBy: { priority: "desc" },
+      });
+
+      const selectedSessionIds = selections.map(s => s.sessionId).sort((a, b) => a - b);
+
+      for (const rule of discountRules) {
+        const ruleSessionIds = JSON.parse(rule.sessionIds || "[]").sort((a, b) => a - b);
+
+        const isExactMatch =
+          ruleSessionIds.length === selectedSessionIds.length &&
+          ruleSessionIds.every((id, idx) => id === selectedSessionIds[idx]);
+
+        if (isExactMatch) {
+          if (rule.discountType === "PERCENTAGE") {
+            additionalCharge = (totalAmount * rule.discountValue) / 100;
+          } else {
+            additionalCharge = rule.discountValue;
+          }
+          break; // Use first matching rule
+        }
+      }
+    }
+
+    // Add additional charge to total amount
+    const finalTotalAmount = totalAmount + (additionalCharge * paxCount);
+
+    let paidAmount = finalTotalAmount;
+
     if (paymentType === "Partial") {
-        paidAmount = typeof partialAmount === 'number' ? partialAmount : totalAmount;
+        paidAmount = typeof partialAmount === 'number' ? partialAmount : finalTotalAmount;
         // Ensure paid amount doesn't exceed total
-        if (paidAmount > totalAmount) paidAmount = totalAmount;
+        if (paidAmount > finalTotalAmount) paidAmount = finalTotalAmount;
         // Ensure paid amount is not negative
         if (paidAmount < 0) paidAmount = 0;
     }
 
-    const balance = totalAmount - paidAmount;
+    const balance = finalTotalAmount - paidAmount;
 
     const currency =
       typeof paymentCurrency === "string" && paymentCurrency.trim().length > 0
@@ -232,7 +272,7 @@ export async function POST(request) {
                 leaderId,
                 bookedDate: bookingDate,
                 paymentType: paymentType === "Partial" ? "Partial" : "Full",
-                amount: totalAmount,
+                amount: finalTotalAmount,
                 balance: balance,
                 paymentId: paymentRecord.id,
                 status: "PENDING",
@@ -260,7 +300,7 @@ export async function POST(request) {
               bookingRecord.id,
               leaderId,
               totalSeats,
-              totalAmount
+              finalTotalAmount
             );
 
             return { bookingRecord, paymentRecord, commissionRecord };

@@ -67,6 +67,9 @@ function createSelection() {
     availabilityError: "",
     availabilityBySessionId: {},
     fallbackSeatsBySessionId: {},
+    // Discount calculation state
+    discountInfo: null, // { originalTotal, discountAmount, finalTotal, appliedRule }
+    discountLoading: false,
   };
 }
 
@@ -157,20 +160,25 @@ export default function BookingForm() {
         return running;
       }
 
+      // Use discount info if available, otherwise calculate original total
+      if (selection.discountInfo) {
+        return running + selection.discountInfo.finalTotal * seats;
+      }
+
       const selectionTotal = selection.sessionIds.reduce((subtotal, sessionId) => {
         const session = sessionsMap.get(sessionId);
         if (!session) {
           return subtotal;
         }
-        let price = session.price ?? null;
+        let price = session.specialPrice ?? session.price ?? null;
         const typeMap = selection.sessionTypeById || {};
         const mappedTypeId = typeMap[sessionId];
         if (mappedTypeId) {
           const resolvedType = session.sessionTypes?.find(
             (type) => String(type.id) === mappedTypeId
           );
-          if (resolvedType && resolvedType.price != null) {
-            price = resolvedType.price;
+          if (resolvedType) {
+            price = resolvedType.specialPrice ?? resolvedType.price ?? null;
           }
         }
         if (price == null) {
@@ -182,6 +190,17 @@ export default function BookingForm() {
       return running + selectionTotal;
     }, 0);
   }, [formState.selections, sessionsMap]);
+
+  // Calculate total discount applied
+  const totalDiscount = useMemo(() => {
+    return formState.selections.reduce((total, selection) => {
+      if (selection.discountInfo) {
+        const seats = Number.parseInt(selection.seatsRequested, 10) || 0;
+        return total + selection.discountInfo.discountAmount * seats;
+      }
+      return total;
+    }, 0);
+  }, [formState.selections]);
 
   const loadInitialData = useCallback(async () => {
     setInitialLoading(true);
@@ -266,6 +285,8 @@ export default function BookingForm() {
       availabilityError: "",
       availabilityBySessionId: {},
       fallbackSeatsBySessionId: {},
+      discountInfo: null,
+      discountLoading: false,
     }));
   }
 
@@ -300,9 +321,76 @@ export default function BookingForm() {
         availabilityError: "",
         availabilityBySessionId: {},
         fallbackSeatsBySessionId: {},
+        discountLoading: true, // Mark as loading for discount calculation
       };
     });
   }
+
+  // Calculate discount based on selected sessions
+  const calculateDiscountForSelection = useCallback(async (index, selection) => {
+    const { programId, sessionIds, sessionTypeById } = selection;
+
+    // Reset discount if no sessions selected
+    if (!programId || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      updateSelection(index, () => ({
+        discountInfo: null,
+        discountLoading: false,
+      }));
+      return;
+    }
+
+    try {
+      // Build sessionTypeSelections object for the API
+      const sessionTypeSelections = {};
+      for (const sessionId of sessionIds) {
+        const typeId = sessionTypeById?.[sessionId];
+        if (typeId) {
+          sessionTypeSelections[parseInt(sessionId, 10)] = parseInt(typeId, 10);
+        }
+      }
+
+      const response = await fetchWithAuth("/api/discount-rules/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programId: parseInt(programId, 10),
+          sessionIds: sessionIds.map((id) => parseInt(id, 10)),
+          sessionTypeSelections,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to calculate discount");
+      }
+
+      updateSelection(index, () => ({
+        discountInfo: {
+          originalTotal: data.originalTotal,
+          discountAmount: data.discountAmount,
+          finalTotal: data.finalTotal,
+          appliedRule: data.appliedRule,
+          priceBreakdown: data.priceBreakdown,
+        },
+        discountLoading: false,
+      }));
+    } catch (error) {
+      console.error("Discount calculation error:", error);
+      updateSelection(index, () => ({
+        discountInfo: null,
+        discountLoading: false,
+      }));
+    }
+  }, []);
+
+  // Effect to trigger discount calculation when selection changes
+  useEffect(() => {
+    formState.selections.forEach((selection, index) => {
+      if (selection.discountLoading && selection.programId && selection.sessionIds?.length > 0) {
+        calculateDiscountForSelection(index, selection);
+      }
+    });
+  }, [formState.selections, calculateDiscountForSelection]);
 
   function handleSessionTypeChange(selectionIndex, sessionId, value) {
     const idString = String(sessionId);
@@ -313,7 +401,10 @@ export default function BookingForm() {
       } else {
         nextTypeMap[idString] = value;
       }
-      return { sessionTypeById: nextTypeMap };
+      return { 
+        sessionTypeById: nextTypeMap,
+        discountLoading: true, // Mark as loading for discount calculation
+      };
     });
   }
 
@@ -367,6 +458,8 @@ export default function BookingForm() {
       availabilityError: "",
       availabilityBySessionId: {},
       fallbackSeatsBySessionId: {},
+      discountInfo: null,
+      discountLoading: false,
     }));
   }
 
@@ -1272,20 +1365,70 @@ export default function BookingForm() {
                         </div>
                       )}
 
-                      <div className="rounded-md px-4 py-3 text-sm" style={{ backgroundColor: '#C5BF81', opacity: 0.3 }}>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium" style={{ color: '#000000' }}>Summary</span>
-                          {selection.seatsRequested > 0 && selectedSessionNames.length > 0 && (
-                            <span className="text-muted-foreground flex items-center gap-2">
-                              {selection.seatsRequested} seat(s)
-                              <ArrowRight className="h-3.5 w-3.5" />
-                              {selectedSessionNames.join(", ")}
-                            </span>
+                      <div className="rounded-md px-4 py-3 text-sm" style={{ backgroundColor: 'rgba(197, 191, 129, 0.3)' }}>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium" style={{ color: '#000000' }}>Summary</span>
+                            {selection.seatsRequested > 0 && selectedSessionNames.length > 0 && (
+                              <span className="text-muted-foreground flex items-center gap-2">
+                                {selection.seatsRequested} seat(s)
+                                <ArrowRight className="h-3.5 w-3.5" />
+                                {selectedSessionNames.join(", ")}
+                              </span>
+                            )}
+                            {selectedTypeLabels.length > 0 && (
+                              <span className="text-muted-foreground">
+                                • Types: {selectedTypeLabels.join(", ")}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Discount Information */}
+                          {selection.discountLoading && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Calculating price...
+                            </div>
                           )}
-                          {selectedTypeLabels.length > 0 && (
-                            <span className="text-muted-foreground">
-                              • Types: {selectedTypeLabels.join(", ")}
-                            </span>
+                          
+                          {!selection.discountLoading && selection.discountInfo && (
+                            <div className="flex flex-col gap-1 pt-1 border-t" style={{ borderColor: 'rgba(118, 112, 20, 0.2)' }}>
+                              <div className="flex items-center justify-between">
+                                <span style={{ color: '#000000', opacity: 0.7 }}>
+                                  Original (per seat): Rs. {selection.discountInfo.originalTotal.toFixed(2)}
+                                </span>
+                              </div>
+                              {selection.discountInfo.appliedRule && (
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: '#767014', color: '#ffffff' }}>
+                                    {selection.discountInfo.appliedRule.discountType === 'PERCENTAGE' 
+                                      ? `${selection.discountInfo.appliedRule.discountValue}% OFF` 
+                                      : `Rs. ${selection.discountInfo.appliedRule.discountValue} OFF`}
+                                  </span>
+                                  <span className="text-xs" style={{ color: '#767014' }}>
+                                    {selection.discountInfo.appliedRule.name}
+                                  </span>
+                                </div>
+                              )}
+                              {selection.discountInfo.discountAmount > 0 && (
+                                <div className="flex items-center justify-between text-sm">
+                                  <span style={{ color: '#22c55e' }}>
+                                    Discount: -Rs. {(selection.discountInfo.discountAmount * seatsRequested).toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between font-medium">
+                                <span style={{ color: '#767014' }}>
+                                  Subtotal ({seatsRequested} seat{seatsRequested > 1 ? 's' : ''}): Rs. {(selection.discountInfo.finalTotal * seatsRequested).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {!selection.discountLoading && !selection.discountInfo && sessionIds.length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              Select sessions to see pricing
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1299,8 +1442,15 @@ export default function BookingForm() {
           <Separator />
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-sm" style={{ color: '#767014', fontWeight: 600 }}>
-              Estimated total: {estimatedTotal > 0 ? `USD ${estimatedTotal.toLocaleString()}` : "—"}
+            <div className="text-sm space-y-1">
+              {totalDiscount > 0 && (
+                <div style={{ color: '#22c55e' }}>
+                  Total Discount: -Rs. {totalDiscount.toFixed(2)}
+                </div>
+              )}
+              <div style={{ color: '#767014', fontWeight: 600 }}>
+                Estimated total: {estimatedTotal > 0 ? `Rs. ${estimatedTotal.toFixed(2)}` : "—"}
+              </div>
             </div>
             <div className="flex gap-3">
               <Button

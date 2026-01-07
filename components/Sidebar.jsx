@@ -23,6 +23,7 @@ import {
   MapPin,
   Percent,
   DollarSign,
+  Tag,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -55,7 +56,11 @@ const sidebarLinks = [
         href: "/dashboard/session-types",
         icon: Layers3,
       },
-
+      {
+        label: "Discount Rules",
+        href: "/dashboard/discount-rules",
+        icon: Tag,
+      },
     ],
   },
   {
