@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3020",
     "lint": "eslint"
+    
   },
   "prisma": {
     "seed": "node prisma/seed.js"
