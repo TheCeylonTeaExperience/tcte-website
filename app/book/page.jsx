@@ -149,6 +149,8 @@ export default function BookNow() {
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
   const [phoneValidation, setPhoneValidation] = useState({ state: "idle", message: "" });
   const [validatedPhoneNumber, setValidatedPhoneNumber] = useState(null);
+  const [discountInfo, setDiscountInfo] = useState(null);
+  const [discountLoading, setDiscountLoading] = useState(false);
 
   // Close calendar when clicking outside
   useEffect(() => {
@@ -634,6 +636,80 @@ export default function BookNow() {
   }, [seasonSelections, programOptions]);
 
   const totalCost = useMemo(() => calculateTotalCost(), [calculateTotalCost]);
+
+  // Fetch discount rules from database when selections change
+  useEffect(() => {
+    const fetchDiscount = async () => {
+      const selectedSessionIds = [];
+      const sessionTypeSelections = {};
+      let selectedProgramId = null;
+
+      Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+        if (!selection || selection.seatsRequested <= 0) return;
+
+        const season = availabilityForDate?.find((entry) => entry.id === seasonId);
+        if (!season) return;
+
+        if (!selectedProgramId && season.programId) {
+          selectedProgramId = season.programId;
+        }
+
+        Object.entries(selection.activities ?? {}).forEach(([activityName, activityState]) => {
+          if (!activityState?.selected) return;
+
+          const activity = season.activities?.find((a) => a.name === activityName);
+          if (!activity) return;
+
+          selectedSessionIds.push(activity.id);
+
+          const selectedTypeIds = Object.keys(activityState.sessionTypes ?? {});
+          if (selectedTypeIds.length > 0) {
+            sessionTypeSelections[activity.id] = selectedTypeIds[0];
+          }
+        });
+      });
+
+      if (selectedSessionIds.length === 0 || !selectedProgramId) {
+        setDiscountInfo(null);
+        return;
+      }
+
+      setDiscountLoading(true);
+      try {
+        const response = await fetch('/api/discount-rules/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            programId: selectedProgramId,
+            sessionIds: selectedSessionIds,
+            sessionTypeSelections,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setDiscountInfo(data);
+        } else {
+          setDiscountInfo(null);
+        }
+      } catch (error) {
+        console.error('Error fetching discount:', error);
+        setDiscountInfo(null);
+      } finally {
+        setDiscountLoading(false);
+      }
+    };
+
+    fetchDiscount();
+  }, [seasonSelections, availabilityForDate]);
+
+  // Calculate discounted total cost
+  // Calculate final total cost with additional charges
+  const discountedTotalCost = useMemo(() => {
+    if (!discountInfo?.appliedRule) return totalCost;
+    const add = Number(discountInfo.additionalAmount) || 0;
+    return totalCost + (add * totalSeatsRequested);
+  }, [totalCost, discountInfo, totalSeatsRequested]);
 
   const handlePaymentTypeChange = (value) => {
     setFormData(prev => ({
@@ -2295,6 +2371,51 @@ export default function BookNow() {
 
                         <div className="space-y-4 border-t pt-4">
                           <h3 className="text-lg font-semibold">Payment Options</h3>
+                          
+                          {/* Price Summary with Additional Charges from Database */}
+                          <div className="rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Base Price:</span>
+                                <span className="font-semibold">
+                                  {formatPrice(totalCost)}
+                                </span>
+                              </div>
+                              {discountInfo?.appliedRule && (
+                                <>
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-blue-600 flex items-center gap-2">
+                                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                        {discountInfo.appliedRule.discountType === 'PERCENTAGE' 
+                                          ? `+${discountInfo.appliedRule.discountValue}%`
+                                          : `+USD ${discountInfo.appliedRule.discountValue}`
+                                        }
+                                      </span>
+                                      {discountInfo.appliedRule.name}
+                                    </span>
+                                    <span className="text-blue-600 font-medium">
+                                      +{formatPrice((Number(discountInfo.additionalAmount) || 0) * totalSeatsRequested)}
+                                    </span>
+                                  </div>
+                                  {discountInfo.appliedRule.description && (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      {discountInfo.appliedRule.description}
+                                    </p>
+                                  )}
+                                </>
+                              )}
+                              <div className="flex justify-between items-center pt-2 border-t border-primary/20">
+                                <span className="font-semibold">Total to Pay:</span>
+                                <span className="text-xl font-bold text-primary">
+                                  {formatPrice(discountedTotalCost)}
+                                </span>
+                              </div>
+                              {discountLoading && (
+                                <p className="text-xs text-muted-foreground animate-pulse">Checking for additional charges...</p>
+                              )}
+                            </div>
+                          </div>
+
                           <div className="grid gap-4">
                             <div className="grid gap-2">
                               <Label htmlFor="payment">Payment Type *</Label>
@@ -2307,8 +2428,8 @@ export default function BookNow() {
                                   <SelectValue placeholder="Choose payment option" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Full">Full Payment ({formatPrice(totalCost)})</SelectItem>
-                                  <SelectItem value="Partial">Partial Payment (Total: {formatPrice(totalCost)})</SelectItem>
+                                  <SelectItem value="Full">Full Payment ({formatPrice(discountedTotalCost)})</SelectItem>
+                                  <SelectItem value="Partial">Partial Payment (Total: {formatPrice(discountedTotalCost)})</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -2321,20 +2442,20 @@ export default function BookNow() {
                                     id="partialAmount"
                                     type="number"
                                     min="0"
-                                    max={totalCost}
+                                    max={discountedTotalCost}
                                     value={formData.partialAmount}
                                     onChange={handlePartialAmountChange}
                                     placeholder="Enter amount to pay now"
                                     className="border-primary/30"
                                   />
                                   <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
-                                    of {formatPrice(totalCost)}
+                                    of {formatPrice(discountedTotalCost)}
                                   </span>
                                 </div>
                                 <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
                                   <span>Remaining Balance:</span>
                                   <span className="font-bold text-primary">
-                                    {formatPrice(Math.max(0, totalCost - (Number(formData.partialAmount) || 0)))}
+                                    {formatPrice(Math.max(0, discountedTotalCost - (Number(formData.partialAmount) || 0)))}
                                   </span>
                                 </div>
                               </div>

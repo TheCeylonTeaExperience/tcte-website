@@ -107,7 +107,8 @@ model Program {
     updatedAt   DateTime  @updatedAt
     deletedAt   DateTime?
 
-    sessions Session[]
+    sessions      Session[]
+    discountRules DiscountRule[]
 
     @@map("programs")
 }
@@ -317,4 +318,29 @@ enum CommissionPaymentStatus {
     PENDING
     PAID
     PARTIALLY_PAID
+}
+
+// Discount Rules - Define discounts based on session selection combinations
+model DiscountRule {
+    id              Int       @id @default(autoincrement())
+    programId       Int
+    program         Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+    name            String    // e.g., "All Sessions Discount", "Two Sessions Combo"
+    description     String?
+    sessionIds      String    // JSON array of session IDs that trigger this discount e.g., "[1,2,3]"
+    discountType    DiscountType @default(PERCENTAGE)
+    discountValue   Float     // Percentage or fixed amount
+    priority        Int       @default(0) // Higher priority rules are applied first
+    isActive        Boolean   @default(true)
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+    deletedAt       DateTime?
+
+    @@index([programId])
+    @@map("discount_rules")
+}
+
+enum DiscountType {
+    PERCENTAGE
+    FIXED_AMOUNT
 }
