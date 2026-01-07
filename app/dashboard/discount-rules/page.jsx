@@ -456,7 +456,7 @@ export default function DiscountRulesPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="border-2 max-w-2xl" style={{ borderColor: "#C5BF81" }}>
+        <DialogContent className="border-2 max-w-4xl max-h-[90vh] overflow-y-auto" style={{ borderColor: "#C5BF81" }}>
           <DialogHeader>
             <DialogTitle style={{ color: "#767014" }}>
               {editingRule ? "Edit Discount Rule" : "Add Discount Rule"}
