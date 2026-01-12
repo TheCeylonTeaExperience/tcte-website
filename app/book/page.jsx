@@ -1831,7 +1831,7 @@ export default function BookNow() {
                               }
                             >
                               <SelectTrigger id="location" className="h-12 w-full border-2 border-primary/30 focus:border-primary">
-                                <SelectValue placeholder="Choose your tea estate" />
+                                <SelectValue placeholder="Choose Your Location" />
                               </SelectTrigger>
                               <SelectContent>
                                 {locationChoices.map((loc) => (
