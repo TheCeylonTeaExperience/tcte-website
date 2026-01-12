@@ -704,11 +704,11 @@ export default function BookNow() {
   }, [seasonSelections, availabilityForDate]);
 
   // Calculate discounted total cost
-  // Calculate final total cost with additional charges
+  // Calculate final total cost with discount applied
   const discountedTotalCost = useMemo(() => {
     if (!discountInfo?.appliedRule) return totalCost;
-    const add = Number(discountInfo.additionalAmount) || 0;
-    return totalCost + (add * totalSeatsRequested);
+    const discount = Number(discountInfo.discountAmount) || 0;
+    return Math.max(0, totalCost - (discount * totalSeatsRequested));
   }, [totalCost, discountInfo, totalSeatsRequested]);
 
   const handlePaymentTypeChange = (value) => {
@@ -2384,17 +2384,17 @@ export default function BookNow() {
                               {discountInfo?.appliedRule && (
                                 <>
                                   <div className="flex justify-between items-center text-sm">
-                                    <span className="text-blue-600 flex items-center gap-2">
-                                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                    <span className="text-emerald-600 flex items-center gap-2">
+                                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                                         {discountInfo.appliedRule.discountType === 'PERCENTAGE' 
-                                          ? `+${discountInfo.appliedRule.discountValue}%`
-                                          : `+USD ${discountInfo.appliedRule.discountValue}`
+                                          ? `-${discountInfo.appliedRule.discountValue}%`
+                                          : `Special Price`
                                         }
                                       </span>
                                       {discountInfo.appliedRule.name}
                                     </span>
-                                    <span className="text-blue-600 font-medium">
-                                      +{formatPrice((Number(discountInfo.additionalAmount) || 0) * totalSeatsRequested)}
+                                    <span className="text-emerald-600 font-medium">
+                                      -{formatPrice((Number(discountInfo.discountAmount) || 0) * totalSeatsRequested)}
                                     </span>
                                   </div>
                                   {discountInfo.appliedRule.description && (
@@ -2411,7 +2411,7 @@ export default function BookNow() {
                                 </span>
                               </div>
                               {discountLoading && (
-                                <p className="text-xs text-muted-foreground animate-pulse">Checking for additional charges...</p>
+                                <p className="text-xs text-muted-foreground animate-pulse">Checking for eligible discounts...</p>
                               )}
                             </div>
                           </div>
