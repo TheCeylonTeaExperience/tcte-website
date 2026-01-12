@@ -105,7 +105,7 @@ export async function POST(request) {
 
     // Find the best matching discount rule
     let appliedRule = null;
-    let additionalAmount = 0;
+    let discountAmount = 0;
 
     const sortedSelectedIds = [...parsedSessionIds].sort((a, b) => a - b);
 
@@ -118,12 +118,13 @@ export async function POST(request) {
         ruleSessionIds.every((id, idx) => id === sortedSelectedIds[idx]);
 
       if (isExactMatch) {
-        // Calculate additional amount to ADD
+        // Calculate discount amount
         if (rule.discountType === "PERCENTAGE") {
-          additionalAmount = (originalTotal * rule.discountValue) / 100;
+          discountAmount = (originalTotal * rule.discountValue) / 100;
         } else {
-          // FIXED_AMOUNT - add the fixed amount directly
-          additionalAmount = rule.discountValue;
+          // FIXED_AMOUNT - Treat as the final discounted price (target price)
+          // Discount = Base Price - Final Price
+          discountAmount = Math.max(0, originalTotal - rule.discountValue);
         }
 
         appliedRule = {
@@ -138,18 +139,18 @@ export async function POST(request) {
       }
     }
 
-    // Add the additional amount to the original total
-    const finalTotal = originalTotal + additionalAmount;
+    // Subtract the discount amount from the original total
+    const finalTotal = Math.max(0, originalTotal - discountAmount);
 
     return NextResponse.json({
       originalTotal,
-      additionalAmount,
+      discountAmount,
       finalTotal,
       appliedRule,
       priceBreakdown,
       message: appliedRule
-        ? `Rule "${appliedRule.name}" applied - added ${appliedRule.discountType === 'PERCENTAGE' ? appliedRule.discountValue + '%' : 'USD ' + appliedRule.discountValue}`
-        : "No additional charges for this session combination",
+        ? `Rule "${appliedRule.name}" applied`
+        : "No discounts available for this session combination",
     });
   } catch (error) {
     console.error("Error calculating discount:", error);
