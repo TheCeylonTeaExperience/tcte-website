@@ -169,28 +169,45 @@ export async function POST(request) {
       );
     }
 
-    const totalAmount = pricing.reduce((sum, item) => sum + item.total, 0);
+    const totalBaseAmount = pricing.reduce(
+      (sum, item) => sum + item.sessionBasePrice * item.seatsRequested,
+      0
+    );
+    const totalAddOnAmount = pricing.reduce(
+      (sum, item) => sum + item.sessionTypePrice * item.seatsRequested,
+      0
+    );
+    const totalAmount = totalBaseAmount + totalAddOnAmount;
+    const perSeatBaseCombinationTotal = pricing.reduce(
+      (sum, item) => sum + item.sessionBasePrice,
+      0
+    );
+    const seatCounts = selections.map((selection) => selection.seatsRequested || 0);
+    const seatsEligibleForDiscount =
+      seatCounts.length > 0 ? Math.min(...seatCounts) : 0;
 
-    // Calculate Pax Count (proxy for number of people)
-    const paxCount = selections.length > 0 ? Math.max(...selections.map(s => s.seatsRequested)) : 0;
-
-    // Apply additional charges from discount rules
-    let additionalCharge = 0;
+    let discountAmount = 0;
     const programId = sessions[0]?.programId;
-    if (programId) {
+
+    if (programId && seatsEligibleForDiscount > 0) {
       const discountRules = await prisma.discountRule.findMany({
         where: {
-          programId: programId,
+          programId,
           isActive: true,
           deletedAt: null,
         },
         orderBy: { priority: "desc" },
       });
 
-      const selectedSessionIds = selections.map(s => s.sessionId).sort((a, b) => a - b);
+      const selectedSessionIds = selections
+        .map((selection) => selection.sessionId)
+        .sort((a, b) => a - b);
 
       for (const rule of discountRules) {
-        const ruleSessionIds = JSON.parse(rule.sessionIds || "[]").sort((a, b) => a - b);
+        const ruleSessionIds = JSON.parse(rule.sessionIds || "[]")
+          .map((value) => Number(value))
+          .filter((value) => !Number.isNaN(value))
+          .sort((a, b) => a - b);
 
         const isExactMatch =
           ruleSessionIds.length === selectedSessionIds.length &&
@@ -198,22 +215,33 @@ export async function POST(request) {
 
         if (isExactMatch) {
           if (rule.discountType === "PERCENTAGE") {
-            additionalCharge = (totalAmount * rule.discountValue) / 100;
+            const perSeatDiscount =
+              (perSeatBaseCombinationTotal * rule.discountValue) / 100;
+            discountAmount = perSeatDiscount * seatsEligibleForDiscount;
           } else {
-            additionalCharge = rule.discountValue;
+            const perSeatDiscount = Math.max(
+              0,
+              perSeatBaseCombinationTotal - rule.discountValue
+            );
+            discountAmount = perSeatDiscount * seatsEligibleForDiscount;
           }
-          break; // Use first matching rule
+          break; // First matching rule (highest priority)
         }
       }
     }
 
-    // Add additional charge to total amount
-    const finalTotalAmount = totalAmount + (additionalCharge * paxCount);
+    // Apply discounts only to the session base total, then add session type add-ons
+    const discountedBaseAmount = Math.max(0, totalBaseAmount - discountAmount);
+    const finalTotalAmount = discountedBaseAmount + totalAddOnAmount;
 
     let paidAmount = finalTotalAmount;
 
+    // Use passed amount if available (for both partial and full payments)
+    if (typeof partialAmount === 'number') {
+      paidAmount = partialAmount;
+    }
+    
     if (paymentType === "Partial") {
-        paidAmount = typeof partialAmount === 'number' ? partialAmount : finalTotalAmount;
         // Ensure paid amount doesn't exceed total
         if (paidAmount > finalTotalAmount) paidAmount = finalTotalAmount;
         // Ensure paid amount is not negative
@@ -586,7 +614,8 @@ function calculatePrice(selections, sessionMap) {
       throw new HttpError(`Session ${selection.sessionId} not found`);
     }
 
-    let unitPrice = session.specialPrice ?? session.price ?? null;
+    const sessionBasePrice = session.specialPrice ?? session.price ?? 0;
+    let sessionTypePrice = 0;
 
     if (selection.sessionTypeId) {
       const sessionType = session.sessionTypes.find(
@@ -599,8 +628,10 @@ function calculatePrice(selections, sessionMap) {
         );
       }
 
-      unitPrice = sessionType.specialPrice ?? sessionType.price;
+      sessionTypePrice = sessionType.specialPrice ?? sessionType.price ?? 0;
     }
+
+    const unitPrice = sessionBasePrice + sessionTypePrice;
 
     if (unitPrice === null || unitPrice === undefined) {
       throw new HttpError(`Price not configured for session ${selection.sessionId}`);
@@ -610,6 +641,9 @@ function calculatePrice(selections, sessionMap) {
 
     return {
       sessionId: selection.sessionId,
+      sessionTypeId: selection.sessionTypeId ?? null,
+      sessionBasePrice,
+      sessionTypePrice,
       unitPrice,
       seatsRequested: selection.seatsRequested,
       total,

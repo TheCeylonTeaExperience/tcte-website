@@ -75,7 +75,7 @@ export async function GET(request) {
           deletedAt: null,
         },
         orderBy: {
-          price: "asc",
+          createdAt: "asc",
         },
       };
     }

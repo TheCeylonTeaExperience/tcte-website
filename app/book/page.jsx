@@ -143,7 +143,7 @@ export default function BookNow() {
   const [programOptions, setProgramOptions] = useState([]);
   const [programsLoading, setProgramsLoading] = useState(false);
   const [programsError, setProgramsError] = useState("");
-  const [currentStage, setCurrentStage] = useState("booking");
+  const [currentStage, setCurrentStage] = useState("guests");
   const [guestDetails, setGuestDetails] = useState([]);
   const [verifiedLeader, setVerifiedLeader] = useState(null);
   const [promoStatus, setPromoStatus] = useState({ state: "idle", message: "" });
@@ -485,8 +485,9 @@ export default function BookNow() {
     return seatCounts.length ? Math.max(...seatCounts) : 0;
   }, [seasonSelections, useGlobalSeatCount, globalSeatCount]);
 
-  // Collect all selected session types from all seasons/activities
-  const allSelectedSessionTypes = useMemo(() => {
+  // Collect all available session types from all selected activities
+  // These will be shown on the guest details page for selection
+  const allAvailableSessionTypes = useMemo(() => {
     const sessionTypes = [];
     Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
       if (!selection || selection.seatsRequested <= 0) return;
@@ -500,19 +501,18 @@ export default function BookNow() {
         const activity = season.activities?.find((a) => a.name === activityName);
         if (!activity) return;
         
-        const selectedTypeIds = Object.keys(activityState.sessionTypes ?? {});
-        if (selectedTypeIds.length > 0 && Array.isArray(activity.sessionTypes)) {
-          selectedTypeIds.forEach((typeId) => {
-            const sessionType = activity.sessionTypes.find((st) => String(st.id) === String(typeId));
-            if (sessionType) {
-              sessionTypes.push({
-                sessionId: activity.id,
-                sessionTypeId: sessionType.id,
-                sessionTypeName: sessionType.name,
-                activityName: activity.name,
-                seasonId,
-              });
-            }
+        // Include ALL session types from the activity, not just pre-selected ones
+        if (Array.isArray(activity.sessionTypes) && activity.sessionTypes.length > 0) {
+          activity.sessionTypes.forEach((sessionType) => {
+            sessionTypes.push({
+              sessionId: activity.id,
+              sessionTypeId: sessionType.id,
+              sessionTypeName: sessionType.name,
+              price: sessionType.price,
+              specialPrice: sessionType.specialPrice,
+              activityName: activity.name,
+              seasonId,
+            });
           });
         }
       });
@@ -531,14 +531,14 @@ export default function BookNow() {
       const emailValid = Boolean(guest?.email && guest.email.trim());
       
       // If there are session types to select, each guest must select at least one
-      if (allSelectedSessionTypes.length > 0) {
+      if (allAvailableSessionTypes.length > 0) {
         const hasSelectedTypes = guest.selectedSessionTypes && Object.keys(guest.selectedSessionTypes).length > 0;
         return nameValid && idValid && phoneValid && emailValid && hasSelectedTypes;
       }
       
       return nameValid && idValid && phoneValid && emailValid;
     });
-  }, [guestDetails, allSelectedSessionTypes]);
+  }, [guestDetails, allAvailableSessionTypes]);
 
   useEffect(() => {
     if (currentStage !== "guests") {
@@ -546,8 +546,8 @@ export default function BookNow() {
     }
 
     const desiredLength = Math.max(0, totalSeatsRequested);
+    // Don't redirect away - let user fill in seat count on this page
     if (desiredLength === 0) {
-      setCurrentStage("booking");
       return;
     }
 
@@ -590,8 +590,43 @@ export default function BookNow() {
     return Number.isNaN(numeric) ? null : numeric;
   };
 
-  const calculateTotalCost = useCallback(() => {
-    let total = 0;
+  const sessionTypeLookup = useMemo(() => {
+    const lookup = new Map();
+
+    programOptions.forEach((program) => {
+      if (!Array.isArray(program?.sessions)) {
+        return;
+      }
+
+      program.sessions.forEach((session) => {
+        if (!Array.isArray(session?.sessionTypes)) {
+          return;
+        }
+
+        session.sessionTypes.forEach((sessionType) => {
+          const resolvedPrice =
+            parsePriceValue(sessionType.specialPrice) ??
+            parsePriceValue(sessionType.price) ??
+            0;
+
+          lookup.set(String(sessionType.id), {
+            sessionTypeId: sessionType.id,
+            sessionTypeName: sessionType.name,
+            sessionId: session.id,
+            sessionName: session.name,
+            programTitle: program.title ?? program.name ?? "Program",
+            unitPrice: resolvedPrice,
+          });
+        });
+      });
+    });
+
+    return lookup;
+  }, [programOptions]);
+
+  const calculateCostBreakdown = useCallback(() => {
+    let sessionBaseTotal = 0;
+    let sessionTypeTotal = 0;
     Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
       const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
       if (seatsRequested <= 0) return;
@@ -608,34 +643,56 @@ export default function BookNow() {
         ([, details]) => details?.selected
       );
 
-      activityEntries.forEach(([activityName, details]) => {
+      activityEntries.forEach(([activityName]) => {
         const session = program.sessions?.find(
           (item) => item.name === activityName
         );
         if (!session) return;
 
-        const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+        // Check if activity has session types
+        const hasSessionTypes = Array.isArray(session.sessionTypes) && session.sessionTypes.length > 0;
 
-        if (sessionTypeIds.length === 0) {
-           // Use session price
-           const price = parsePriceValue(session.specialPrice) ?? parsePriceValue(session.price) ?? 0;
-           total += price * seatsRequested;
-        } else {
-           // Use session type prices
-           sessionTypeIds.forEach((typeId) => {
-             const sessionType = session.sessionTypes?.find(st => String(st.id) === String(typeId));
-             if (sessionType) {
-                const price = parsePriceValue(sessionType.specialPrice) ?? parsePriceValue(sessionType.price) ?? 0;
-                total += price * seatsRequested;
-             }
-           });
+        // Always include session base price
+        const sessionBasePrice = parsePriceValue(session.specialPrice) ?? parsePriceValue(session.price) ?? 0;
+        sessionBaseTotal += sessionBasePrice * seatsRequested;
+
+        if (hasSessionTypes) {
+          // If on guest details page, use selected session type prices from guestDetails
+          // Otherwise, use the first/lowest session type price as estimate
+          if (currentStage === "guests" && guestDetails.length > 0) {
+            // Calculate based on each guest's selected session types
+            guestDetails.forEach((guest) => {
+              const selectedTypeIds = Object.keys(guest.selectedSessionTypes ?? {});
+              selectedTypeIds.forEach((typeId) => {
+                const sessionType = session.sessionTypes.find(st => String(st.id) === String(typeId));
+                if (sessionType) {
+                  const price = parsePriceValue(sessionType.specialPrice) ?? parsePriceValue(sessionType.price) ?? 0;
+                  sessionTypeTotal += price;
+                }
+              });
+            });
+          } else {
+            // On booking page, use session type prices (first one as reference)
+            const sessionType = session.sessionTypes[0];
+            if (sessionType) {
+              const price = parsePriceValue(sessionType.specialPrice) ?? parsePriceValue(sessionType.price) ?? 0;
+              sessionTypeTotal += price * seatsRequested;
+            }
+          }
         }
       });
     });
-    return total;
-  }, [seasonSelections, programOptions]);
+    return {
+      totalCost: sessionBaseTotal + sessionTypeTotal,
+      sessionBaseTotal,
+      sessionTypeTotal,
+    };
+  }, [seasonSelections, programOptions, currentStage, guestDetails]);
 
-  const totalCost = useMemo(() => calculateTotalCost(), [calculateTotalCost]);
+  const { totalCost, sessionTypeTotal } = useMemo(
+    () => calculateCostBreakdown(),
+    [calculateCostBreakdown]
+  );
 
   // Fetch discount rules from database when selections change
   useEffect(() => {
@@ -705,11 +762,127 @@ export default function BookNow() {
 
   // Calculate discounted total cost
   // Calculate final total cost with discount applied
+  // Use finalTotal from the discount API (per-seat) multiplied by seats
+  // This ensures the amount matches what the payment gateway will charge
   const discountedTotalCost = useMemo(() => {
     if (!discountInfo?.appliedRule) return totalCost;
-    const discount = Number(discountInfo.discountAmount) || 0;
-    return Math.max(0, totalCost - (discount * totalSeatsRequested));
-  }, [totalCost, discountInfo, totalSeatsRequested]);
+    const finalTotalPerSeat = Number(discountInfo.finalTotal) || 0;
+    const discountedSessionTotal = Math.max(0, finalTotalPerSeat * totalSeatsRequested);
+    return discountedSessionTotal + sessionTypeTotal;
+  }, [totalCost, discountInfo, totalSeatsRequested, sessionTypeTotal]);
+
+  const paymentBreakdown = useMemo(() => {
+    const entries = [];
+    const includeSeasonLevelSessionTypes = !(
+      currentStage === "guests" && guestDetails.length > 0
+    );
+
+    Object.entries(seasonSelections).forEach(([seasonId, selection]) => {
+      const seatsRequested = Number.parseInt(selection?.seatsRequested, 10) || 0;
+      if (seatsRequested <= 0) {
+        return;
+      }
+
+      const resolvedProgramId = selection?.programId ?? seasonId;
+      const program = programOptions.find((programOption) => {
+        const optionId = programOption.id ?? programOption.title;
+        return String(optionId) === String(resolvedProgramId);
+      });
+
+      Object.entries(selection.activities ?? {}).forEach(([activityName, activityState]) => {
+        if (!activityState?.selected) {
+          return;
+        }
+
+        const session = program?.sessions?.find(
+          (sessionItem) => sessionItem.name === activityName
+        );
+
+        const sessionLabel = session?.name ?? activityName;
+        const programLabel = program?.title ?? program?.name ?? seasonId;
+        const sessionUnitPrice =
+          parsePriceValue(session?.specialPrice) ??
+          parsePriceValue(session?.price) ??
+          0;
+
+        entries.push({
+          key: `session-${seasonId}-${session?.id ?? activityName}`,
+          title: sessionLabel,
+          subtitle: `${programLabel} • ${seatsRequested} ${
+            seatsRequested === 1 ? "seat" : "seats"
+          }`,
+          unitPrice: sessionUnitPrice,
+          total: sessionUnitPrice * seatsRequested,
+          seats: seatsRequested,
+          badge: "Session",
+        });
+
+        if (
+          includeSeasonLevelSessionTypes &&
+          Array.isArray(session?.sessionTypes) &&
+          session.sessionTypes.length > 0
+        ) {
+          const selectedTypeIds = Object.keys(activityState.sessionTypes ?? {});
+          selectedTypeIds.forEach((sessionTypeId) => {
+            const sessionType = session.sessionTypes.find(
+              (type) => String(type.id) === String(sessionTypeId)
+            );
+
+            if (!sessionType) {
+              return;
+            }
+
+            const typeUnitPrice =
+              parsePriceValue(sessionType.specialPrice) ??
+              parsePriceValue(sessionType.price) ??
+              0;
+
+            entries.push({
+              key: `session-type-${seasonId}-${session?.id ?? activityName}-${sessionType.id}`,
+              title: sessionType.name,
+              subtitle: `${sessionLabel} • ${seatsRequested} ${
+                seatsRequested === 1 ? "seat" : "seats"
+              }`,
+              unitPrice: typeUnitPrice,
+              total: typeUnitPrice * seatsRequested,
+              seats: seatsRequested,
+              badge: "Session Type",
+            });
+          });
+        }
+      });
+    });
+
+    if (currentStage === "guests" && guestDetails.length > 0) {
+      guestDetails.forEach((guest, guestIndex) => {
+        const typeIds = Object.keys(guest.selectedSessionTypes ?? {});
+        typeIds.forEach((sessionTypeId) => {
+          const meta = sessionTypeLookup.get(String(sessionTypeId));
+          if (!meta) {
+            return;
+          }
+
+          entries.push({
+            key: `guest-session-type-${guestIndex}-${sessionTypeId}`,
+            title: meta.sessionTypeName,
+            subtitle: `${meta.sessionName} • Guest ${guestIndex + 1}`,
+            unitPrice: meta.unitPrice,
+            total: meta.unitPrice,
+            seats: 1,
+            badge: "Session Type",
+          });
+        });
+      });
+    }
+
+    return entries;
+  }, [
+    seasonSelections,
+    programOptions,
+    currentStage,
+    guestDetails,
+    sessionTypeLookup,
+  ]);
 
   const handlePaymentTypeChange = (value) => {
     setFormData(prev => ({
@@ -1133,19 +1306,9 @@ export default function BookNow() {
         return false;
       }
 
-      return selectedActivities.some(([activityName, activity]) => {
-        const season = availabilityForDate?.find((item) => item.id === seasonId);
-        const matchingActivity = season?.activities?.find(
-          (item) => item.name === activityName
-        );
-        const sessionTypes = matchingActivity?.sessionTypes ?? [];
-
-        if (!sessionTypes.length) {
-          return true;
-        }
-
-        return Object.keys(activity.sessionTypes ?? {}).length > 0;
-      });
+      // Session types are now selected on the second page (guest details)
+      // So we only need to check that activities are selected
+      return true;
     });
   }, [availabilityForDate, seasonSelections]);
 
@@ -1311,9 +1474,9 @@ export default function BookNow() {
     });
   };
 
-  const handleBackToBooking = () => {
+  const handleBackToGuests = () => {
     setIsSubmitting(false);
-    setCurrentStage("booking");
+    setCurrentStage("guests");
   };
 
   const submitPayHereRedirect = useCallback((redirect) => {
@@ -1348,72 +1511,32 @@ export default function BookNow() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentStage === "booking") {
-      if (formData.programIds.length === 0) {
-        alert("Select at least one program before proceeding.");
-        return;
-      }
-
-      if (!hasValidSeasonSelection) {
-        alert(
-          "Select at least one season, choose activities, and set the seats needed before continuing."
-        );
-        return;
-      }
-
-      if (!selectedDate) {
-        alert("Select a date before continuing.");
-        return;
-      }
-
-      if (totalSeatsRequested === 0) {
-        alert("Please specify how many seats you need before continuing.");
-        return;
-      }
-
-      if (!verifiedLeader) {
-        if (!formData.name?.trim()) {
-          alert("Enter your full name before continuing.");
-          return;
-        }
-
-        if (!formData.email?.trim()) {
-          alert("Enter a valid email before continuing.");
-          return;
-        }
-
-        if (!formData.phone?.trim()) {
-          setPhoneValidation({
-            state: "error",
-            message: "Enter a phone number before continuing.",
-          });
-          alert("Enter a phone number before continuing.");
-          return;
-        }
-
-        const phoneCheck = validatePhoneNumber(
-          formData.countryCode,
-          formData.phone
-        );
-
-        if (!phoneCheck.isValid) {
-          alert("Enter a valid phone number before continuing.");
-          return;
-        }
-      }
-
-      setCurrentStage("guests");
+    
+    // Validate all fields on single page
+    if (formData.programIds.length === 0) {
+      alert("Select at least one program before proceeding.");
       return;
     }
 
-    if (!guestDetailsComplete) {
-      alert("Please fill in all guest details before confirming your booking.");
+    if (!hasValidSeasonSelection) {
+      alert(
+        "Select at least one season, choose activities, and set the seats needed before continuing."
+      );
       return;
     }
 
     if (!selectedDate) {
       alert("Select a date before confirming your booking.");
-      setCurrentStage("booking");
+      return;
+    }
+
+    if (totalSeatsRequested === 0) {
+      alert("Please specify how many seats you need before confirming.");
+      return;
+    }
+
+    if (!guestDetailsComplete) {
+      alert("Please fill in all guest details before confirming your booking.");
       return;
     }
 
@@ -1427,7 +1550,6 @@ export default function BookNow() {
 
       if (!latestPhoneCheck.isValid) {
         alert("Enter a valid phone number before confirming your booking.");
-        setCurrentStage("booking");
         return;
       }
 
@@ -1517,7 +1639,7 @@ export default function BookNow() {
 
       // Build a map of session type info for quick lookup
       const sessionTypeInfoMap = new Map();
-      allSelectedSessionTypes.forEach((st) => {
+      allAvailableSessionTypes.forEach((st) => {
         sessionTypeInfoMap.set(String(st.sessionTypeId), st);
       });
 
@@ -1555,7 +1677,28 @@ export default function BookNow() {
             return;
           }
 
-          const sessionTypeIds = Object.keys(details.sessionTypes ?? {});
+          const mergedSessionTypeIds = new Set(
+            Object.keys(details.sessionTypes ?? {})
+          );
+
+          guestDetails.forEach((guest) => {
+            Object.entries(guest.selectedSessionTypes ?? {}).forEach(
+              ([typeId, selected]) => {
+                if (!selected) {
+                  return;
+                }
+                const meta = sessionTypeInfoMap.get(String(typeId));
+                if (!meta) {
+                  return;
+                }
+                if (String(meta.sessionId) === String(session.id)) {
+                  mergedSessionTypeIds.add(String(typeId));
+                }
+              }
+            );
+          });
+
+          const sessionTypeIds = Array.from(mergedSessionTypeIds);
 
           if (sessionTypeIds.length === 0) {
             // No session types - all guests go to this session
@@ -1610,7 +1753,7 @@ export default function BookNow() {
         selections: bookingSelections,
         payment: {
           paymentType: formData.payment,
-          amount: formData.payment === "Partial" ? Number(formData.partialAmount) : undefined,
+          amount: formData.payment === "Partial" ? Number(formData.partialAmount) : Number(discountedTotalCost),
           provider: "PAYHERE",
           currency: "USD",
           method: "PayHere Checkout",
@@ -1810,71 +1953,69 @@ export default function BookNow() {
             
             <Card className="max-w-6xl mx-auto border-2 border-primary/20 shadow-2xl bg-white/95 backdrop-blur overflow-hidden">
               <CardContent className="pt-8 pb-8">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {currentStage === "booking" ? (
-                    <>
-                     {/* Booking Details */}
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-serif font-bold text-primary text-center mb-8">
-                          Booking Details
-                        </h2>
-                        <div className="grid gap-6 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="location" className="text-base font-semibold flex items-center gap-2">
-                              <span className="w-2 h-2 bg-primary rounded-full"></span>
-                              Select Location *
-                            </Label>
-                            <Select
-                              value={formData.location}
-                              onValueChange={(value) =>
-                                setFormData({ ...formData, location: value })
-                              }
-                            >
-                              <SelectTrigger id="location" className="h-12 w-full border-2 border-primary/30 focus:border-primary">
-                                <SelectValue placeholder="Choose Your Location" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {locationChoices.map((loc) => (
-                                  <SelectItem key={loc} value={loc} className="cursor-pointer">
-                                    {loc}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Section 1: Booking Details */}
+                    <div className="space-y-4">
+                      <h2 className="text-2xl font-serif font-bold text-primary text-center mb-8">
+                        Booking Details
+                      </h2>
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="location" className="text-base font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            Select Location *
+                          </Label>
+                          <Select
+                            value={formData.location}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, location: value })
+                            }
+                          >
+                            <SelectTrigger id="location" className="h-12 w-full border-2 border-primary/30 focus:border-primary">
+                              <SelectValue placeholder="Choose Your Location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {locationChoices.map((loc) => (
+                                <SelectItem key={loc} value={loc} className="cursor-pointer">
+                                  {loc}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                          <div className="space-y-2">
-                            <Label className="text-base font-semibold flex items-center gap-2">
-                              <span className="w-2 h-2 bg-primary rounded-full"></span>
-                              Select Date *
-                            </Label>
-                            <div className="relative" ref={calendarRef}>
-                              <div
-                                onClick={() => setShowCalendar(!showCalendar)}
-                                className="h-12 border-2 border-primary/30 rounded-lg px-3 bg-white flex items-center justify-between cursor-pointer hover:border-primary transition-colors"
-                              >
-                                <span className={selectedDate ? "text-foreground" : "text-muted-foreground"}>
-                                  {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                                </span>
-                                <FaCalendarAlt className="text-primary" />
-                              </div>
-                              {showCalendar && (
-                                <div className="absolute z-50 mt-2 border-2 border-primary/30 rounded-lg p-3 bg-white shadow-xl">
-                                  <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={(date) => {
-                                      setSelectedDate(date);
-                                      setShowCalendar(false);
-                                    }}
-                                    disabled={(date) => date < new Date()}
-                                    className="rounded-md"
-                                  />
-                                </div>
-                              )}
+                        <div className="space-y-2">
+                          <Label className="text-base font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            Select Date *
+                          </Label>
+                          <div className="relative" ref={calendarRef}>
+                            <div
+                              onClick={() => setShowCalendar(!showCalendar)}
+                              className="h-12 border-2 border-primary/30 rounded-lg px-3 bg-white flex items-center justify-between cursor-pointer hover:border-primary transition-colors"
+                            >
+                              <span className={selectedDate ? "text-foreground" : "text-muted-foreground"}>
+                                {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                              </span>
+                              <FaCalendarAlt className="text-primary" />
                             </div>
+                            {showCalendar && (
+                              <div className="absolute z-50 mt-2 border-2 border-primary/30 rounded-lg p-3 bg-white shadow-xl">
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={(date) => {
+                                    setSelectedDate(date);
+                                    setShowCalendar(false);
+                                  }}
+                                  disabled={(date) => date < new Date()}
+                                  className="rounded-md"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
+                      </div>
                        
                         {/* <div className="space-y-3">
                           <Label className="text-base font-medium">
@@ -2244,77 +2385,6 @@ export default function BookNow() {
                                                     }}
                                                   />
                                                 </div>
-                                                {activitySelected &&
-                                                  activity.sessionTypes &&
-                                                  activity.sessionTypes.length >
-                                                    0 && (
-                                                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                                                      <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">
-                                                        Select session types:
-                                                      </p>
-                                                      <div className="space-y-2">
-                                                        {activity.sessionTypes.map(
-                                                          (st) => {
-                                                            const stCheckboxId = `st-${season.id}-${normalizedActivityId}-${st.id}`;
-                                                            const stSelected =
-                                                              seasonSelection
-                                                                ?.activities?.[
-                                                                activity.name
-                                                              ]?.sessionTypes?.[
-                                                                st.id
-                                                              ] || false;
-                                                            return (
-                                                              <div
-                                                                key={st.id}
-                                                                className={`flex items-center gap-2 p-2 rounded transition-colors ${
-                                                                  stSelected ? "bg-primary/10" : "hover:bg-primary/5"
-                                                                }`}
-                                                              >
-                                                                <Checkbox
-                                                                  id={stCheckboxId}
-                                                                  checked={stSelected}
-                                                                  onCheckedChange={() =>
-                                                                    handleSessionTypeToggle(
-                                                                      season.id,
-                                                                      activity.name,
-                                                                      st.id
-                                                                    )
-                                                                  }
-                                                                  className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary flex-shrink-0"
-                                                                />
-                                                                <label
-                                                                  htmlFor={
-                                                                    stCheckboxId
-                                                                  }
-                                                                  className={`text-xs font-medium cursor-pointer flex-1 min-w-0 ${
-                                                                    stSelected ? "text-primary" : "text-foreground"
-                                                                  }`}
-                                                                >
-                                                                  <span className="block truncate">{st.name}</span>
-                                                                  <div className="block">
-                                                                    {st.specialPrice ? (
-                                                                      <div className="flex flex-col items-start">
-                                                                        <span className="text-xs text-muted-foreground line-through">
-                                                                          {formatPrice(st.price)}
-                                                                        </span>
-                                                                        <span className="font-bold text-red-600">
-                                                                          {formatPrice(st.specialPrice)}
-                                                                        </span>
-                                                                      </div>
-                                                                    ) : (
-                                                                      <span className="font-bold block">
-                                                                        {formatPrice(st.price)}
-                                                                      </span>
-                                                                    )}
-                                                                  </div>
-                                                                </label>
-                                                              </div>
-                                                            );
-                                                          }
-                                                        )}
-                                                      </div>
-                                                    </div>
-                                                  )}
                                               </div>
                                             );
                                           })}
@@ -2368,100 +2438,6 @@ export default function BookNow() {
                             )}
                           </div>
                         )}
-
-                        <div className="space-y-4 border-t pt-4">
-                          <h3 className="text-lg font-semibold">Payment Options</h3>
-                          
-                          {/* Price Summary with Additional Charges from Database */}
-                          <div className="rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4">
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Base Price:</span>
-                                <span className="font-semibold">
-                                  {formatPrice(totalCost)}
-                                </span>
-                              </div>
-                              {discountInfo?.appliedRule && (
-                                <>
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-emerald-600 flex items-center gap-2">
-                                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                        {discountInfo.appliedRule.discountType === 'PERCENTAGE' 
-                                          ? `-${discountInfo.appliedRule.discountValue}%`
-                                          : `Special Price`
-                                        }
-                                      </span>
-                                      {discountInfo.appliedRule.name}
-                                    </span>
-                                    <span className="text-emerald-600 font-medium">
-                                      -{formatPrice((Number(discountInfo.discountAmount) || 0) * totalSeatsRequested)}
-                                    </span>
-                                  </div>
-                                  {discountInfo.appliedRule.description && (
-                                    <p className="text-xs text-muted-foreground italic">
-                                      {discountInfo.appliedRule.description}
-                                    </p>
-                                  )}
-                                </>
-                              )}
-                              <div className="flex justify-between items-center pt-2 border-t border-primary/20">
-                                <span className="font-semibold">Total to Pay:</span>
-                                <span className="text-xl font-bold text-primary">
-                                  {formatPrice(discountedTotalCost)}
-                                </span>
-                              </div>
-                              {discountLoading && (
-                                <p className="text-xs text-muted-foreground animate-pulse">Checking for eligible discounts...</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="payment">Payment Type *</Label>
-                              <Select
-                                value={formData.payment}
-                                onValueChange={handlePaymentTypeChange}
-                                required
-                              >
-                                <SelectTrigger id="payment">
-                                  <SelectValue placeholder="Choose payment option" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Full">Full Payment ({formatPrice(discountedTotalCost)})</SelectItem>
-                                  <SelectItem value="Partial">Partial Payment (Total: {formatPrice(discountedTotalCost)})</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {formData.payment === "Partial" && (
-                              <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
-                                <Label htmlFor="partialAmount">Enter Payment Amount (USD)</Label>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    id="partialAmount"
-                                    type="number"
-                                    min="0"
-                                    max={discountedTotalCost}
-                                    value={formData.partialAmount}
-                                    onChange={handlePartialAmountChange}
-                                    placeholder="Enter amount to pay now"
-                                    className="border-primary/30"
-                                  />
-                                  <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
-                                    of {formatPrice(discountedTotalCost)}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
-                                  <span>Remaining Balance:</span>
-                                  <span className="font-bold text-primary">
-                                    {formatPrice(Math.max(0, discountedTotalCost - (Number(formData.partialAmount) || 0)))}
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="notes" className="text-base font-semibold">Additional Notes (Optional)</Label>
@@ -2625,25 +2601,9 @@ export default function BookNow() {
                         
                       </div>
 
-                     
-
-                      <Button
-                        type="submit"
-                        size="lg"
-                        className="w-full"
-                        // disabled={
-                        //   !selectedDate ||
-                        //   formData.programIds.length === 0 ||
-                        //   !hasValidSeasonSelection ||
-                        //   totalSeatsRequested === 0
-                        // }
-                      >
-                        Next
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-6">
+                    {/* Section 2: Guest Details */}
+                    {totalSeatsRequested > 0 && (
+                      <div className="space-y-6 border-t-2 border-primary/20 pt-8">
                         <div className="flex items-center gap-3 pb-4 border-b-2 border-primary/20">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                             <FaUsers className="text-white" />
@@ -2662,170 +2622,308 @@ export default function BookNow() {
                         </p>
 
                         <div className="space-y-4">
-                          {guestDetails.length === 0 ? (
-                            <div className="rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
-                              Please go back and select your seats to continue.
-                            </div>
-                          ) : (
-                            guestDetails.map((guest, index) => (
-                              <div
-                                key={`guest-${index}`}
-                                className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-white to-primary/5 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
-                              >
-                                <div className="flex items-center justify-between gap-2 mb-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold">
-                                      {index + 1}
-                                    </div>
-                                    <h3 className="text-xl font-bold text-primary">
-                                      Guest {index + 1}
-                                    </h3>
+                          {guestDetails.map((guest, index) => (
+                            <div
+                              key={`guest-${index}`}
+                              className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-white to-primary/5 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-bold">
+                                    {index + 1}
                                   </div>
-                                  <span className="text-xs font-semibold uppercase tracking-wide bg-primary/10 text-primary px-3 py-1 rounded-full">
-                                    Seat #{index + 1}
-                                  </span>
+                                  <h3 className="text-xl font-bold text-primary">
+                                    Guest {index + 1}
+                                  </h3>
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                  <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-name-${index}`} className="text-sm font-semibold">
-                                      Full Name *
-                                    </Label>
-                                    <Input
-                                      id={`guest-name-${index}`}
-                                      value={guest.name}
-                                      onChange={(e) =>
-                                        handleGuestDetailChange(index, "name", e.target.value)
-                                      }
-                                      placeholder="Guest name"
-                                      required
-                                    />
-                                  </div>
-                                  <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-id-${index}`} className="text-sm">
-                                      ID / Passport Number
-                                    </Label>
-                                    <Input
-                                      id={`guest-id-${index}`}
-                                      value={guest.idNumber}
-                                      onChange={(e) =>
-                                        handleGuestDetailChange(index, "idNumber", e.target.value)
-                                      }
-                                      placeholder="ID number"
-                                      required
-                                    />
-                                  </div>
-                                  <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-phone-${index}`} className="text-sm">
-                                      Phone Number
-                                    </Label>
-                                    <Input
-                                      id={`guest-phone-${index}`}
-                                      value={guest.phone}
-                                      onChange={(e) =>
-                                        handleGuestDetailChange(index, "phone", e.target.value)
-                                      }
-                                      placeholder="Contact number"
-                                      required
-                                    />
-                                  </div>
-                                  <div className="sm:col-span-1">
-                                    <Label htmlFor={`guest-email-${index}`} className="text-sm">
-                                      Email
-                                    </Label>
-                                    <Input
-                                      id={`guest-email-${index}`}
-                                      type="email"
-                                      value={guest.email}
-                                      onChange={(e) =>
-                                        handleGuestDetailChange(index, "email", e.target.value)
-                                      }
-                                      placeholder="guest@example.com"
-                                      required
-                                    />
-                                  </div>
-                                </div>
-                                
-                                {/* Session Type Selection for this guest */}
-                                {allSelectedSessionTypes.length > 0 && (
-                                  <div className="mt-4 pt-4 border-t border-primary/20">
-                                    <Label className="text-sm font-semibold text-primary mb-3 block">
-                                      Select Session Type(s) for this guest *
-                                    </Label>
-                                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                      {allSelectedSessionTypes.map((st) => {
-                                        const checkboxId = `guest-${index}-st-${st.sessionTypeId}`;
-                                        const isSelected = guest.selectedSessionTypes?.[st.sessionTypeId] === true;
-                                        return (
-                                          <div
-                                            key={checkboxId}
-                                            className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
-                                              isSelected
-                                                ? "border-primary bg-primary/10"
-                                                : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
-                                            }`}
-                                          >
-                                            <Checkbox
-                                              id={checkboxId}
-                                              checked={isSelected}
-                                              onCheckedChange={() => handleGuestSessionTypeToggle(index, st.sessionTypeId)}
-                                              className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                                            />
-                                            <label
-                                              htmlFor={checkboxId}
-                                              className="text-sm cursor-pointer flex-1"
-                                            >
-                                              <span className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
-                                                {st.sessionTypeName}
-                                              </span>
-                                              <span className="text-xs text-muted-foreground block">
-                                                {st.activityName}
-                                              </span>
-                                            </label>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                    {Object.keys(guest.selectedSessionTypes ?? {}).length === 0 && (
-                                      <p className="text-xs text-amber-600 mt-2">
-                                        Please select at least one session type for this guest.
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
+                                <span className="text-xs font-semibold uppercase tracking-wide bg-primary/10 text-primary px-3 py-1 rounded-full">
+                                  Seat #{index + 1}
+                                </span>
                               </div>
-                            ))
+                              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="sm:col-span-1">
+                                  <Label htmlFor={`guest-name-${index}`} className="text-sm font-semibold">
+                                    Full Name *
+                                  </Label>
+                                  <Input
+                                    id={`guest-name-${index}`}
+                                    value={guest.name}
+                                    onChange={(e) =>
+                                      handleGuestDetailChange(index, "name", e.target.value)
+                                    }
+                                    placeholder="Guest name"
+                                    required
+                                  />
+                                </div>
+                                <div className="sm:col-span-1">
+                                  <Label htmlFor={`guest-id-${index}`} className="text-sm">
+                                    ID / Passport Number
+                                  </Label>
+                                  <Input
+                                    id={`guest-id-${index}`}
+                                    value={guest.idNumber}
+                                    onChange={(e) =>
+                                      handleGuestDetailChange(index, "idNumber", e.target.value)
+                                    }
+                                    placeholder="ID number"
+                                    required
+                                  />
+                                </div>
+                                <div className="sm:col-span-1">
+                                  <Label htmlFor={`guest-phone-${index}`} className="text-sm">
+                                    Phone Number
+                                  </Label>
+                                  <Input
+                                    id={`guest-phone-${index}`}
+                                    value={guest.phone}
+                                    onChange={(e) =>
+                                      handleGuestDetailChange(index, "phone", e.target.value)
+                                    }
+                                    placeholder="Contact number"
+                                    required
+                                  />
+                                </div>
+                                <div className="sm:col-span-1">
+                                  <Label htmlFor={`guest-email-${index}`} className="text-sm">
+                                    Email
+                                  </Label>
+                                  <Input
+                                    id={`guest-email-${index}`}
+                                    type="email"
+                                    value={guest.email}
+                                    onChange={(e) =>
+                                      handleGuestDetailChange(index, "email", e.target.value)
+                                    }
+                                    placeholder="guest@example.com"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                              
+                              {/* Session Type Selection for this guest */}
+                              {allAvailableSessionTypes.length > 0 && (
+                                <div className="mt-4 pt-4 border-t border-primary/20">
+                                  <Label className="text-sm font-semibold text-primary mb-3 block">
+                                    Select Session Type(s) for this guest *
+                                  </Label>
+                                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                    {allAvailableSessionTypes.map((st) => {
+                                      const checkboxId = `guest-${index}-st-${st.sessionTypeId}`;
+                                      const isSelected = guest.selectedSessionTypes?.[st.sessionTypeId] === true;
+                                      return (
+                                        <div
+                                          key={checkboxId}
+                                          className={`flex items-center gap-2 p-3 rounded-lg border transition-all ${
+                                            isSelected
+                                              ? "border-primary bg-primary/10"
+                                              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
+                                          }`}
+                                        >
+                                          <Checkbox
+                                            id={checkboxId}
+                                            checked={isSelected}
+                                            onCheckedChange={() => handleGuestSessionTypeToggle(index, st.sessionTypeId)}
+                                            className="border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                          />
+                                          <label
+                                            htmlFor={checkboxId}
+                                            className="text-sm cursor-pointer flex-1"
+                                          >
+                                            <span className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
+                                              {st.sessionTypeName}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground block">
+                                              {st.activityName}
+                                            </span>
+                                            <span className="text-xs font-semibold block mt-1">
+                                              {st.specialPrice ? (
+                                                <>
+                                                  <span className="line-through text-muted-foreground mr-1">{formatPrice(st.price)}</span>
+                                                  <span className="text-red-600">{formatPrice(st.specialPrice)}</span>
+                                                </>
+                                              ) : (
+                                                <span className="text-primary">{formatPrice(st.price)}</span>
+                                              )}
+                                            </span>
+                                          </label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  {Object.keys(guest.selectedSessionTypes ?? {}).length === 0 && (
+                                    <p className="text-xs text-amber-600 mt-2">
+                                      Please select at least one session type for this guest.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 3: Payment Options */}
+                    <div className="space-y-4 border-t-2 border-primary/20 pt-8">
+                      <h2 className="text-2xl font-serif font-bold text-primary">Payment Options</h2>
+                      
+                      {paymentBreakdown.length > 0 ? (
+                        <div className="rounded-lg border-2 border-dashed border-primary/30 bg-white/80 p-4 shadow-sm">
+                          <div className="mb-3 flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+                                Payment Breakdown
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Detailed view of each session and session type you selected.
+                              </p>
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {paymentBreakdown.length} item{paymentBreakdown.length === 1 ? "" : "s"}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {paymentBreakdown.map((entry) => (
+                              <div
+                                key={entry.key}
+                                className="flex items-center justify-between rounded-md border border-primary/20 bg-primary/5 px-3 py-2"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-foreground">{entry.title}</p>
+                                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                      {entry.badge}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{entry.subtitle}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-bold text-primary">
+                                    {formatPrice(entry.total)}
+                                  </p>
+                                  {entry.seats > 1 && (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {formatPrice(entry.unitPrice)} each
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Select sessions and session types to see a detailed payment breakdown.
+                        </p>
+                      )}
+
+                      {/* Price Summary */}
+                      <div className="rounded-lg border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Base Price:</span>
+                            <span className="font-semibold">
+                              {formatPrice(totalCost)}
+                            </span>
+                          </div>
+                          {discountInfo?.appliedRule && (
+                            <>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-emerald-600 flex items-center gap-2">
+                                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                    Combo Discount
+                                  </span>
+                                  {discountInfo.appliedRule.name}
+                                </span>
+                                <span className="text-emerald-600 font-medium">
+                                  -{formatPrice((Number(discountInfo.discountAmount) || 0) * totalSeatsRequested)}
+                                </span>
+                              </div>
+                              {discountInfo.appliedRule.description && (
+                                <p className="text-xs text-muted-foreground italic">
+                                  {discountInfo.appliedRule.description}
+                                </p>
+                              )}
+                            </>
+                          )}
+                          <div className="flex justify-between items-center pt-2 border-t border-primary/20">
+                            <span className="font-semibold">Total to Pay:</span>
+                            <span className="text-xl font-bold text-primary">
+                              {formatPrice(discountedTotalCost)}
+                            </span>
+                          </div>
+                          {discountLoading && (
+                            <p className="text-xs text-muted-foreground animate-pulse">Checking for eligible discounts...</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between border-t-2 border-primary/20">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleBackToBooking}
-                          className="sm:w-48 h-14 text-base border-2 hover:bg-primary/5"
-                        >
-                          ← Back to Booking
-                        </Button>
-                        <Button
-                          type="submit"
-                          size="lg"
-                          className="w-full sm:flex-1 h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                          disabled={isSubmitting || !guestDetailsComplete}
-                        >
-                          {isSubmitting ? (
-                            <span className="flex items-center gap-2">
-                              <span className="animate-spin">⏳</span> Processing...
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-2">
-                              <FaCheck /> Confirm Booking
-                            </span>
-                          )}
-                        </Button>
+                      <div className="grid gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="payment">Payment Type *</Label>
+                          <Select
+                            value={formData.payment}
+                            onValueChange={handlePaymentTypeChange}
+                            required
+                          >
+                            <SelectTrigger id="payment">
+                              <SelectValue placeholder="Choose payment option" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Full">Full Payment ({formatPrice(discountedTotalCost)})</SelectItem>
+                              <SelectItem value="Partial">Partial Payment (Total: {formatPrice(discountedTotalCost)})</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {formData.payment === "Partial" && (
+                          <div className="grid gap-2 p-4 bg-secondary/20 rounded-lg">
+                            <Label htmlFor="partialAmount">Enter Payment Amount (USD)</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="partialAmount"
+                                type="number"
+                                min="0"
+                                max={discountedTotalCost}
+                                value={formData.partialAmount}
+                                onChange={handlePartialAmountChange}
+                                placeholder="Enter amount to pay now"
+                                className="border-primary/30"
+                              />
+                              <span className="text-sm font-medium whitespace-nowrap text-muted-foreground">
+                                of {formatPrice(discountedTotalCost)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm mt-2 pt-2 border-t border-primary/10">
+                              <span>Remaining Balance:</span>
+                              <span className="font-bold text-primary">
+                                {formatPrice(Math.max(0, discountedTotalCost - (Number(formData.partialAmount) || 0)))}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </>
-                  )}
+                    </div>
+
+                    {/* Confirm Booking Button */}
+                    <div className="pt-6 border-t-2 border-primary/20">
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-700 hover:via-emerald-600 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <span className="flex items-center gap-2">
+                            <span className="animate-spin">⏳</span> Processing...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <FaCheck /> Confirm Booking
+                          </span>
+                        )}
+                      </Button>
+                    </div>
                 </form>
               </CardContent>
             </Card>
