@@ -42,7 +42,7 @@ export async function GET(request) {
         },
       },
       orderBy: {
-        price: "asc",
+        createdAt: "asc",
       },
     });
 

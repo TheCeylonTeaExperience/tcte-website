@@ -57,7 +57,7 @@ export async function GET(request) {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
     });
 

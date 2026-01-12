@@ -35,12 +35,12 @@ export async function GET(request) {
           include: {
             sessionTypes: {
               where: { deletedAt: null },
-              orderBy: { price: "asc" },
+              orderBy: { createdAt: "asc" },
             },
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
 
     if (programs.length === 0) {

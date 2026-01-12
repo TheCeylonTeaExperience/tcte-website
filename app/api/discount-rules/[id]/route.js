@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
           include: {
             sessions: {
               where: { deletedAt: null },
-              orderBy: { startTime: "asc" },
+              orderBy: { createdAt: "asc" },
             },
           },
         },
@@ -195,7 +195,7 @@ export async function PUT(request, { params }) {
           include: {
             sessions: {
               where: { deletedAt: null },
-              orderBy: { startTime: "asc" },
+              orderBy: { createdAt: "asc" },
             },
           },
         },

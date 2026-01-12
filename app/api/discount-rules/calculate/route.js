@@ -59,7 +59,7 @@ export async function POST(request) {
     const priceBreakdown = [];
 
     for (const session of sessions) {
-      let sessionPrice = 0;
+      let sessionPrice = session.specialPrice ?? session.price ?? 0;
       let priceSource = "session";
       let selectedTypeName = null;
 
@@ -71,15 +71,10 @@ export async function POST(request) {
           (st) => st.id === parseInt(selectedTypeId, 10)
         );
         if (sessionType) {
-          sessionPrice = sessionType.specialPrice ?? sessionType.price ?? 0;
-          priceSource = "sessionType";
+          sessionPrice += sessionType.specialPrice ?? sessionType.price ?? 0;
+          priceSource = "session + sessionType";
           selectedTypeName = sessionType.name;
         }
-      }
-
-      // If no session type price, use session price
-      if (priceSource === "session") {
-        sessionPrice = session.specialPrice ?? session.price ?? 0;
       }
 
       originalTotal += sessionPrice;

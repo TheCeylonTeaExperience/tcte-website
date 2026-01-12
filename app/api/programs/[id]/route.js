@@ -68,12 +68,12 @@ export async function GET(request, context) {
             sessionTypes: {
               where: { deletedAt: null },
               orderBy: {
-                price: "asc",
+                createdAt: "asc",
               },
             },
           },
           orderBy: {
-            startTime: "asc",
+            createdAt: "asc",
           },
         },
       },

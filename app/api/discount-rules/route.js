@@ -29,7 +29,7 @@ export async function GET(request) {
           include: {
             sessions: {
               where: { deletedAt: null },
-              orderBy: { startTime: "asc" },
+              orderBy: { createdAt: "asc" },
             },
           },
         },
@@ -173,7 +173,7 @@ export async function POST(request) {
           include: {
             sessions: {
               where: { deletedAt: null },
-              orderBy: { startTime: "asc" },
+              orderBy: { createdAt: "asc" },
             },
           },
         },
