@@ -1540,16 +1540,24 @@ export default function BookNow() {
       return;
     }
 
+    const trimmedPersonalName = formData.name.trim();
+    const trimmedPersonalEmail = formData.email.trim();
+    const trimmedPersonalPhone = formData.phone.trim();
+    const primaryGuest = guestDetails[0] || {};
+    const guestFallbackName = primaryGuest?.name?.trim() || "";
+    const guestFallbackEmail = primaryGuest?.email?.trim() || "";
+    const guestFallbackPhone = primaryGuest?.phone?.trim() || "";
+
     let bookingPhoneResult = validatedPhoneNumber;
 
-    if (!verifiedLeader) {
+    if (!verifiedLeader && trimmedPersonalPhone) {
       const latestPhoneCheck = validatePhoneNumber(
         formData.countryCode,
         formData.phone
       );
 
       if (!latestPhoneCheck.isValid) {
-        alert("Enter a valid phone number before confirming your booking.");
+        alert("Enter a valid phone number or leave it blank before confirming your booking.");
         return;
       }
 
@@ -1568,34 +1576,44 @@ export default function BookNow() {
       // avoids client/server timezone conversion issues.
       const bookingDateString = format(selectedDate, "yyyy-MM-dd");
 
-      const fallbackDialPrefix = (() => {
+      const fallbackPersonalContact = (() => {
+        if (!trimmedPersonalPhone) {
+          return "";
+        }
         try {
           if (!formData.countryCode) {
-            return "";
+            return trimmedPersonalPhone.replace(/\s+/g, "");
           }
-          return `+${getCountryCallingCode(formData.countryCode, metadata)}`;
+          const dial = getCountryCallingCode(formData.countryCode, metadata);
+          return `+${dial}${trimmedPersonalPhone}`.replace(/\s+/g, "");
         } catch (error) {
           console.error(
             `Unable to compute fallback dial code for ${formData.countryCode}`,
             error
           );
-          return "";
+          return trimmedPersonalPhone.replace(/\s+/g, "");
         }
       })();
 
-      const fallbackContact = `${fallbackDialPrefix}${formData.phone ?? ""}`.replace(
-        /\s+/g,
-        ""
-      );
-      const contactNumber = bookingPhoneResult?.number ?? fallbackContact;
+      const resolvedLeaderName = trimmedPersonalName || guestFallbackName || "Guest";
+      const resolvedLeaderEmail = trimmedPersonalEmail || guestFallbackEmail;
+      if (!resolvedLeaderEmail) {
+        throw new Error("Please provide an email for at least one guest so we can send the receipt.");
+      }
+      const resolvedLeaderContact =
+        bookingPhoneResult?.number ||
+        fallbackPersonalContact ||
+        guestFallbackPhone ||
+        "";
 
-      let leaderId = verifiedLeader?.id;
+      let leaderProfile = verifiedLeader || null;
+      let leaderId = leaderProfile?.id;
 
       if (!leaderId) {
         const leaderPayload = {
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          contact: contactNumber,
+          name: resolvedLeaderName,
+          email: resolvedLeaderEmail,
+          contact: resolvedLeaderContact || null,
         };
 
         const leaderResponse = await fetch("/api/public/leaders", {
@@ -1613,17 +1631,23 @@ export default function BookNow() {
         }
 
         leaderId = leaderResult?.leader?.id;
+        leaderProfile = leaderResult?.leader || null;
       }
 
       if (!leaderId) {
         throw new Error("Unable to determine the booking contact.");
       }
 
-      const primaryName = (verifiedLeader?.name || formData.name || "Guest").trim();
+      const primaryName = (leaderProfile?.name || resolvedLeaderName || "Guest").trim();
       const [firstName, ...restNames] = primaryName.split(/\s+/);
       const lastName = restNames.join(" ") || "Customer";
-      const primaryEmail = (verifiedLeader?.email || formData.email || "guest@example.com").trim();
-      const primaryPhone = (verifiedLeader?.contact || contactNumber || "0000000000").trim();
+      const primaryEmail = (leaderProfile?.email || resolvedLeaderEmail || "guest@example.com").trim();
+      const primaryPhone = (
+        leaderProfile?.contact ||
+        resolvedLeaderContact ||
+        guestFallbackPhone ||
+        "0000000000"
+      ).trim();
       const addressLine = formData.notes?.trim() || formData.location || "N/A";
       const cityValue = formData.location || "Colombo";
       const countryValue = "Sri Lanka";
@@ -1803,8 +1827,17 @@ export default function BookNow() {
   };
 
   if (bookingConfirmed) {
-    const contactName =
-      verifiedLeader?.name?.trim() || formData.name?.trim() || "Guest";
+    const fallbackGuestName = guestDetails[0]?.name?.trim() || "Guest";
+    const fallbackGuestEmail = guestDetails[0]?.email?.trim() || "guest@example.com";
+    const summaryName =
+      verifiedLeader?.name?.trim() ||
+      formData.name?.trim() ||
+      fallbackGuestName;
+    const summaryEmail =
+      verifiedLeader?.email?.trim() ||
+      formData.email?.trim() ||
+      fallbackGuestEmail;
+    const contactName = summaryName;
     const guestSummaryText = guestDetails.length
       ? guestDetails
           .map((guest, index) => {
@@ -1850,10 +1883,10 @@ export default function BookNow() {
                   <h3 className="font-bold mb-3">Booking Details:</h3>
                   <div className="space-y-2 text-muted-foreground">
                     <p>
-                      <strong>Name:</strong> {formData.name}
+                      <strong>Name:</strong> {summaryName}
                     </p>
                     <p>
-                      <strong>Email:</strong> {formData.email}
+                      <strong>Email:</strong> {summaryEmail}
                     </p>
                     <p>
                       <strong>Date:</strong> {format(selectedDate, "PPP")}
@@ -1888,7 +1921,7 @@ export default function BookNow() {
                 </div>
                 <p className="text-muted-foreground mb-6">
                   A confirmation email has been sent to{" "}
-                  <strong>{formData.email}</strong>. Please check your inbox for
+                  <strong>{summaryEmail}</strong>. Please check your inbox for
                   complete details and instructions.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -2458,6 +2491,9 @@ export default function BookNow() {
                         <h2 className="text-2xl font-serif font-bold text-primary">
                           Personal Information
                         </h2>
+                        <p className="text-sm text-muted-foreground">
+                          Optional – if you skip this section we will use the first guest's details instead.
+                        </p>
                         <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4">
                           <Label htmlFor="promoCode" className="text-base font-semibold flex items-center gap-2">
                             {/* <FaStar className="text-yellow-500" /> */}
@@ -2522,10 +2558,9 @@ export default function BookNow() {
                         ) : (
                           <>
                             <div className="space-y-2">
-                              <Label htmlFor="name" className="text-base font-semibold">Full Name *</Label>
+                              <Label htmlFor="name" className="text-base font-semibold">Full Name (Optional)</Label>
                               <Input
                                 id="name"
-                                required={!verifiedLeader}
                                 value={formData.name}
                                 onChange={(e) =>
                                   setFormData({ ...formData, name: e.target.value })
@@ -2536,11 +2571,10 @@ export default function BookNow() {
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="email" className="text-base font-semibold">Email *</Label>
+                              <Label htmlFor="email" className="text-base font-semibold">Email (Optional)</Label>
                               <Input
                                 id="email"
                                 type="email"
-                                required={!verifiedLeader}
                                 value={formData.email}
                                 onChange={(e) =>
                                   setFormData({ ...formData, email: e.target.value })
@@ -2551,7 +2585,7 @@ export default function BookNow() {
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor="phone" className="text-base font-semibold">Phone Number *</Label>
+                              <Label htmlFor="phone" className="text-base font-semibold">Phone Number (Optional)</Label>
                               <div className="flex gap-2">
                                 <Select
                                   value={formData.countryCode}
@@ -2571,7 +2605,6 @@ export default function BookNow() {
                                 <Input
                                   id="phone"
                                   type="tel"
-                                  required={!verifiedLeader}
                                   className={`flex-1 h-12 border-2 ${phoneValidation.state === "error"
                                       ? "border-red-500 focus-visible:ring-red-500"
                                       : "border-primary/30 focus:border-primary"
@@ -2584,6 +2617,9 @@ export default function BookNow() {
                                   aria-invalid={phoneValidation.state === "error"}
                                 />
                               </div>
+                              <p className="text-xs text-muted-foreground">
+                                Leave blank if this booking shares the first guest's contact details.
+                              </p>
                               {phoneValidation.state === "error" && (
                                 <p className="mt-1 text-xs text-red-600">
                                   {phoneValidation.message ||
