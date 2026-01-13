@@ -1777,6 +1777,7 @@ export default function BookNow() {
         selections: bookingSelections,
         payment: {
           paymentType: formData.payment,
+          full_payment_price: Number(discountedTotalCost),
           amount: formData.payment === "Partial" ? Number(formData.partialAmount) : Number(discountedTotalCost),
           provider: "PAYHERE",
           currency: "USD",

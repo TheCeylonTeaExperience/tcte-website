@@ -57,6 +57,8 @@ function isRetryableError(error) {
 export async function POST(request) {
   try {
     const payload = await request.json();
+    console.log("Received booking payload:", payload);
+    // return 0;
     const validationError = validatePayload(payload);
 
     if (validationError) {
@@ -73,6 +75,7 @@ export async function POST(request) {
       selections,
       payment = {},
       customer = {},
+      
     } = payload;
 
     const {
@@ -80,6 +83,7 @@ export async function POST(request) {
       amount: partialAmount,
       provider: rawProvider,
       method,
+      full_payment_price,
       transactionId,
       currency: paymentCurrency,
       orderId: providedOrderId,
@@ -248,7 +252,9 @@ export async function POST(request) {
         if (paidAmount < 0) paidAmount = 0;
     }
 
-    const balance = finalTotalAmount - paidAmount;
+    // Calculate balance: total price minus what's being paid now
+    const totalPrice = full_payment_price ?? finalTotalAmount;
+    const balance = totalPrice - paidAmount;
 
     const currency =
       typeof paymentCurrency === "string" && paymentCurrency.trim().length > 0
@@ -295,12 +301,13 @@ export async function POST(request) {
               },
             });
 
+            //fix the amount bug here
             const bookingRecord = await tx.booking.create({
               data: {
                 leaderId,
                 bookedDate: bookingDate,
                 paymentType: paymentType === "Partial" ? "Partial" : "Full",
-                amount: finalTotalAmount,
+                amount: full_payment_price,
                 balance: balance,
                 paymentId: paymentRecord.id,
                 status: "PENDING",
