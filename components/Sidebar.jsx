@@ -24,6 +24,7 @@ import {
   Percent,
   DollarSign,
   Tag,
+  User,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -31,6 +32,11 @@ const sidebarLinks = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: User,
   },
   {
     label: "Locations",
