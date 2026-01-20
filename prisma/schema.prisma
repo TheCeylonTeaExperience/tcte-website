@@ -275,6 +275,7 @@ enum BookingStatus {
 enum PaymentType {
     Full
     Partial
+    Later
 }
 
 // Commission Rules - Define commission percentages based on seat ranges

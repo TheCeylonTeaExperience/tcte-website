@@ -1778,10 +1778,14 @@ export default function BookNow() {
         payment: {
           paymentType: formData.payment,
           full_payment_price: Number(discountedTotalCost),
-          amount: formData.payment === "Partial" ? Number(formData.partialAmount) : Number(discountedTotalCost),
-          provider: "PAYHERE",
+          amount: formData.payment === "Partial" 
+            ? Number(formData.partialAmount) 
+            : formData.payment === "Later" 
+              ? 0 
+              : Number(discountedTotalCost),
+          provider: formData.payment === "Later" ? "MANUAL" : "PAYHERE",
           currency: "USD",
-          method: "PayHere Checkout",
+          method: formData.payment === "Later" ? "Pay Later" : "PayHere Checkout",
         },
         customer: {
           name: primaryName,
@@ -1874,12 +1878,14 @@ export default function BookNow() {
                 <h1 className="text-3xl font-serif font-bold mb-4 text-primary">
                   Booking Confirmed!
                 </h1>
-                <p className="text-lg mb-6">
-                  Your reference code is:{" "}
-                  <span className="font-bold text-primary text-xl">
+                <div className="mb-6">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Your Reference Code
+                  </p>
+                  <p className="text-2xl font-bold text-primary tracking-wider">
                     {referenceCode}
-                  </span>
-                </p>
+                  </p>
+                </div>
                 <div className="bg-secondary/20 p-6 rounded-lg mb-6 text-left">
                   <h3 className="font-bold mb-3">Booking Details:</h3>
                   <div className="space-y-2 text-muted-foreground">
@@ -1920,27 +1926,9 @@ export default function BookNow() {
                     )}
                   </div>
                 </div>
-                <p className="text-muted-foreground mb-6">
-                  A confirmation email has been sent to{" "}
-                  <strong>{summaryEmail}</strong>. Please check your inbox for
-                  complete details and instructions.
-                </p>
+                
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2"
-                    >
-                      <FaWhatsapp className="h-5 w-5" />
-                      Share on WhatsApp
-                    </a>
-                  </Button>
+                  
                   <Button asChild size="lg" variant="outline">
                     <Link href="/">Return to Home</Link>
                   </Button>
@@ -2909,6 +2897,7 @@ export default function BookNow() {
                             <SelectContent>
                               <SelectItem value="Full">Full Payment ({formatPrice(discountedTotalCost)})</SelectItem>
                               <SelectItem value="Partial">Partial Payment (Total: {formatPrice(discountedTotalCost)})</SelectItem>
+                              <SelectItem value="Later">Pay Later</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

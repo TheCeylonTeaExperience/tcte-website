@@ -11,7 +11,7 @@ export async function POST(request, { params }) {
     const { id } = await params;
     const bookingId = Number.parseInt(id, 10);
     const body = await request.json();
-    const { action, newDate, reason, refundAmount } = body;
+    const { action, newDate, reason, refundAmount, amount } = body;
 
     if (!bookingId) {
       return NextResponse.json({ error: "Invalid booking ID" }, { status: 400 });
@@ -27,6 +27,48 @@ export async function POST(request, { params }) {
 
     if (!booking) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    if (action === "mark_paid") {
+       await prisma.$transaction(async (tx) => {
+         const paidAmount = parseFloat(amount || 0);
+
+         // Update Payment Record (add amount)
+         if (booking.payment) {
+           await tx.payment.update({
+             where: { id: booking.paymentId },
+             data: {
+               amount: { increment: paidAmount },
+               status: "SUCCESS", // Or confirm transaction if handling partials differently
+             },
+           });
+         }
+
+         // Update Booking Record
+         await tx.booking.update({
+           where: { id: bookingId },
+           data: {
+             paymentType: "Full",
+             balance: 0,
+             status: booking.status === "PENDING" ? "CONFIRMED" : booking.status,
+           },
+         });
+
+         await tx.bookingHistory.create({
+           data: {
+             bookingId,
+             action: "PAYMENT_COMPLETED",
+             reason: `Manual payment of ${paidAmount} recorded via admin panel`,
+             previousStatus: booking.status,
+             newStatus: booking.status === "PENDING" ? "CONFIRMED" : booking.status,
+           },
+         });
+       });
+
+       return NextResponse.json({
+         success: true,
+         message: "Booking marked as fully paid",
+       });
     }
 
     if (action === "reschedule") {
