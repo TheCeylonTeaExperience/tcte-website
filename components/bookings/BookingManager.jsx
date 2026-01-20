@@ -27,12 +27,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { fetchWithAuth } from "@/lib/apiClient";
-import { Calendar as CalendarIcon, AlertTriangle, RefreshCw, XCircle, CheckCircle2, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  Calendar as CalendarIcon,
+  Users,
+  MapPin,
+  Clock,
+  User,
+  Plus,
+  ArrowLeft,
+  CreditCard,
+  CheckCircle2,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Banknote,
+  LayoutGrid,
+  RefreshCw
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BookingManager({ booking, onUpdate }) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState("menu"); // menu, reschedule, cancel
+  const [mode, setMode] = useState("menu"); // menu, reschedule, cancel, payment
   const [loading, setLoading] = useState(false);
   
   // Alert Dialog State
@@ -47,6 +64,9 @@ export default function BookingManager({ booking, onUpdate }) {
   // Cancel State
   const [reason, setReason] = useState("");
   const [refundAmount, setRefundAmount] = useState(booking.amount);
+
+  // Mark Paid State
+  const [paymentAmount, setPaymentAmount] = useState(booking.balance);
 
   const handleReschedule = async () => {
     if (!newDate) return;
@@ -110,12 +130,43 @@ export default function BookingManager({ booking, onUpdate }) {
     }
   };
 
+  const handleMarkPaid = async () => {
+    setLoading(true);
+    try {
+      const res = await fetchWithAuth(`/api/bookings/${booking.id}/manage`, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "mark_paid",
+          amount: paymentAmount
+        })
+      });
+
+      if (res.ok) {
+        setOpen(false);
+        setSuccessMessage("Payment recorded successfully!");
+        setSuccessDialogOpen(true);
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || "Failed to record payment");
+        setErrorDialogOpen(true);
+      }
+    } catch (error) {
+       console.error(error);
+      setErrorMessage("An error occurred");
+      setErrorDialogOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetState = () => {
     setMode("menu");
     setNewDate(null);
     setReason("");
     setRefundAmount(booking.amount);
+    setPaymentAmount(booking.balance);
   };
+
 
   return (
     <>
@@ -135,6 +186,20 @@ export default function BookingManager({ booking, onUpdate }) {
 
         {mode === "menu" && (
           <div className="grid gap-4 py-4">
+            {booking.balance > 0 && booking.status !== "CANCELLED" && (
+               <Button 
+                variant="outline" 
+                className="h-20 justify-start px-4 hover:bg-green-50 hover:text-green-600 hover:border-green-200" 
+                onClick={() => setMode("payment")}
+              >
+                <Banknote className="mr-4 h-6 w-6 text-green-500" />
+                <div className="text-left">
+                  <div className="font-semibold">Settle Balance</div>
+                  <div className="text-xs text-muted-foreground">Mark remaining balance as paid</div>
+                </div>
+              </Button>
+            )}
+
             <Button 
               variant="outline" 
               className="h-20 justify-start px-4" 
@@ -159,6 +224,29 @@ export default function BookingManager({ booking, onUpdate }) {
                 <div className="text-xs text-muted-foreground">Cancel and issue refund</div>
               </div>
             </Button>
+          </div>
+        )}
+
+        {mode === "payment" && (
+           <div className="space-y-4 py-4">
+            <div className="bg-green-50 text-green-700 p-3 rounded-md text-sm flex items-start gap-2">
+              <Banknote className="h-5 w-5 shrink-0" />
+              <div>
+                <span className="font-semibold">Update Payment:</span> Confirm that the customer has paid the remaining balance.
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Payment Amount (USD)</Label>
+              <Input 
+                type="number" 
+                // value={paymentAmount} 
+                // onChange={(e) => setPaymentAmount(e.target.value)} 
+                value={booking.balance}
+                disabled
+              />
+              <p className="text-xs text-muted-foreground">Current balance due. This action will mark the booking as fully paid.</p>
+            </div>
           </div>
         )}
 
@@ -221,6 +309,12 @@ export default function BookingManager({ booking, onUpdate }) {
           {mode === "reschedule" && (
             <Button onClick={handleReschedule} disabled={!newDate || loading}>
               {loading ? "Updating..." : "Confirm Reschedule"}
+            </Button>
+          )}
+
+          {mode === "payment" && (
+            <Button onClick={handleMarkPaid} disabled={loading} className="bg-green-600 hover:bg-green-700">
+              {loading ? "Processing..." : "Confirm Payment"}
             </Button>
           )}
 

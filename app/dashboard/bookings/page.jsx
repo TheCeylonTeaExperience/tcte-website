@@ -341,7 +341,7 @@ function BookingCard({ booking, onUpdate }) {
             </div>
           </div>
           
-          {booking.paymentType === "Partial" && (
+          {["Partial", "Later"].includes(booking.paymentType) && (
             <div className="flex items-center justify-between bg-secondary/20 p-2 rounded text-xs">
               <div className="flex gap-4">
                 <span className="text-muted-foreground">

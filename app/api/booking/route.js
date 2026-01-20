@@ -7,7 +7,7 @@ import {
   lockSessions,
 } from "@/lib/availability";
 
-const PAYMENT_TYPES = new Set(["Full", "Partial"]);
+const PAYMENT_TYPES = new Set(["Full", "Partial", "Later"]);
 const PAYMENT_PROVIDERS = new Set(["MANUAL", "PAYHERE"]);
 const DEFAULT_CURRENCY = "USD";
 const PAYHERE_DEFAULT_ACTION_URL =
@@ -252,6 +252,10 @@ export async function POST(request) {
         if (paidAmount < 0) paidAmount = 0;
     }
 
+    if (paymentType === "Later") {
+      paidAmount = 0;
+    }
+
     // Calculate balance: total price minus what's being paid now
     const totalPrice = full_payment_price ?? finalTotalAmount;
     const balance = totalPrice - paidAmount;
@@ -261,10 +265,7 @@ export async function POST(request) {
         ? paymentCurrency.trim().toUpperCase()
         : DEFAULT_CURRENCY;
 
-    const resolvedOrderId =
-      paymentProvider === "PAYHERE"
-        ? providedOrderId?.trim() || generatePayHereOrderId(leaderId)
-        : providedOrderId?.trim() || null;
+    const resolvedOrderId = providedOrderId?.trim() || generatePayHereOrderId(leaderId);
 
     const paymentMethodName =
       paymentProvider === "PAYHERE"
@@ -289,7 +290,7 @@ export async function POST(request) {
             const paymentRecord = await tx.payment.create({
               data: {
                 provider: paymentProvider,
-                status: paymentProvider === "PAYHERE" ? "PENDING" : "SUCCESS",
+                status: (paymentProvider === "PAYHERE" || paymentType === "Later") ? "PENDING" : "SUCCESS",
                 amount: paidAmount,
                 currency,
                 method: paymentMethodName,
@@ -306,7 +307,7 @@ export async function POST(request) {
               data: {
                 leaderId,
                 bookedDate: bookingDate,
-                paymentType: paymentType === "Partial" ? "Partial" : "Full",
+                paymentType: (paymentType === "Partial" || paymentType === "Later") ? paymentType : "Full",
                 amount: full_payment_price,
                 balance: balance,
                 paymentId: paymentRecord.id,
@@ -429,6 +430,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       bookingId: booking.id,
+      referenceCode: paymentRecord.orderId,
       message:
         paymentProvider === "PAYHERE"
           ? "Booking created. Redirecting to payment gateway."
@@ -509,7 +511,7 @@ function validatePayload(payload) {
       return "Payment method is required";
     }
 
-    if (!payment.transactionId) {
+    if (payment.paymentType !== "Later" && !payment.transactionId) {
       return "Payment transactionId is required";
     }
   }
