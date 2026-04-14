@@ -9,6 +9,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SHOW_BOOKING_CTAS } from "@/lib/booking-cta";
 import {
   FaMapMarkerAlt,
   FaPhone,
@@ -201,21 +202,23 @@ export default function Contact() {
         </section>
 
         {/* Quick Links */}
-        <section className="py-16">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-serif font-bold mb-8 text-primary">
-              Ready to Experience Tea Tourism?
-            </h2>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg">
-                <Link href="/book">Book Your Experience</Link>
-              </Button>
-              {/* <Button asChild size="lg" variant="outline">
+        {SHOW_BOOKING_CTAS && (
+          <section className="py-16">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+              <h2 className="text-3xl font-serif font-bold mb-8 text-primary">
+                Ready to Experience Tea Tourism?
+              </h2>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg">
+                  <Link href="/book">Book Your Experience</Link>
+                </Button>
+                {/* <Button asChild size="lg" variant="outline">
                 <Link href="/services">View Our Programs</Link>
               </Button> */}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
       <Footer />
     </>

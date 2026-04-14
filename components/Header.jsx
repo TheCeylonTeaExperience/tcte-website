@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { SHOW_BOOKING_CTAS } from "@/lib/booking-cta";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -65,11 +66,13 @@ export default function Header() {
           </nav>
 
           {/* Enhanced CTA Button */}
-          <div className="hidden md:block animate-fade-in-up" style={{animationDelay: "0.4s"}}>
-            <Button asChild className="animate-pulse-glow hover-lift transition-all duration-300 hover:scale-105">
-              <Link href="/book">Book Now</Link>
-            </Button>
-          </div>
+          {SHOW_BOOKING_CTAS && (
+            <div className="hidden md:block animate-fade-in-up" style={{animationDelay: "0.4s"}}>
+              <Button asChild className="animate-pulse-glow hover-lift transition-all duration-300 hover:scale-105">
+                <Link href="/book">Book Now</Link>
+              </Button>
+            </div>
+          )}
 
           {/* Mobile Menu Button */}
           <button
@@ -109,11 +112,13 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Button asChild className="w-full">
-                <Link href="/book" onClick={() => setIsMobileMenuOpen(false)}>
-                  Book Now
-                </Link>
-              </Button>
+              {SHOW_BOOKING_CTAS && (
+                <Button asChild className="w-full">
+                  <Link href="/book" onClick={() => setIsMobileMenuOpen(false)}>
+                    Book Now
+                  </Link>
+                </Button>
+              )}
             </nav>
           </div>
         )}

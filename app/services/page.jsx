@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
 import FloatingActionButtons from "@/components/FloatingActionButtons";
 import { Button } from "@/components/ui/button";
+import { SHOW_BOOKING_CTAS } from "@/lib/booking-cta";
 import { FaLeaf, FaClock, FaUsers, FaCheck, FaMugHot, FaShoppingCart, FaChalkboardTeacher, FaMoneyBillWave, FaConciergeBell } from "react-icons/fa";
 
 export default function Services() {
@@ -289,14 +290,16 @@ export default function Services() {
                 you to select multiple programs and create your perfect tea day.
                 Group discounts available for parties of 5 or more.
               </p>
-              <Button 
-                asChild 
-                size="lg"
-                className="font-bold rounded-full px-8 py-6"
-                style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
-              >
-                <Link href="/book">Create Your Custom Experience</Link>
-              </Button>
+              {SHOW_BOOKING_CTAS && (
+                <Button
+                  asChild
+                  size="lg"
+                  className="font-bold rounded-full px-8 py-6"
+                  style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
+                >
+                  <Link href="/book">Create Your Custom Experience</Link>
+                </Button>
+              )}
             </div>
           </div>
         </section>

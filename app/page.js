@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { SHOW_BOOKING_CTAS } from "@/lib/booking-cta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -196,13 +197,15 @@ export default function Home() {
                 Craft your own blend, taste teas from every region, and immerse yourself in a hands-on experience unlike anything in the South.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  asChild
-                  size="lg"
-                  className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-colors duration-200 justify-center font-bold rounded-full"
-                >
-                  <Link href="/book">Book Your Experience</Link>
-                </Button>
+                {SHOW_BOOKING_CTAS && (
+                  <Button
+                    asChild
+                    size="lg"
+                    className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-colors duration-200 justify-center font-bold rounded-full"
+                  >
+                    <Link href="/book">Book Your Experience</Link>
+                  </Button>
+                )}
                 {/* <Button
                   asChild
                   size="lg"
@@ -428,16 +431,18 @@ export default function Home() {
                 Your journey into Sri Lanka’s most iconic heritage begins here.
               </p>
 
-              <div>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="secondary"
-                  className="text-base sm:text-lg md:text-xl px-6 py-4 sm:px-8 sm:py-6 md:px-12 md:py-8 bg-white text-primary hover:bg-white/90 font-bold rounded-full transition-colors duration-300"
-                >
-                  <Link href="/book">Reserve Your Experience</Link>
-                </Button>
-              </div>
+              {SHOW_BOOKING_CTAS && (
+                <div>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="secondary"
+                    className="text-base sm:text-lg md:text-xl px-6 py-4 sm:px-8 sm:py-6 md:px-12 md:py-8 bg-white text-primary hover:bg-white/90 font-bold rounded-full transition-colors duration-300"
+                  >
+                    <Link href="/book">Reserve Your Experience</Link>
+                  </Button>
+                </div>
+              )}
 
               {/* Trust Indicators */}
               <div className="mt-16 flex flex-wrap justify-center gap-12 text-base opacity-95">
