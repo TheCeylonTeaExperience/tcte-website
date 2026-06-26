@@ -70,13 +70,13 @@ export default function AffiliateEarningsPage() {
   const [summary, setSummary] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  
+
   // Detail dialog state
   const [detailDialogOpen, setDetailDialogOpen] = React.useState(false);
   const [selectedLeader, setSelectedLeader] = React.useState(null);
   const [leaderCommissions, setLeaderCommissions] = React.useState([]);
   const [isLoadingDetails, setIsLoadingDetails] = React.useState(false);
-  
+
   // Payment dialog state
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
   const [selectedCommission, setSelectedCommission] = React.useState(null);
@@ -85,7 +85,7 @@ export default function AffiliateEarningsPage() {
     paidAmount: "",
     notes: "",
   });
-  
+
   // Status dialogs
   const [successDialogOpen, setSuccessDialogOpen] = React.useState(false);
   const [successMessage, setSuccessMessage] = React.useState("");
@@ -101,7 +101,7 @@ export default function AffiliateEarningsPage() {
         fetchWithAuth("/api/commissions", { method: "GET", cache: "no-store" }),
       ]);
 
-      if (!leadersRes.ok) throw new Error("Failed to fetch leader summaries");
+      if (!leadersRes.ok) throw new Error("Failed to fetch agent summaries");
       if (!commissionsRes.ok) throw new Error("Failed to fetch commissions");
 
       const leadersData = await leadersRes.json();
@@ -133,12 +133,12 @@ export default function AffiliateEarningsPage() {
         cache: "no-store",
       });
 
-      if (!response.ok) throw new Error("Failed to fetch leader commissions");
+      if (!response.ok) throw new Error("Failed to fetch agent commissions");
 
       const data = await response.json();
       setLeaderCommissions(data.commissions || []);
     } catch (err) {
-      console.error("Error fetching leader details:", err);
+      console.error("Error fetching agent details:", err);
       setLeaderCommissions([]);
     } finally {
       setIsLoadingDetails(false);
@@ -157,7 +157,7 @@ export default function AffiliateEarningsPage() {
 
   const handleSubmitPayment = async (e) => {
     e.preventDefault();
-    
+
     if (!selectedCommission) return;
 
     try {
@@ -185,7 +185,7 @@ export default function AffiliateEarningsPage() {
       setSuccessDialogOpen(true);
       setPaymentDialogOpen(false);
       loadData();
-      
+
       // Refresh leader details if dialog is open
       if (selectedLeader) {
         handleViewLeaderDetails(selectedLeader);
@@ -247,7 +247,7 @@ export default function AffiliateEarningsPage() {
             Affiliate Earnings
           </h2>
           <p style={{ color: "#000000", opacity: 0.7 }}>
-            Track and manage commission payments for affiliate leaders.
+            Track and manage commission payments for affiliate agent.
           </p>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function AffiliateEarningsPage() {
           <Card className="border-2" style={{ borderColor: "#C5BF81" }}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium" style={{ color: "#767014" }}>
-                Total Leaders
+                Total Agents
               </CardTitle>
               <Users className="h-4 w-4" style={{ color: "#767014" }} />
             </CardHeader>
@@ -267,7 +267,7 @@ export default function AffiliateEarningsPage() {
                 {summary.totalLeaders}
               </div>
               <p className="text-xs" style={{ color: "#000000", opacity: 0.6 }}>
-                Active affiliate leaders
+                Active affiliate agents
               </p>
             </CardContent>
           </Card>
@@ -284,7 +284,7 @@ export default function AffiliateEarningsPage() {
                 {formatCurrency(summary.totalCommissionAmount)}
               </div>
               <p className="text-xs" style={{ color: "#000000", opacity: 0.6 }}>
-                Total earned by all leaders
+                Total earned by all agents
               </p>
             </CardContent>
           </Card>
@@ -301,7 +301,7 @@ export default function AffiliateEarningsPage() {
                 {formatCurrency(summary.totalPaidAmount)}
               </div>
               <p className="text-xs" style={{ color: "#000000", opacity: 0.6 }}>
-                Already paid to leaders
+                Already paid to agents
               </p>
             </CardContent>
           </Card>
@@ -337,7 +337,7 @@ export default function AffiliateEarningsPage() {
           onClick={() => setActiveTab("overview")}
         >
           <Users className="h-4 w-4 mr-2" />
-          Leader Overview
+          Agent Overview
         </Button>
         <Button
           variant="ghost"
@@ -372,9 +372,9 @@ export default function AffiliateEarningsPage() {
       ) : activeTab === "overview" ? (
         <Card className="border-2" style={{ borderColor: "#C5BF81" }}>
           <CardHeader>
-            <CardTitle style={{ color: "#767014" }}>Leader Commission Summary</CardTitle>
+            <CardTitle style={{ color: "#767014" }}>Agent Commission Summary</CardTitle>
             <CardDescription style={{ color: "#000000", opacity: 0.7 }}>
-              Overview of commission earnings for each affiliate leader.
+              Overview of commission earnings for each affiliate agent.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -382,7 +382,7 @@ export default function AffiliateEarningsPage() {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 mx-auto mb-4" style={{ color: "#C5BF81" }} />
                 <p style={{ color: "#000000", opacity: 0.7 }}>
-                  No affiliate leaders with commissions yet.
+                  No affiliate agents with commissions yet.
                 </p>
               </div>
             ) : (
@@ -390,7 +390,7 @@ export default function AffiliateEarningsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead style={{ color: "#767014", fontWeight: 600 }}>Leader</TableHead>
+                      <TableHead style={{ color: "#767014", fontWeight: 600 }}>Agent</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Promo Code</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Bookings</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Seats</TableHead>
@@ -458,7 +458,7 @@ export default function AffiliateEarningsPage() {
           <CardHeader>
             <CardTitle style={{ color: "#767014" }}>All Commission Records</CardTitle>
             <CardDescription style={{ color: "#000000", opacity: 0.7 }}>
-              Complete list of all commission records across all leaders.
+              Complete list of all commission records across all agents.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -473,7 +473,7 @@ export default function AffiliateEarningsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Date</TableHead>
-                      <TableHead style={{ color: "#767014", fontWeight: 600 }}>Leader</TableHead>
+                      <TableHead style={{ color: "#767014", fontWeight: 600 }}>Agents</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Booking</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Seats</TableHead>
                       <TableHead style={{ color: "#767014", fontWeight: 600 }}>Rate</TableHead>
@@ -609,15 +609,14 @@ export default function AffiliateEarningsPage() {
                               </div>
                             </TableCell>
                             <TableCell className="text-center">
-                              <Badge 
-                                variant="outline" 
-                                className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${
-                                  c.paymentStatus === "PAID" 
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
-                                    : c.paymentStatus === "PARTIALLY_PAID"
+                              <Badge
+                                variant="outline"
+                                className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${c.paymentStatus === "PAID"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                                  : c.paymentStatus === "PARTIALLY_PAID"
                                     ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                                }`}
+                                  }`}
                               >
                                 {c.paymentStatus === "PAID" ? (
                                   <CheckCircle className="h-3 w-3" />
@@ -648,8 +647,8 @@ export default function AffiliateEarningsPage() {
                 {/* Mobile Card View */}
                 <div className="sm:hidden space-y-3 max-h-[350px] overflow-y-auto pr-1" style={{ scrollbarGutter: "stable both-edges" }}>
                   {leaderCommissions.map((c) => (
-                    <div 
-                      key={c.id} 
+                    <div
+                      key={c.id}
                       className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between mb-3">
@@ -661,13 +660,12 @@ export default function AffiliateEarningsPage() {
                             {formatDate(c.createdAt)}
                           </p>
                         </div>
-                        <Badge 
-                          variant="outline" 
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${
-                            c.paymentStatus === "PAID" 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" 
-                              : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
-                          }`}
+                        <Badge
+                          variant="outline"
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap leading-none ${c.paymentStatus === "PAID"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                            }`}
                         >
                           {c.paymentStatus === "PAID" ? (
                             <CheckCircle className="h-3 w-3" />
@@ -727,7 +725,7 @@ export default function AffiliateEarningsPage() {
               <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(197, 191, 129, 0.2)" }}>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span style={{ color: "#767014" }}>Leader:</span>{" "}
+                    <span style={{ color: "#767014" }}>Agent:</span>{" "}
                     <span style={{ color: "#000000" }}>{selectedCommission.leader?.name}</span>
                   </div>
                   <div>
@@ -769,27 +767,27 @@ export default function AffiliateEarningsPage() {
 
               {(paymentForm.paymentStatus === "PARTIALLY_PAID" ||
                 paymentForm.paymentStatus === "PAID") && (
-                <div className="grid gap-2">
-                  <Label htmlFor="paidAmount" style={{ color: "#767014" }}>
-                    Amount Paid (LKR)
-                  </Label>
-                  <Input
-                    id="paidAmount"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    max={selectedCommission.commissionAmount}
-                    value={paymentForm.paidAmount}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, paidAmount: e.target.value })}
-                    placeholder={
-                      paymentForm.paymentStatus === "PAID"
-                        ? selectedCommission.commissionAmount.toString()
-                        : "Enter paid amount"
-                    }
-                    className="focus-visible:ring-[#767014]"
-                  />
-                </div>
-              )}
+                  <div className="grid gap-2">
+                    <Label htmlFor="paidAmount" style={{ color: "#767014" }}>
+                      Amount Paid (LKR)
+                    </Label>
+                    <Input
+                      id="paidAmount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      max={selectedCommission.commissionAmount}
+                      value={paymentForm.paidAmount}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, paidAmount: e.target.value })}
+                      placeholder={
+                        paymentForm.paymentStatus === "PAID"
+                          ? selectedCommission.commissionAmount.toString()
+                          : "Enter paid amount"
+                      }
+                      className="focus-visible:ring-[#767014]"
+                    />
+                  </div>
+                )}
 
               <div className="grid gap-2">
                 <Label htmlFor="notes" style={{ color: "#767014" }}>

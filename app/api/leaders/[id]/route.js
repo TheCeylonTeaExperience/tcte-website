@@ -6,7 +6,7 @@ export async function PUT(request, { params }) {
     const { id: idParam } = await params;
     const id = parseInt(idParam);
     const body = await request.json();
-    const { role, status, name, email, contact } = body;
+    const { role, status, name, email, contact, bankName, branchName, accountNumber } = body;
 
     const existingLeader = await prisma.leader.findUnique({
       where: { id },
@@ -23,30 +23,51 @@ export async function PUT(request, { params }) {
 
     // Handle Role Change
     if (role) {
-        data.role = role; // Expecting "USER" or "LEADER"
-        if (role === "LEADER" && existingLeader.role !== "LEADER") {
-            // Generate Promo Code if not exists
-            if (!existingLeader.promoteCode) {
-                const code = generatePromoCode(existingLeader.name || "USER");
-                data.promoteCode = code;
-            }
-        } else if (role === "USER") {
-             data.promoteCode = null;
+      data.role = role; // Expecting "USER" or "LEADER"
+      if (role === "LEADER" && existingLeader.role !== "LEADER") {
+        // Generate Promo Code if not exists
+        if (!existingLeader.promoteCode) {
+          const code = generatePromoCode(existingLeader.name || "USER");
+          data.promoteCode = code;
         }
+      } else if (role === "USER") {
+        data.promoteCode = null;
+      }
     }
 
     // Handle Status Change
     if (status) {
-        data.status = status; // Expecting "ACTIVE" or "DEACTIVATED"
-        if (status === "DEACTIVATED") {
-            data.role = "USER";
-            data.promoteCode = null;
+      data.status = status; // Expecting "ACTIVE" or "DEACTIVATED"
+      if (status === "DEACTIVATED") {
+        data.role = "USER";
+        data.promoteCode = null;
+      }
+    }
+
+    // handle bank details
+    if (bankName !== undefined || branchName !== undefined || accountNumber !== undefined) {
+      data.bankDetails = {
+        upsert: {
+          create: {
+            bankName: bankName || "",
+            branchName: branchName || "",
+            accountNumber: accountNumber || "",
+          },
+          update: {
+            ...(bankName !== undefined && { bankName }),
+            ...(branchName !== undefined && { branchName }),
+            ...(accountNumber !== undefined && { accountNumber: accountNumber }),
+          }
         }
+      }
     }
 
     const updatedLeader = await prisma.leader.update({
-        where: { id },
-        data,
+      where: { id },
+      data,
+      include: {
+        bankDetails: true
+      }
     });
 
     return NextResponse.json({ leader: updatedLeader });
@@ -83,7 +104,7 @@ export async function DELETE(request, { params }) {
 }
 
 function generatePromoCode(name) {
-    const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}${random}`;
+  const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}${random}`;
 }

@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import BookingForm from "@/components/bookings/BookingForm";
 import BookingManager from "@/components/bookings/BookingManager";
+import { Protect } from "@/contexts/AuthContext";
 
 export default function BookingsPage() {
   useDashboard();
@@ -105,10 +106,12 @@ export default function BookingsPage() {
             Manage your schedule and view booking details.
           </p>
         </div>
-        <Button onClick={() => setIsCreating(true)} size="lg" className="shadow-md hover:shadow-lg transition-all">
-          <Plus className="mr-2 h-5 w-5" />
-          New Booking
-        </Button>
+        <Protect route={"/bookings"} accessType={"READ_WRITE"}>
+          <Button onClick={() => setIsCreating(true)} size="lg" className="shadow-md hover:shadow-lg transition-all">
+            <Plus className="mr-2 h-5 w-5" />
+            New Booking
+          </Button>
+        </Protect>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[380px_1fr] items-start">
@@ -166,8 +169,8 @@ export default function BookingsPage() {
                 {date ? format(date, "EEEE, MMMM do, yyyy") : "Select a date"}
               </h2>
               <p className="text-muted-foreground">
-                {selectedDateBookings.length === 0 
-                  ? "No bookings scheduled for this day." 
+                {selectedDateBookings.length === 0
+                  ? "No bookings scheduled for this day."
                   : `Showing ${selectedDateBookings.length} booking${selectedDateBookings.length !== 1 ? 's' : ''}`
                 }
               </p>
@@ -196,9 +199,11 @@ export default function BookingsPage() {
                     There are no bookings scheduled for this date. Select another date or create a new booking.
                   </p>
                 </div>
-                <Button variant="outline" onClick={() => setIsCreating(true)}>
-                  Create Booking
-                </Button>
+                <Protect route={"/bookings"} accessType={"READ_WRITE"}>
+                  <Button variant="outline" onClick={() => setIsCreating(true)}>
+                    Create Booking
+                  </Button>
+                </Protect>
               </CardContent>
             </Card>
           ) : (
@@ -273,7 +278,7 @@ function BookingCard({ booking, onUpdate }) {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusColor[booking.status]}`}>
               <StatusIcon className="h-3.5 w-3.5" />
@@ -296,8 +301,8 @@ function BookingCard({ booking, onUpdate }) {
                   <span className="text-primary">{item.session?.name}</span>
                   {item.sessionType && (
                     <>
-                       <span className="text-muted-foreground mx-1">•</span>
-                       <span className="text-blue-600 font-semibold">{item.sessionType.name}</span>
+                      <span className="text-muted-foreground mx-1">•</span>
+                      <span className="text-blue-600 font-semibold">{item.sessionType.name}</span>
                     </>
                   )}
                 </div>
@@ -305,7 +310,7 @@ function BookingCard({ booking, onUpdate }) {
                   {item.quantity} Seat{item.quantity !== 1 ? "s" : ""}
                 </Badge>
               </div>
-              
+
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
@@ -340,7 +345,7 @@ function BookingCard({ booking, onUpdate }) {
               }).format(booking.amount - booking.balance)}
             </div>
           </div>
-          
+
           {["Partial", "Later"].includes(booking.paymentType) && (
             <div className="flex items-center justify-between bg-secondary/20 p-2 rounded text-xs">
               <div className="flex gap-4">

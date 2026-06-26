@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MapPin, Pencil, Trash2, Plus, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Protect, useAuth } from "@/contexts/AuthContext";
 
 export default function LocationList() {
   const [locations, setLocations] = useState([]);
@@ -38,7 +39,7 @@ export default function LocationList() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(null);
-  
+
   // Alert Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState(null);
@@ -46,6 +47,8 @@ export default function LocationList() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const auth = useAuth();
 
   useEffect(() => {
     fetchLocations();
@@ -78,10 +81,10 @@ export default function LocationList() {
 
   async function confirmDelete() {
     if (!locationToDelete) return;
-    
+
     setDeleteLoading(locationToDelete.id);
     setDeleteDialogOpen(false);
-    
+
     try {
       const response = await fetchWithAuth(`/api/locations/${locationToDelete.id}`, {
         method: "DELETE",
@@ -156,7 +159,9 @@ export default function LocationList() {
                 <TableRow>
                   <TableHead style={{ color: '#767014', fontWeight: 600 }}>Name</TableHead>
                   <TableHead style={{ color: '#767014', fontWeight: 600 }}>Address</TableHead>
-                  <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                  <Protect route={"/location"} accessType={"READ_WRITE"}>
+                    <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                  </Protect>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -169,30 +174,32 @@ export default function LocationList() {
                       </div>
                     </TableCell>
                     <TableCell style={{ color: '#000000', opacity: 0.7 }}>{location.address || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingLocation(location);
-                            setFormOpen(true);
-                          }}
-                          style={{ color: '#767014' }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(location.id)}
-                          disabled={deleteLoading === location.id}
-                          style={{ color: '#000000' }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    <Protect route={"/location"} accessType={"READ_WRITE"}>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingLocation(location);
+                              setFormOpen(true);
+                            }}
+                            style={{ color: '#767014' }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(location.id)}
+                            disabled={deleteLoading === location.id}
+                            style={{ color: '#000000' }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </Protect>
                   </TableRow>
                 ))}
               </TableBody>
@@ -223,7 +230,7 @@ export default function LocationList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import { useDashboard } from "../layout";
+import { Protect } from "@/contexts/AuthContext";
 
 const statusVariantMap = {
   Active: "default",
@@ -138,16 +139,16 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-3xl font-bold" style={{ color: '#767014' }}>Customer Relationships</h1>
           <p className="mt-1" style={{ color: '#000000', opacity: 0.7 }}>
-            Monitor how your leaders are paired with active customers.
+            Monitor how your agents are paired with active customers.
           </p>
         </div>
       </div>
 
       <Card className="shadow-sm border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle style={{ color: '#767014' }}>Leader to Customer Overview</CardTitle>
+          <CardTitle style={{ color: '#767014' }}>Agent to Customer Overview</CardTitle>
           <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
-            Snapshot of leadership assignments, engagement, and recent activity.
+            Snapshot of agentship assignments, engagement, and recent activity.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -155,7 +156,7 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Leader</TableHead>
+                  <TableHead style={{ color: '#767014', fontWeight: 600 }}>Agent</TableHead>
                   <TableHead className="hidden md:table-cell" style={{ color: '#767014', fontWeight: 600 }}>Title</TableHead>
                   <TableHead className="hidden lg:table-cell text-center" style={{ color: '#767014', fontWeight: 600 }}>
                     Customers
@@ -165,7 +166,9 @@ export default function CustomersPage() {
                   </TableHead>
                   <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
                   <TableHead className="hidden lg:table-cell" style={{ color: '#767014', fontWeight: 600 }}>Last Session</TableHead>
-                  <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                  <Protect route={"/customers"} accessType={"READ_WRITE"}>
+                    <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                  </Protect>
                 </TableRow>
               </TableHeader>
               <TableBody>

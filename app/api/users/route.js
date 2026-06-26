@@ -19,7 +19,7 @@ export async function POST(request) {
       const decoded = verifyAccessToken(token);
       // Only admins can create new admins/users
       if (decoded.role !== 'admin') {
-         return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+        return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
       }
     } catch (err) {
       return NextResponse.json(
@@ -40,10 +40,10 @@ export async function POST(request) {
     }
 
     if (password.length < 6) {
-        return NextResponse.json(
-          { error: "Password must be at least 6 characters" },
-          { status: 400 }
-        );
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      );
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -61,28 +61,62 @@ export async function POST(request) {
 
     // 4. Create User
     const hashedPassword = await hashPassword(password);
-    
-    // Default to creating an admin user as requested ("give admin added")
-    // Or we could pass a role in body, but for now assuming admin creation.
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        password: hashedPassword,
-        role: "admin", 
-      },
-      select: {
+
+    const result = await prisma.$transaction(async (tx) => {
+      const permissionConnections = [];
+
+      for (const perm of activePermissions) {
+        const dbPermission = await tx.permission.upsert({
+          where: { route: perm.route },
+          update: { sectionName: perm.sectionName },
+          create: {
+            route: perm.route,
+            sectionName: perm.sectionName,
+          }
+        });
+
+        permissionConnections.push({
+          accessType: perm.accessType,
+          permission: {
+            connect: { id: dbPermission.id }
+          }
+        });
+      }
+
+      const user = await tx.user.create({
+        data: {
+          name,
+          email: normalizedEmail,
+          passwordHash: hashedPassword,
+          permissions: {
+            create: permissionConnections,
+          }
+        },
+        select: {
           id: true,
           name: true,
           email: true,
-          role: true,
-          createdAt: true
-      }
+          createdAt: true,
+          permissions: {
+            select: {
+              accessType: true,
+              permission: {
+                select: {
+                  route: true,
+                  sectionName: true,
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return user;
     });
 
     return NextResponse.json({
       success: true,
-      message: "Admin user created successfully",
+      message: "Customized user created successfully",
       user: newUser,
     });
   } catch (error) {

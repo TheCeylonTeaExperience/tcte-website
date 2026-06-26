@@ -43,6 +43,7 @@ import {
 import { fetchWithAuth } from "@/lib/apiClient";
 import { useDashboard } from "../layout";
 import { Loader2, Plus, Pencil, CheckCircle, XCircle, Trash2, AlertTriangle, Percent, Users } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 export default function CommissionRulesPage() {
   useDashboard();
@@ -117,7 +118,7 @@ export default function CommissionRulesPage() {
 
   const confirmDelete = async () => {
     if (!ruleToDelete) return;
-    
+
     try {
       const response = await fetchWithAuth(`/api/commission-rules/${ruleToDelete.id}`, {
         method: "DELETE",
@@ -196,12 +197,14 @@ export default function CommissionRulesPage() {
             Define commission percentages based on seat ranges for affiliate leaders.
           </p>
         </div>
-        <Button 
-          onClick={handleCreate}
-          style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Rule
-        </Button>
+        <Protect route={"/commission-rules"} accessType={"READ_WRITE"}>
+          <Button
+            onClick={handleCreate}
+            style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Rule
+          </Button>
+        </Protect>
       </div>
 
       {/* Info Card */}
@@ -212,8 +215,8 @@ export default function CommissionRulesPage() {
             <div>
               <p className="font-medium" style={{ color: '#767014' }}>How Commission Rules Work</p>
               <p className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>
-                When a booking is made using a leader&apos;s affiliate code, the system automatically calculates 
-                commission based on the number of seats booked. Each rule defines a seat range and the 
+                When a booking is made using a leader&apos;s affiliate code, the system automatically calculates
+                commission based on the number of seats booked. Each rule defines a seat range and the
                 corresponding commission percentage. For example, 1-5 seats = 5%, 6-10 seats = 8%, etc.
               </p>
             </div>
@@ -239,7 +242,7 @@ export default function CommissionRulesPage() {
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto mb-4" style={{ color: '#C5BF81' }} />
               <p style={{ color: '#000000', opacity: 0.7 }}>No commission rules defined yet.</p>
-              <Button 
+              <Button
                 onClick={handleCreate}
                 className="mt-4"
                 style={{ backgroundColor: '#767014', color: '#ffffff' }}
@@ -255,7 +258,9 @@ export default function CommissionRulesPage() {
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Seat Range</TableHead>
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Commission Rate</TableHead>
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
-                    <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                    <Protect route={"/commission-rules"} accessType={"READ_WRITE"}>
+                      <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
+                    </Protect>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -268,7 +273,7 @@ export default function CommissionRulesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           className="border-0 text-base"
                           style={{ backgroundColor: '#767014', color: '#ffffff' }}
                         >
@@ -276,36 +281,38 @@ export default function CommissionRulesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          style={{ 
-                            borderColor: rule.isActive ? '#22c55e' : '#ef4444', 
-                            color: rule.isActive ? '#22c55e' : '#ef4444' 
+                        <Badge
+                          variant="outline"
+                          style={{
+                            borderColor: rule.isActive ? '#22c55e' : '#ef4444',
+                            color: rule.isActive ? '#22c55e' : '#ef4444'
                           }}
                         >
                           {rule.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleEdit(rule)}
-                            style={{ color: '#767014' }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleDelete(rule)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      <Protect route={"/commission-rules"} accessType={"READ_WRITE"}>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(rule)}
+                              style={{ color: '#767014' }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(rule)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </Protect>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -386,7 +393,7 @@ export default function CommissionRulesPage() {
               </Label>
             </div>
             <DialogFooter>
-              <Button 
+              <Button
                 type="submit"
                 style={{ backgroundColor: '#767014', color: '#ffffff' }}
               >
@@ -408,12 +415,12 @@ export default function CommissionRulesPage() {
               Delete Commission Rule?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
-              Are you sure you want to delete the rule for {ruleToDelete && formatSeatRange(ruleToDelete)}? 
+              Are you sure you want to delete the rule for {ruleToDelete && formatSeatRange(ruleToDelete)}?
               This will not affect existing commission records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >

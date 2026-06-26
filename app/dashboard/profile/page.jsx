@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDashboard } from "@/app/dashboard/layout";
 import { fetchWithAuth } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import PermissionsHierarchy from "@/components/profile/PermissionsHierarchy";
+import { Protect, useAuth } from "@/contexts/AuthContext";
 
 export default function ProfilePage() {
   const { user, setUser } = useDashboard();
@@ -35,6 +37,12 @@ export default function ProfilePage() {
   };
 
   const handleSubmit = async (e) => {
+    console.log(auth.hasPermission("/fd"));
+    if (!auth.hasPermission("/fd")) {
+      setError("You do not have the required permission to perform this action.");
+      return;
+    }
+
     e.preventDefault();
     setError("");
     setSuccessMessage("");
@@ -163,15 +171,17 @@ export default function ProfilePage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
+            <Protect route={"/profile"} accessType={"READ_WRITE"}>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </Protect>
           </CardFooter>
         </form>
       </Card>
 
-      {user?.role === "admin" && <CreateUserForm />}
+      <CreateUserForm />
     </div>
   );
 }
@@ -179,12 +189,16 @@ export default function ProfilePage() {
 function CreateUserForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
-  
+
+  const auth = useAuth();
+
+  const permissionsHierarchyRef = useRef(null);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    confirmPassword: ""
   });
 
   const handleChange = (e) => {
@@ -194,6 +208,12 @@ function CreateUserForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!auth.hasPermission("/profile", "READ_WRITE")) {
+      setMessage({ text: "You do no have the required permission to perform this action.", type: "error" });
+      return;
+    }
+
     setMessage({ text: "", type: "" });
     setIsLoading(true);
 
@@ -203,17 +223,27 @@ function CreateUserForm() {
       return;
     }
 
+    if (permissionsHierarchyRef.current) {
+      setMessage({ text: "Something went wrong!", type: "error" });
+    }
+
+    const payload = {
+      ...formData,
+      permissions: [...permissionsHierarchyRef.current.getPermissions()]
+    };
+
     try {
       const res = await fetchWithAuth("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+        // body: JSON.stringify({
+        //   name: formData.name,
+        //   email: formData.email,
+        //   password: formData.password,
+        // }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -236,23 +266,107 @@ function CreateUserForm() {
     }
   };
 
+  // return (
+  //   <Card>
+  //     <CardHeader>
+  //       <CardTitle>Create New Admin</CardTitle>
+  //       <CardDescription>
+  //         Add a new administrator account with full access to the dashboard.
+  //       </CardDescription>
+  //     </CardHeader>
+  //     <form onSubmit={handleSubmit}>
+  //       <CardContent className="space-y-4">
+  //         {message.text && (
+  //           <div
+  //             className={`text-sm p-3 rounded-md border ${
+  //               message.type === "success"
+  //                 ? "bg-green-100 text-green-700 border-green-200"
+  //                 : "bg-red-100 text-red-700 border-red-200"
+  //             }`}
+  //           >
+  //             {message.text}
+  //           </div>
+  //         )}
+
+  //         <div className="space-y-2">
+  //           <Label htmlFor="newName">Full Name</Label>
+  //           <Input
+  //             id="newName"
+  //             name="name"
+  //             type="text"
+  //             value={formData.name}
+  //             onChange={handleChange}
+  //             required
+  //             placeholder="e.g. John Doe"
+  //           />
+  //         </div>
+
+  //         <div className="space-y-2">
+  //           <Label htmlFor="newEmail">Email Address</Label>
+  //           <Input
+  //             id="newEmail"
+  //             name="email"
+  //             type="email"
+  //             value={formData.email}
+  //             onChange={handleChange}
+  //             required
+  //             placeholder="admin@example.com"
+  //           />
+  //         </div>
+
+  //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //           <div className="space-y-2">
+  //             <Label htmlFor="newAdminPassword">Password</Label>
+  //             <Input
+  //               id="newAdminPassword"
+  //               name="password"
+  //               type="password"
+  //               value={formData.password}
+  //               onChange={handleChange}
+  //               required
+  //               placeholder="Minimum 6 characters"
+  //             />
+  //           </div>
+  //           <div className="space-y-2">
+  //             <Label htmlFor="confirmAdminPassword">Confirm Password</Label>
+  //             <Input
+  //               id="confirmAdminPassword"
+  //               name="confirmPassword"
+  //               type="password"
+  //               value={formData.confirmPassword}
+  //               onChange={handleChange}
+  //               required
+  //               placeholder="Confirm password"
+  //             />
+  //           </div>
+  //         </div>
+  //       </CardContent>
+  //       <CardFooter>
+  //         <Button type="submit" disabled={isLoading} variant="secondary">
+  //           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+  //           Create Admin Account
+  //         </Button>
+  //       </CardFooter>
+  //     </form>
+  //   </Card>
+  // );
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New Admin</CardTitle>
+        <CardTitle>Create an Account</CardTitle>
         <CardDescription>
-          Add a new administrator account with full access to the dashboard.
+          Create a custom account with customized access to the dashboard.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           {message.text && (
             <div
-              className={`text-sm p-3 rounded-md border ${
-                message.type === "success"
-                  ? "bg-green-100 text-green-700 border-green-200"
-                  : "bg-red-100 text-red-700 border-red-200"
-              }`}
+              className={`text-sm p-3 rounded-md border ${message.type === "success"
+                ? "bg-green-100 text-green-700 border-green-200"
+                : "bg-red-100 text-red-700 border-red-200"
+                }`}
             >
               {message.text}
             </div>
@@ -309,13 +423,17 @@ function CreateUserForm() {
                 placeholder="Confirm password"
               />
             </div>
+
+            <PermissionsHierarchy ref={permissionsHierarchyRef} />
           </div>
         </CardContent>
-        <CardFooter>
-          <Button type="submit" disabled={isLoading} variant="secondary">
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Admin Account
-          </Button>
+        <CardFooter className="pt-5">
+          <Protect route={"/profile"} accessType={"READ_WRITE"}>
+            <Button type="submit" disabled={isLoading} variant="secondary">
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Admin Account
+            </Button>
+          </Protect>
         </CardFooter>
       </form>
     </Card>

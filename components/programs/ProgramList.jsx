@@ -38,6 +38,7 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 function formatTime(value) {
   if (!value) return "—";
@@ -63,7 +64,7 @@ export default function ProgramList() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState("");
   const [selectedProgram, setSelectedProgram] = useState(null);
-  
+
   // Alert Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [programToDelete, setProgramToDelete] = useState(null);
@@ -288,15 +289,17 @@ export default function ProgramList() {
               <RefreshCw className="mr-2 h-5 w-5" />
               Refresh
             </Button>
-            <Button
-              onClick={handleOpenCreate}
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all duration-300"
-              style={{ backgroundColor: '#ffffff', color: '#767014' }}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              New Program
-            </Button>
+            <Protect route={"/programs"} accessType={"READ_WRITE"}>
+              <Button
+                onClick={handleOpenCreate}
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all duration-300"
+                style={{ backgroundColor: '#ffffff', color: '#767014' }}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                New Program
+              </Button>
+            </Protect>
           </div>
         </div>
       </div>
@@ -309,7 +312,7 @@ export default function ProgramList() {
                 <Calendar className="h-12 w-12" style={{ color: '#ffffff' }} />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                No programs yet
+                No sessions yet
               </h3>
               <p className="mb-6 max-w-md mx-auto" style={{ color: '#000000', opacity: 0.7 }}>
                 Create your first amazing training program and start inspiring
@@ -322,7 +325,7 @@ export default function ProgramList() {
                 size="lg"
               >
                 <Plus className="mr-2 h-5 w-5" />
-                Create Your First Program
+                Create Your First Session
               </Button>
             </div>
           </CardContent>
@@ -431,30 +434,34 @@ export default function ProgramList() {
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(program)}
-                      className="flex-1 border-2"
-                      style={{ borderColor: '#C5BF81', color: '#767014', backgroundColor: '#ffffff' }}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDeleteDialog(program)}
-                      disabled={deleteLoading === program.id}
-                      className="border-2"
-                      style={{ borderColor: '#000000', color: '#000000', backgroundColor: '#ffffff' }}
-                    >
-                      {deleteLoading === program.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <Protect route={"/programs"} accessType={"READ_WRITE"}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEdit(program)}
+                        className="flex-1 border-2"
+                        style={{ borderColor: '#C5BF81', color: '#767014', backgroundColor: '#ffffff' }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Protect>
+                    <Protect route={"/programs"} accessType={"READ_WRITE"}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDeleteDialog(program)}
+                        disabled={deleteLoading === program.id}
+                        className="border-2"
+                        style={{ borderColor: '#000000', color: '#000000', backgroundColor: '#ffffff' }}
+                      >
+                        {deleteLoading === program.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </Protect>
                   </div>
                 </CardContent>
               </Card>
@@ -493,7 +500,7 @@ export default function ProgramList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >

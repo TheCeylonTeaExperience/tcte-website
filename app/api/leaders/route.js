@@ -36,6 +36,7 @@ export async function GET(request) {
     const leaders = await prisma.leader.findMany({
       where,
       include: {
+        bankDetails: true,
         _count: {
           select: { customers: true, bookings: true },
         },
@@ -57,6 +58,9 @@ export async function GET(request) {
       status: leader.status,
       customersCount: leader._count.customers,
       bookingsCount: leader._count.bookings,
+      bankName: leader.bankDetails?.bankName || "",
+      branchName: leader.bankDetails?.branchName || "",
+      accountNumber: leader.bankDetails?.accountNumber || ""
     }));
 
     return NextResponse.json({ leaders: normalized });
@@ -70,15 +74,15 @@ export async function GET(request) {
 }
 
 function generatePromoCode(name) {
-    const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}${random}`;
+  const prefix = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "X");
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}${random}`;
 }
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, email, contact, role } = body;
+    const { name, email, contact, role, bankName, branchName, accountNumber } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -100,8 +104,10 @@ export async function POST(request) {
 
     let promoteCode = null;
     if (role === "LEADER") {
-        promoteCode = generatePromoCode(name);
+      promoteCode = generatePromoCode(name);
     }
+
+    const hasBankDetails = bankName || branchName || accountNumber;
 
     const leader = await prisma.leader.create({
       data: {
@@ -111,7 +117,19 @@ export async function POST(request) {
         role: role || "USER",
         promoteCode,
         status: "ACTIVE",
+        ...(hasBankDetails && {
+          bankDetails: {
+            create: {
+              bankName: bankName || "",
+              branchName: branchName || "",
+              accountNumber: accountNumber || "",
+            }
+          }
+        })
       },
+      include: {
+        bankDetails: true
+      }
     });
 
     return NextResponse.json({ leader });

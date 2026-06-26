@@ -26,6 +26,7 @@ import {
   Tag,
   User,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const sidebarLinks = [
   {
@@ -49,16 +50,16 @@ const sidebarLinks = [
     children: [
       {
         label: "Programs",
-        href: "/dashboard/programs",
+        href: "/dashboard/sessions",
         icon: BookOpen,
       },
       {
         label: "Sessions",
-        href: "/dashboard/sessions",
+        href: "/dashboard/programs",
         icon: Calendar,
       },
       {
-        label: "Session Types",
+        label: "Program Types",
         href: "/dashboard/session-types",
         icon: Layers3,
       },
@@ -80,8 +81,8 @@ const sidebarLinks = [
     icon: Users,
   },
   {
-    label: "Leaders",
-    href: "/dashboard/leaders",
+    label: "Agents",
+    href: "/dashboard/agents",
     icon: Users,
   },
   {
@@ -112,6 +113,8 @@ export default function Sidebar({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
 
+  const auth = useAuth();
+
   const autoExpandedGroups = useMemo(() => {
     const groups = {};
     sidebarLinks.forEach((link) => {
@@ -123,6 +126,7 @@ export default function Sidebar({
     return groups;
   }, [pathname]);
 
+  if (auth.loading) return <span>Loading...</span>
   return (
     <>
       {/* Mobile Menu Button - Repositioned to not overlap with content */}
@@ -226,6 +230,10 @@ export default function Sidebar({
                 const isGroup = Array.isArray(link.children);
 
                 if (isGroup) {
+                  const permittedRoutes = link.children.filter(c => auth.hasPermission(c.href.slice(c.href.lastIndexOf("/"), c.href.length)));
+
+                  if (!permittedRoutes.length > 0) return null;
+
                   const isGroupActive = link.children.some((child) =>
                     pathname.startsWith(child.href)
                   );
@@ -279,35 +287,39 @@ export default function Sidebar({
                         )}
                       >
                         {link.children.map((child) => {
-                          const ChildIcon = child.icon;
-                          const isActive =
-                            pathname === child.href ||
-                            pathname.startsWith(`${child.href}/`);
+                          if (auth.hasPermission(child.href.slice(child.href.lastIndexOf("/"), child.href.length))) {
+                            const ChildIcon = child.icon;
+                            const isActive =
+                              pathname === child.href ||
+                              pathname.startsWith(`${child.href}/`);
 
-                          return (
-                            <li key={child.href}>
-                              <Link
-                                href={child.href}
-                                onClick={() => setIsMobileOpen(false)}
-                                className={cn(
-                                  "flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
-                                  isCollapsed ? "justify-center" : "space-x-3",
-                                  isActive
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                )}
-                                title={isCollapsed ? child.label : undefined}
-                              >
-                                <ChildIcon className="h-4 w-4 shrink-0" />
-                                {!isCollapsed && <span>{child.label}</span>}
-                              </Link>
-                            </li>
-                          );
+                            return (
+                              <li key={child.href}>
+                                <Link
+                                  href={child.href}
+                                  onClick={() => setIsMobileOpen(false)}
+                                  className={cn(
+                                    "flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
+                                    isCollapsed ? "justify-center" : "space-x-3",
+                                    isActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                  )}
+                                  title={isCollapsed ? child.label : undefined}
+                                >
+                                  <ChildIcon className="h-4 w-4 shrink-0" />
+                                  {!isCollapsed && <span>{child.label}</span>}
+                                </Link>
+                              </li>
+                            );
+                          }
                         })}
                       </ul>
                     </li>
                   );
                 }
+
+                if (!auth.hasPermission(link.href.slice(link.href.lastIndexOf("/"), link.href.length))) return null;
 
                 const isActive =
                   pathname === link.href ||

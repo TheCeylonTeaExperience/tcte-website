@@ -44,6 +44,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 function formatTime(value) {
   if (!value) return "—";
@@ -73,7 +74,7 @@ export default function SessionList() {
   const [programs, setPrograms] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
-  
+
   // Alert Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
@@ -153,7 +154,7 @@ export default function SessionList() {
 
   async function confirmDelete() {
     if (!sessionToDelete) return;
-    
+
     setDeleteLoading(sessionToDelete.id);
     setDeleteDialogOpen(false);
 
@@ -234,8 +235,8 @@ export default function SessionList() {
             </div>
             <p className="font-bold text-xl mb-2" style={{ color: '#767014' }}>Oops! Something went wrong</p>
             <p className="text-sm" style={{ color: '#000000' }}>{error}</p>
-            <Button 
-              onClick={() => fetchSessions()} 
+            <Button
+              onClick={() => fetchSessions()}
               className="mt-4"
               style={{ backgroundColor: '#767014', color: '#ffffff' }}
             >
@@ -253,7 +254,7 @@ export default function SessionList() {
       <div className="relative overflow-hidden rounded-2xl p-8 shadow-xl" style={{ background: 'linear-gradient(to bottom right, #767014, #C5BF81)' }}>
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}></div>
-        
+
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div style={{ color: '#ffffff' }}>
             <div className="flex items-center gap-2 mb-2">
@@ -294,15 +295,17 @@ export default function SessionList() {
               <RefreshCw className="mr-2 h-5 w-5" />
               Refresh
             </Button>
-            <Button 
-              onClick={handleOpenCreate} 
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all duration-300"
-              style={{ backgroundColor: '#ffffff', color: '#767014' }}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              New Session
-            </Button>
+            <Protect route={"/sessions"} accessType={"READ_WRITE"}>
+              <Button
+                onClick={handleOpenCreate}
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all duration-300"
+                style={{ backgroundColor: '#ffffff', color: '#767014' }}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                New Session
+              </Button>
+            </Protect>
           </div>
         </div>
       </div>
@@ -315,19 +318,19 @@ export default function SessionList() {
                 <Calendar className="h-12 w-12" style={{ color: '#ffffff' }} />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                No sessions yet
+                No program entries yet
               </h3>
               <p className="mb-6 max-w-md mx-auto" style={{ color: '#000000', opacity: 0.7 }}>
-                Create your first exciting session and start scheduling your program lineup!
+                Create your first exciting program entry and start organizing your lineup!
               </p>
-              <Button 
+              <Button
                 onClick={handleOpenCreate}
                 className="shadow-lg hover:shadow-xl transition-all duration-300"
                 style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
                 size="lg"
               >
                 <Plus className="mr-2 h-5 w-5" />
-                Create Your First Session
+                Create Your First Program
               </Button>
             </div>
           </CardContent>
@@ -345,7 +348,7 @@ export default function SessionList() {
               'linear-gradient(to right, #767014, #ffffff)',
             ];
             const gradient = gradients[index % gradients.length];
-            
+
             return (
               <Card
                 key={session.id}
@@ -354,7 +357,7 @@ export default function SessionList() {
               >
                 {/* Colorful Header */}
                 {/* <div className="h-2" style={{ background: gradient }}></div> */}
-                
+
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -363,7 +366,7 @@ export default function SessionList() {
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
                         {session.program?.title && (
-                          <Badge 
+                          <Badge
                             variant="secondary"
                             className="border-0 shadow-sm"
                             style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
@@ -386,12 +389,12 @@ export default function SessionList() {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <CardDescription className="text-base" style={{ color: '#000000', opacity: 0.7 }}>
                     Scheduled times and pricing details for this session.
                   </CardDescription>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#C5BF81' }}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(to bottom right, #767014, #C5BF81)' }}>
@@ -401,7 +404,7 @@ export default function SessionList() {
                         {formatTime(session.startTime)} — {formatTime(session.endTime)}
                       </span>
                     </div>
-                    
+
                     {(session.price != null || session.specialPrice != null) && (
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
@@ -425,7 +428,7 @@ export default function SessionList() {
                         </div>
                       </div>
                     )}
-                    
+
                     {session.program?.location?.name && (
                       <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#C5BF81' }}>
                         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#C5BF81' }}>
@@ -440,30 +443,34 @@ export default function SessionList() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEdit(session)}
-                      className="flex-1 border-2"
-                      style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(session.id)}
-                      disabled={deleteLoading === session.id}
-                      className="border-2"
-                      style={{ borderColor: '#000000', color: '#000000', backgroundColor: '#ffffff' }}
-                    >
-                      {deleteLoading === session.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    <Protect route={"/sessions"} accessType={"READ_WRITE"}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenEdit(session)}
+                        className="flex-1 border-2"
+                        style={{ borderColor: '#767014', color: '#767014', backgroundColor: '#ffffff' }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Protect>
+                    <Protect route={"/sessions"} accessType={"READ_WRITE"}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(session.id)}
+                        disabled={deleteLoading === session.id}
+                        className="border-2"
+                        style={{ borderColor: '#000000', color: '#000000', backgroundColor: '#ffffff' }}
+                      >
+                        {deleteLoading === session.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </Protect>
                   </div>
                 </CardContent>
               </Card>
@@ -494,7 +501,7 @@ export default function SessionList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >

@@ -67,14 +67,14 @@ export default function DashboardPage() {
     },
     {
       title: "Programs",
-      description: "Update wellness programs",
-      href: "/dashboard/programs",
+      description: "Manage program offerings",
+      href: "/dashboard/sessions",
       icon: BookOpen,
     },
     {
       title: "Sessions",
-      description: "Schedule sessions",
-      href: "/dashboard/sessions",
+      description: "Manage session scheduling",
+      href: "/dashboard/programs",
       icon: Activity,
     },
   ];
@@ -106,9 +106,9 @@ export default function DashboardPage() {
       value: isLoading
         ? "USD 0.00"
         : new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-          }).format(stats.revenue),
+          style: "currency",
+          currency: "USD",
+        }).format(stats.revenue),
       subtitle: "Total revenue",
       icon: CreditCard,
       gradient: "linear-gradient(135deg, #C5BF81, #767014)",
@@ -131,9 +131,9 @@ export default function DashboardPage() {
             onClick={handleLogout}
             disabled={isLoggingOut}
             className="w-fit font-semibold border-2 transition-all duration-300 hover:scale-105"
-            style={{ 
-              backgroundColor: '#ffffff', 
-              color: '#767014', 
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#767014',
               borderColor: '#ffffff',
             }}
           >
@@ -146,12 +146,12 @@ export default function DashboardPage() {
       {/* Stats Overview */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat, index) => (
-          <Card 
+          <Card
             key={index}
             className="relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group"
             style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
           >
-            <div 
+            <div
               className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
               style={{ background: stat.gradient }}
             />
@@ -159,7 +159,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium" style={{ color: '#000000', opacity: 0.7 }}>
                 {stat.title}
               </CardTitle>
-              <div 
+              <div
                 className="p-2 rounded-lg"
                 style={{ background: stat.gradient }}
               >
@@ -187,16 +187,16 @@ export default function DashboardPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {quickLinks.map((link, index) => (
             <Link key={link.href} href={link.href}>
-              <Card 
+              <Card
                 className="transition-all duration-300 cursor-pointer h-full border-2 hover:shadow-xl hover:-translate-y-2 group overflow-hidden relative"
                 style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
               >
-                <div 
+                <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{ background: 'linear-gradient(135deg, rgba(118, 112, 20, 0.05), rgba(197, 191, 129, 0.1))' }}
                 />
                 <CardHeader className="relative z-10">
-                  <div 
+                  <div
                     className="p-3 w-fit rounded-xl mb-3 group-hover:scale-110 transition-transform duration-300"
                     style={{ background: index % 2 === 0 ? 'linear-gradient(135deg, #767014, #C5BF81)' : 'linear-gradient(135deg, #C5BF81, #767014)' }}
                   >
@@ -213,11 +213,11 @@ export default function DashboardPage() {
 
       {/* Profile Section */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card 
+        <Card
           className="border-2 overflow-hidden"
           style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
         >
-          <CardHeader 
+          <CardHeader
             className="border-b-2"
             style={{ borderColor: '#C5BF81', background: 'linear-gradient(135deg, rgba(118, 112, 20, 0.05), rgba(197, 191, 129, 0.1))' }}
           >
@@ -233,23 +233,23 @@ export default function DashboardPage() {
               <span className="text-sm font-medium" style={{ color: '#767014' }}>Name</span>
               <span className="text-sm" style={{ color: '#000000' }}>{user?.name || "Not set"}</span>
             </div>
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <span className="text-sm font-medium" style={{ color: '#767014' }}>Role</span>
-              <span 
+              <span
                 className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize"
                 style={{ background: 'linear-gradient(135deg, #767014, #C5BF81)', color: '#ffffff' }}
               >
                 {user?.role}
               </span>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="border-2 overflow-hidden"
           style={{ borderColor: '#C5BF81', backgroundColor: '#ffffff' }}
         >
-          <CardHeader 
+          <CardHeader
             className="border-b-2"
             style={{ borderColor: '#C5BF81', background: 'linear-gradient(135deg, rgba(197, 191, 129, 0.1), rgba(118, 112, 20, 0.05))' }}
           >
@@ -257,11 +257,11 @@ export default function DashboardPage() {
             <CardDescription style={{ color: '#000000', opacity: 0.6 }}>Current system health</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
-            <div 
+            <div
               className="flex items-center gap-3 mb-6 p-3 rounded-lg"
               style={{ backgroundColor: 'rgba(197, 191, 129, 0.2)', borderLeft: '4px solid #767014' }}
             >
-              <div 
+              <div
                 className="h-3 w-3 rounded-full animate-pulse"
                 style={{ backgroundColor: '#767014' }}
               />
@@ -274,7 +274,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>Version</span>
-                <span 
+                <span
                   className="text-xs px-2 py-1 rounded-full font-medium"
                   style={{ backgroundColor: '#C5BF81', color: '#ffffff' }}
                 >

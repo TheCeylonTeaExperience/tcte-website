@@ -1,6 +1,7 @@
 import { Playfair_Display, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const META_PIXEL_ID = "1621799072361353";
 
@@ -67,7 +68,9 @@ fbq('track', 'PageView');
             alt=""
           />
         </noscript>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <a
           href="https://wa.me/94702900500"
           target="_blank"

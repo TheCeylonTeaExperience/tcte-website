@@ -30,7 +30,7 @@ const DEFAULT_FORM_STATE = {
 
 export default function SessionTypeForm({
   open,
-  onOpenChange = () => {},
+  onOpenChange = () => { },
   onSuccess,
   initialData = null,
 }) {
@@ -84,8 +84,8 @@ export default function SessionTypeForm({
       }
     } catch (err) {
       const message =
-        err instanceof AuthError ? err.message : "Failed to fetch sessions";
-      console.error("Failed to fetch sessions:", err);
+        err instanceof AuthError ? err.message : "Failed to fetch programs";
+      console.error("Failed to fetch programs:", err);
       setError(message);
     }
   }
@@ -120,13 +120,13 @@ export default function SessionTypeForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to save session type");
+        setError(data.error || "Failed to save program type");
         setLoading(false);
         return;
       }
 
       if (!isEditMode) {
-        setSuccess("Session type created successfully!");
+        setSuccess("Program type created successfully!");
         setFormData({ ...DEFAULT_FORM_STATE });
       }
 
@@ -149,12 +149,12 @@ export default function SessionTypeForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
-            {isEditMode ? "Update Session Type" : "Create Session Type"}
+            {isEditMode ? "Update Program Type" : "Create Program Type"}
           </DialogTitle>
           <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
-              ? "Adjust the session type details to keep information up to date."
-              : "Provide the session information and pricing to add a new type."}
+              ? "Adjust the program type details to keep information up to date."
+              : "Provide the program information and pricing to add a new type."}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,7 +173,7 @@ export default function SessionTypeForm({
 
           <div className="space-y-2">
             <Label htmlFor="sessionId" style={{ color: '#767014', fontWeight: 600 }}>
-              Session <span style={{ color: '#000000' }}>*</span>
+              Program <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.sessionId}
@@ -183,7 +183,7 @@ export default function SessionTypeForm({
               required
             >
               <SelectTrigger id="sessionId">
-                <SelectValue placeholder="Select a session" />
+                <SelectValue placeholder="Select a program" />
               </SelectTrigger>
               <SelectContent>
                 {sessions.map((session) => (
@@ -258,8 +258,8 @@ export default function SessionTypeForm({
                   ? "Updating..."
                   : "Creating..."
                 : isEditMode
-                ? "Save Changes"
-                : "Create Session Type"}
+                  ? "Save Changes"
+                  : "Create Program Type"}
             </Button>
           </div>
         </form>

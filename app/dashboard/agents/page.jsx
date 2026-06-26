@@ -49,6 +49,7 @@ import {
 import { fetchWithAuth, AuthError } from "@/lib/apiClient";
 import { useDashboard } from "../layout";
 import { Loader2, Plus, Pencil, CheckCircle, XCircle, Trash2, AlertTriangle, Eye } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 export default function LeadersPage() {
   useDashboard();
@@ -70,7 +71,10 @@ export default function LeadersPage() {
     name: "",
     email: "",
     contact: "",
-    role: "USER",
+    role: "LEADER",
+    bankName: "",
+    branchName: "",
+    accountNumber: "",
     status: "ACTIVE",
   });
 
@@ -82,12 +86,12 @@ export default function LeadersPage() {
         method: "GET",
         cache: "no-store",
       });
-      if (!response.ok) throw new Error("Failed to fetch leaders");
+      if (!response.ok) throw new Error("Failed to fetch agents");
       const { leaders: payload } = await response.json();
       setLeaders(Array.isArray(payload) ? payload : []);
     } catch (err) {
-      console.error("Leaders fetch error:", err);
-      setError(err.message || "Unable to load leaders.");
+      console.error("Agents fetch error:", err);
+      setError(err.message || "Unable to load agents.");
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +108,9 @@ export default function LeadersPage() {
       email: leader.email,
       contact: leader.contact || "",
       role: leader.role,
+      bankName: leader.bankName,
+      branchName: leader.branchName,
+      accountNumber: leader.accountNumber,
       status: leader.status || "ACTIVE", // Assuming API returns status, if not default to ACTIVE
     });
     setIsDialogOpen(true);
@@ -115,7 +122,10 @@ export default function LeadersPage() {
       name: "",
       email: "",
       contact: "",
-      role: "USER",
+      role: "LEADER",
+      bankName: "",
+      branchName: "",
+      accountNumber: "",
       status: "ACTIVE",
     });
     setIsDialogOpen(true);
@@ -133,7 +143,7 @@ export default function LeadersPage() {
 
   const confirmDelete = async () => {
     if (!leaderToDelete) return;
-    
+
     try {
       const response = await fetchWithAuth(`/api/leaders/${leaderToDelete.id}`, {
         method: "DELETE",
@@ -141,10 +151,10 @@ export default function LeadersPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete leader");
+        throw new Error(errorData.error || "Failed to delete agent");
       }
 
-      setSuccessMessage("Leader deleted successfully.");
+      setSuccessMessage("Agent deleted successfully.");
       setSuccessDialogOpen(true);
       setDeleteDialogOpen(false);
       loadLeaders();
@@ -172,10 +182,10 @@ export default function LeadersPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save leader");
+        throw new Error(errorData.error || "Failed to save agent");
       }
 
-      setSuccessMessage(`Leader ${editingLeader ? "updated" : "created"} successfully.`);
+      setSuccessMessage(`Agent ${editingLeader ? "updated" : "created"} successfully.`);
       setSuccessDialogOpen(true);
       setIsDialogOpen(false);
       loadLeaders();
@@ -190,24 +200,26 @@ export default function LeadersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#767014' }}>Leaders</h2>
+          <h2 className="text-3xl font-bold tracking-tight" style={{ color: '#767014' }}>Agents</h2>
           <p style={{ color: '#000000', opacity: 0.7 }}>
-            Manage leaders, roles, and promo codes.
+            Manage agents, and promo codes.
           </p>
         </div>
-        <Button 
-          onClick={handleCreate}
-          style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Leader
-        </Button>
+        <Protect route={"/agents"} accessType={"READ_WRITE"}>
+          <Button
+            onClick={handleCreate}
+            style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Agent
+          </Button>
+        </Protect>
       </div>
 
       <Card className="border-2" style={{ borderColor: '#C5BF81' }}>
         <CardHeader>
-          <CardTitle style={{ color: '#767014' }}>All Leaders</CardTitle>
+          <CardTitle style={{ color: '#767014' }}>All Agents</CardTitle>
           <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
-            A list of all registered leaders and users.
+            A list of all registered agents and users.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -224,9 +236,12 @@ export default function LeadersPage() {
                   <TableRow>
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Name</TableHead>
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Email</TableHead>
-                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Role</TableHead>
-                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
+                    {/* <TableHead style={{ color: '#767014', fontWeight: 600 }}>Role</TableHead> */}
                     <TableHead style={{ color: '#767014', fontWeight: 600 }}>Promo Code</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Bank Name</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Branch Name</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Acc. Number</TableHead>
+                    <TableHead style={{ color: '#767014', fontWeight: 600 }}>Status</TableHead>
                     <TableHead className="text-right" style={{ color: '#767014', fontWeight: 600 }}>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -235,55 +250,60 @@ export default function LeadersPage() {
                     <TableRow key={leader.id}>
                       <TableCell className="font-medium" style={{ color: '#000000' }}>{leader.name}</TableCell>
                       <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.email}</TableCell>
-                      <TableCell>
-                        <Badge 
+                      {/* <TableCell>
+                        <Badge
                           className="border-0"
-                          style={{ 
-                            backgroundColor: leader.role === "LEADER" ? '#767014' : '#C5BF81', 
-                            color: leader.role === "LEADER" ? '#ffffff' : '#000000' 
+                          style={{
+                            backgroundColor: leader.role === "LEADER" ? '#767014' : '#C5BF81',
+                            color: leader.role === "LEADER" ? '#ffffff' : '#000000'
                           }}
                         >
                           {leader.role}
                         </Badge>
-                      </TableCell>
+                      </TableCell> */}
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.promoteCode || "-"}</TableCell>
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.bankName || "-"}</TableCell>
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.branchName || "-"}</TableCell>
+                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.accountNumber || "-"}</TableCell>
                       <TableCell>
-                         <Badge 
-                           variant="outline" 
-                           style={{ 
-                             borderColor: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014', 
-                             color: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014' 
-                           }}
-                         >
+                        <Badge
+                          variant="outline"
+                          style={{
+                            borderColor: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014',
+                            color: leader.status === "DEACTIVATED" ? '#ef4444' : '#767014'
+                          }}
+                        >
                           {leader.status || "ACTIVE"}
                         </Badge>
                       </TableCell>
-                      <TableCell style={{ color: '#000000', opacity: 0.8 }}>{leader.promoteCode || "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleView(leader)}
                             style={{ color: '#767014' }}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleEdit(leader)}
-                            style={{ color: '#767014' }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleDelete(leader)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Protect route={"/agents"} accessType={"READ_WRITE"}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(leader)}
+                              style={{ color: '#767014' }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(leader)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </Protect>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -298,11 +318,11 @@ export default function LeadersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
           <DialogHeader>
-            <DialogTitle style={{ color: '#767014' }}>{editingLeader ? "Edit Leader" : "Add Leader"}</DialogTitle>
+            <DialogTitle style={{ color: '#767014' }}>{editingLeader ? "Edit Agent" : "Add Agent"}</DialogTitle>
             <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
               {editingLeader
-                ? "Update leader details, role, and status."
-                : "Create a new leader account."}
+                ? "Update agent details, role, and status."
+                : "Create a new agent account."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -342,8 +362,44 @@ export default function LeadersPage() {
                 className="focus-visible:ring-[#767014]"
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="bankName" style={{ color: "#767014" }}>Bank Name (Optional)</Label>
+              <Input
+                id="bankName"
+                value={formData.bankName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, bankName: value });
+                }}
+                className="focus-visible:ring-[#767014]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="branchName" style={{ color: "#767014" }}>Branch Name (Optional)</Label>
+              <Input
+                id="branchName"
+                value={formData.branchName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, branchName: value });
+                }}
+                className="focus-visible:ring-[#767014]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="accountNumer" style={{ color: "#767014" }}>Account Number (Optional)</Label>
+              <Input
+                id="accountNumber"
+                value={formData.accountNumber}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, accountNumber: value });
+                }}
+                className="focus-visible:ring-[#767014]"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
+              {/* <div className="grid gap-2">
                 <Label htmlFor="role" style={{ color: '#767014' }}>Role</Label>
                 <Select
                   value={formData.role}
@@ -357,7 +413,8 @@ export default function LeadersPage() {
                     <SelectItem value="LEADER">Leader</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
+
               <div className="grid gap-2">
                 <Label htmlFor="status" style={{ color: '#767014' }}>Status</Label>
                 <Select
@@ -375,7 +432,7 @@ export default function LeadersPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button 
+              <Button
                 type="submit"
                 style={{ backgroundColor: '#767014', color: '#ffffff' }}
               >
@@ -390,9 +447,9 @@ export default function LeadersPage() {
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="border-2" style={{ borderColor: '#C5BF81' }}>
           <DialogHeader>
-            <DialogTitle style={{ color: '#767014' }}>Leader Details</DialogTitle>
+            <DialogTitle style={{ color: '#767014' }}>Agent Details</DialogTitle>
             <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
-              View full details for this leader.
+              View full details for this agent.
             </DialogDescription>
           </DialogHeader>
           {viewingLeader && (
@@ -410,36 +467,48 @@ export default function LeadersPage() {
                 <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.contact || "-"}</div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Promo Code</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.promoteCode || "-"}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Bank Name</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.bankName || "Not provided"}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Branch Name</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.branchName || "Not provided"}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Acc. Number</Label>
+                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.accountNumber || "Not provided"}</div>
+              </div>
+              {/* <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right font-semibold" style={{ color: '#767014' }}>Role</Label>
                 <div className="col-span-3">
-                  <Badge 
+                  <Badge
                     className="border-0"
-                    style={{ 
-                      backgroundColor: viewingLeader.role === "LEADER" ? '#767014' : '#C5BF81', 
-                      color: viewingLeader.role === "LEADER" ? '#ffffff' : '#000000' 
+                    style={{
+                      backgroundColor: viewingLeader.role === "LEADER" ? '#767014' : '#C5BF81',
+                      color: viewingLeader.role === "LEADER" ? '#ffffff' : '#000000'
                     }}
                   >
                     {viewingLeader.role}
                   </Badge>
                 </div>
-              </div>
+              </div> */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right font-semibold" style={{ color: '#767014' }}>Status</Label>
                 <div className="col-span-3">
-                  <Badge 
-                    variant="outline" 
-                    style={{ 
-                      borderColor: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014', 
-                      color: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014' 
+                  <Badge
+                    variant="outline"
+                    style={{
+                      borderColor: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014',
+                      color: viewingLeader.status === "DEACTIVATED" ? '#ef4444' : '#767014'
                     }}
                   >
                     {viewingLeader.status || "ACTIVE"}
                   </Badge>
                 </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right font-semibold" style={{ color: '#767014' }}>Promo Code</Label>
-                <div className="col-span-3" style={{ color: '#000000' }}>{viewingLeader.promoteCode || "-"}</div>
               </div>
             </div>
           )}
@@ -459,14 +528,14 @@ export default function LeadersPage() {
               <AlertTriangle className="h-8 w-8" style={{ color: '#767014' }} />
             </div>
             <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
-              Delete Leader?
+              Delete Agent?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-base" style={{ color: '#000000', opacity: 0.8 }}>
               Are you sure you want to delete {leaderToDelete?.name}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >

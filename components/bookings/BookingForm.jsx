@@ -604,7 +604,7 @@ export default function BookingForm() {
 
   function validateForm() {
     if (!formState.leaderId) {
-      return "Select a leader for this booking";
+      return "Select an agent for this booking";
     }
     if (!formState.bookedDate) {
       return "Select the booking date";
@@ -806,7 +806,7 @@ export default function BookingForm() {
         <CardHeader>
           <CardTitle style={{ color: '#767014' }}>Create Booking</CardTitle>
           <CardDescription style={{ color: '#000000', opacity: 0.7 }}>
-            Select a leader, configure session attendance, and capture payment details.
+            Select an agent, configure session attendance, and capture payment details.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -831,10 +831,10 @@ export default function BookingForm() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="leaderId" style={{ color: '#767014', fontWeight: 600 }}>Leader</Label>
+              <Label htmlFor="leaderId" style={{ color: '#767014', fontWeight: 600 }}>Agent</Label>
               <Select value={formState.leaderId} onValueChange={handleLeaderChange}>
                 <SelectTrigger id="leaderId">
-                  <SelectValue placeholder="Select leader" />
+                  <SelectValue placeholder="Select agent" />
                 </SelectTrigger>
                 <SelectContent>
                   {leaders.length === 0 && (
@@ -1277,7 +1277,7 @@ export default function BookingForm() {
                             htmlFor={`leader-attending-${selection.id}`}
                             className="flex-1 cursor-pointer"
                           >
-                            Leader is the attendee
+                            Agent is the attendee
                           </Label>
                         </div>
                       )}

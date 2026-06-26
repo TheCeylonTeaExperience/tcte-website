@@ -31,8 +31,26 @@ export async function POST(request) {
     // Fetch the user and verify credentials without leaking which check failed.
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, password: true, role: true, name: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        password: true,
+        name: true,
+        userPermissions: {
+          select: {
+            accessType: true,
+            permission: {
+              select: {
+                route: true,
+                sectionName: true
+              }
+            }
+          }
+        }
+      }
     });
+
     const isValid = user
       ? await comparePassword(password, user.password)
       : false;
@@ -76,6 +94,12 @@ export async function POST(request) {
 
     await setRefreshTokenCookie(cookieStore, refreshToken);
 
+    const formattedPermissions = user.userPermissions.map((up) => ({
+      route: up.permission.route,
+      sectionName: up.permission.sectionName,
+      accessType: up.accessType,
+    }));
+
     return NextResponse.json({
       accessToken,
       user: {
@@ -83,6 +107,7 @@ export async function POST(request) {
         email: normalizedEmail,
         name: user.name,
         role: user.role,
+        permissions: formattedPermissions,
       },
     });
   } catch (error) {

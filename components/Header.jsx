@@ -19,20 +19,19 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
-    { href: "/services", label: "Services" },
-    { href: "/gallery", label: "Gallery" },
-    { href: "/contact", label: "Contact" },
+    // { href: "/", label: "Home" },
+    // { href: "/about", label: "About" },
+    // { href: "/services", label: "Services" },
+    // { href: "/gallery", label: "Gallery" },
+    // { href: "/contact", label: "Contact" },
   ];
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-500 ${
-        isScrolled
+      className={`sticky top-0 z-50 w-full transition-all duration-500 ${isScrolled
           ? "bg-background/95 backdrop-blur-md shadow-xl border-b border-primary/20"
           : "bg-background/80 backdrop-blur-sm"
-      }`}
+        }`}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
@@ -47,17 +46,17 @@ export default function Header() {
               priority
               quality={70}
             />
-            
+
           </Link>
 
           {/* Enhanced Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8 animate-fade-in-up stagger-children" style={{animationDelay: "0.2s"}}>
+          <nav className="hidden md:flex items-center space-x-8 animate-fade-in-up stagger-children" style={{ animationDelay: "0.2s" }}>
             {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className="relative text-sm font-medium text-foreground hover:text-primary transition-all duration-300 hover:scale-105 hover-glow group"
-                style={{animationDelay: `${0.1 + index * 0.05}s`}}
+                style={{ animationDelay: `${0.1 + index * 0.05}s` }}
               >
                 {link.label}
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-primary to-secondary transition-all duration-300 group-hover:w-full"></span>
@@ -67,7 +66,7 @@ export default function Header() {
 
           {/* Enhanced CTA Button */}
           {SHOW_BOOKING_CTAS && (
-            <div className="hidden md:block animate-fade-in-up" style={{animationDelay: "0.4s"}}>
+            <div className="hidden md:block animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
               <Button asChild className="animate-pulse-glow hover-lift transition-all duration-300 hover:scale-105">
                 <Link href="/book">Book Now</Link>
               </Button>

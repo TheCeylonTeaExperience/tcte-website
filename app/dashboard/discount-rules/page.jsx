@@ -63,6 +63,7 @@ import {
   DollarSign,
   ListChecks,
 } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 export default function DiscountRulesPage() {
   useDashboard();
@@ -304,12 +305,14 @@ export default function DiscountRulesPage() {
             Define discounts based on session combinations for each program.
           </p>
         </div>
-        <Button
-          onClick={handleCreate}
-          style={{ background: "linear-gradient(to right, #767014, #C5BF81)", color: "#ffffff" }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Rule
-        </Button>
+        <Protect route={"/discount-rules"} accessType={"READ_WRITE"}>
+          <Button
+            onClick={handleCreate}
+            style={{ background: "linear-gradient(to right, #767014, #C5BF81)", color: "#ffffff" }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Rule
+          </Button>
+        </Protect>
       </div>
 
       {/* Info Card */}
@@ -353,13 +356,15 @@ export default function DiscountRulesPage() {
             <div className="text-center py-8">
               <Tag className="h-12 w-12 mx-auto mb-4" style={{ color: "#C5BF81" }} />
               <p style={{ color: "#000000", opacity: 0.7 }}>No discount rules defined yet.</p>
-              <Button
-                onClick={handleCreate}
-                className="mt-4"
-                style={{ backgroundColor: "#767014", color: "#ffffff" }}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Create First Rule
-              </Button>
+              <Protect route={"/discount-rules"} accessType={"READ_WRITE"}>
+                <Button
+                  onClick={handleCreate}
+                  className="mt-4"
+                  style={{ backgroundColor: "#767014", color: "#ffffff" }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Create First Rule
+                </Button>
+              </Protect>
             </div>
           ) : (
             <ScrollArea className="h-[500px]">

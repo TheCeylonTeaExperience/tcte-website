@@ -43,6 +43,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { Protect } from "@/contexts/AuthContext";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -59,7 +60,7 @@ export default function SessionTypeList() {
   const [sessions, setSessions] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingSessionType, setEditingSessionType] = useState(null);
-  
+
   // Alert Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionTypeToDelete, setSessionTypeToDelete] = useState(null);
@@ -100,7 +101,7 @@ export default function SessionTypeList() {
         if (response.ok) {
           setSessionTypes(data.sessionTypes);
         } else if (!silent) {
-          setError(data.error || "Failed to fetch session types");
+          setError(data.error || "Failed to fetch program types");
         }
       } catch (err) {
         const message =
@@ -110,7 +111,7 @@ export default function SessionTypeList() {
         if (!silent) {
           setError(message);
         } else {
-          console.error("Fetch session types error:", err);
+          console.error("Fetch program types error:", err);
         }
       } finally {
         if (!silent) {
@@ -137,7 +138,7 @@ export default function SessionTypeList() {
 
   async function confirmDelete() {
     if (!sessionTypeToDelete) return;
-    
+
     setDeleteLoading(sessionTypeToDelete.id);
     setDeleteDialogOpen(false);
 
@@ -202,7 +203,7 @@ export default function SessionTypeList() {
           </div>
         </div>
         <p className="text-lg font-medium" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          Loading session types...
+          Loading program types...
         </p>
       </div>
     );
@@ -218,8 +219,8 @@ export default function SessionTypeList() {
             </div>
             <p className="font-bold text-xl mb-2" style={{ color: '#767014' }}>Oops! Something went wrong</p>
             <p className="text-sm" style={{ color: '#000000' }}>{error}</p>
-            <Button 
-              onClick={() => fetchSessionTypes()} 
+            <Button
+              onClick={() => fetchSessionTypes()}
               className="mt-4"
               style={{ backgroundColor: '#767014', color: '#ffffff' }}
             >
@@ -237,12 +238,12 @@ export default function SessionTypeList() {
       <div className="relative overflow-hidden rounded-2xl p-8 shadow-xl" style={{ background: 'linear-gradient(to bottom right, #767014, #C5BF81)' }}>
         <div className="absolute top-0 right-0 w-64 h-64 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}></div>
-        
+
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div style={{ color: '#ffffff' }}>
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-6 w-6 animate-pulse" style={{ color: '#ffffff' }}/>
-              <h2 className="text-3xl font-bold">Session Types</h2>
+              <Sparkles className="h-6 w-6 animate-pulse" style={{ color: '#ffffff' }} />
+              <h2 className="text-3xl font-bold">Program Types</h2>
             </div>
             <p className="text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
               {sessionTypes.length} amazing type{sessionTypes.length !== 1 ? "s" : ""} ready for action
@@ -259,7 +260,7 @@ export default function SessionTypeList() {
                 <SelectValue placeholder="Filter by session" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All sessions</SelectItem>
+                <SelectItem value="all">All programs</SelectItem>
                 {sessions.map((session) => (
                   <SelectItem key={session.id} value={String(session.id)}>
                     {session.name}
@@ -278,15 +279,17 @@ export default function SessionTypeList() {
               <RefreshCw className="mr-2 h-5 w-5" />
               Refresh
             </Button>
-            <Button 
-              onClick={handleOpenCreate} 
-              size="lg"
-              className="shadow-lg hover:shadow-xl transition-all duration-300"
-              style={{ backgroundColor: '#ffffff', color: '#767014' }}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              New Type
-            </Button>
+            <Protect route={"/session_types"} accessType={"READ_WRITE"}>
+              <Button
+                onClick={handleOpenCreate}
+                size="lg"
+                className="shadow-lg hover:shadow-xl transition-all duration-300"
+                style={{ backgroundColor: '#ffffff', color: '#767014' }}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                New Type
+              </Button>
+            </Protect>
           </div>
         </div>
       </div>
@@ -299,12 +302,12 @@ export default function SessionTypeList() {
                 <Layers3 className="h-12 w-12" style={{ color: '#ffffff' }} />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                No session types yet
+                No program types yet
               </h3>
               <p className="mb-6 max-w-md mx-auto" style={{ color: '#000000', opacity: 0.7 }}>
-                Create your first session type to define pricing and variations within your sessions!
+                Create your first program type to define pricing and variations within your program!
               </p>
-              <Button 
+              <Button
                 onClick={handleOpenCreate}
                 className="shadow-lg hover:shadow-xl transition-all duration-300"
                 style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
@@ -329,7 +332,7 @@ export default function SessionTypeList() {
               'linear-gradient(to right, #767014, #ffffff)',
             ];
             const gradient = gradients[index % gradients.length];
-            
+
             return (
               <Card
                 key={sessionType.id}
@@ -338,7 +341,7 @@ export default function SessionTypeList() {
               >
                 {/* Colorful Header */}
                 {/* <div className="h-2" style={{ background: gradient }}></div> */}
-                
+
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -347,7 +350,7 @@ export default function SessionTypeList() {
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
                         {sessionType.session?.name && (
-                          <Badge 
+                          <Badge
                             variant="secondary"
                             className="border-0 shadow-sm"
                             style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
@@ -356,7 +359,7 @@ export default function SessionTypeList() {
                           </Badge>
                         )}
                         {sessionType.session?.program?.title && (
-                          <Badge 
+                          <Badge
                             variant="outline"
                             className="border-2"
                             style={{ borderColor: '#767014', backgroundColor: '#ffffff', color: '#767014' }}
@@ -368,12 +371,12 @@ export default function SessionTypeList() {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <CardDescription className="text-base" style={{ color: '#000000', opacity: 0.7 }}>
                     Pricing and context details for this session variation.
                   </CardDescription>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#C5BF81' }}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#767014' }}>
@@ -396,7 +399,7 @@ export default function SessionTypeList() {
                         )}
                       </div>
                     </div>
-                    
+
                     {sessionType.session?.program?.location?.name && (
                       <div className="flex items-center gap-3 p-3 rounded-lg border" style={{ backgroundColor: '#ffffff', borderColor: '#C5BF81' }}>
                         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#C5BF81' }}>
@@ -462,7 +465,7 @@ export default function SessionTypeList() {
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               className="border-2"
               style={{ borderColor: '#C5BF81', color: '#767014' }}
             >
