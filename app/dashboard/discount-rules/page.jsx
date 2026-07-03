@@ -371,7 +371,7 @@ export default function DiscountRulesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead style={{ color: "#767014", fontWeight: 600 }}>Program</TableHead>
+                    <TableHead style={{ color: "#767014", fontWeight: 600 }}>Session</TableHead>
                     <TableHead style={{ color: "#767014", fontWeight: 600 }}>Rule Name</TableHead>
                     <TableHead style={{ color: "#767014", fontWeight: 600 }}>Sessions</TableHead>
                     <TableHead style={{ color: "#767014", fontWeight: 600 }}>Discount</TableHead>
@@ -475,11 +475,11 @@ export default function DiscountRulesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="programId" style={{ color: "#767014" }}>
-                Program *
+                Session *
               </Label>
               <Select value={formData.programId} onValueChange={handleProgramChange}>
                 <SelectTrigger className="focus:ring-[#767014]">
-                  <SelectValue placeholder="Select a program" />
+                  <SelectValue placeholder="Select a session" />
                 </SelectTrigger>
                 <SelectContent>
                   {programs.map((program) => (

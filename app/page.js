@@ -242,7 +242,7 @@ export default function Home() {
                   style={{ borderColor: '#C5BF81' }}
                 >
                   <CardContent className="pt-8 text-center relative">
-                    <div 
+                    <div
                       className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300"
                       style={{ background: feature.gradient }}
                     >
@@ -427,7 +427,7 @@ export default function Home() {
                 </h2>
               </div>
               <p className="text-lg md:text-2xl mb-12 opacity-95 drop-shadow-lg max-w-3xl mx-auto">
-                Create. Taste. Explore. <br/>
+                Create. Taste. Explore. <br />
                 Your journey into Sri Lanka’s most iconic heritage begins here.
               </p>
 

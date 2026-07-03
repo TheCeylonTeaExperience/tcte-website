@@ -55,7 +55,7 @@ function formatTimeForInput(value) {
 
 export default function ProgramForm({
   open,
-  onOpenChange = () => {},
+  onOpenChange = () => { },
   onSuccess,
   initialData = null,
 }) {
@@ -184,12 +184,12 @@ export default function ProgramForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
-            {isEditMode ? "Update Program" : "Create New Program"}
+            {isEditMode ? "Update Session" : "Create New Session"}
           </DialogTitle>
           <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
-              ? "Modify the fields below to update this program."
-              : "Fill in the details below to create a new training program."}
+              ? "Modify the fields below to update this session."
+              : "Fill in the details below to create a new training session."}
           </DialogDescription>
         </DialogHeader>
 
@@ -208,7 +208,7 @@ export default function ProgramForm({
 
           <div className="space-y-2">
             <Label htmlFor="title" style={{ color: '#767014', fontWeight: 600 }}>
-              Program Title <span style={{ color: '#000000' }}>*</span>
+              Session Title <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Input
               id="title"
@@ -216,7 +216,7 @@ export default function ProgramForm({
               value={formData.title}
               onChange={handleChange}
               required
-              placeholder="Enter program title"
+              placeholder="Enter session title"
             />
           </div>
 
@@ -228,7 +228,7 @@ export default function ProgramForm({
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              placeholder="Describe the program (optional)"
+              placeholder="Describe the session (optional)"
             />
           </div>
 
@@ -310,7 +310,7 @@ export default function ProgramForm({
                 onCheckedChange={handleCheckboxChange}
               />
               <Label htmlFor="isActive" className="text-sm font-medium" style={{ color: '#767014' }}>
-                Active Program
+                Active Session
               </Label>
             </div>
           </div>
@@ -325,9 +325,9 @@ export default function ProgramForm({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading} 
+            <Button
+              type="submit"
+              disabled={loading}
               className="flex-1"
               style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
             >
@@ -336,8 +336,8 @@ export default function ProgramForm({
                   ? "Updating..."
                   : "Creating..."
                 : isEditMode
-                ? "Save Changes"
-                : "Create Program"}
+                  ? "Save Changes"
+                  : "Create Session"}
             </Button>
           </div>
         </form>

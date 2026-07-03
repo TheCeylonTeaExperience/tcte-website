@@ -52,7 +52,7 @@ function formatTimeForInput(value) {
 
 export default function SessionForm({
   open,
-  onOpenChange = () => {},
+  onOpenChange = () => { },
   onSuccess,
   initialData = null,
 }) {
@@ -144,13 +144,13 @@ export default function SessionForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to save session");
+        setError(data.error || "Failed to save program");
         setLoading(false);
         return;
       }
 
       if (!isEditMode) {
-        setSuccess("Session created successfully!");
+        setSuccess("Program created successfully!");
         setFormData({ ...DEFAULT_FORM_STATE });
       }
 
@@ -173,12 +173,12 @@ export default function SessionForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
-            {isEditMode ? "Update Session" : "Create New Session"}
+            {isEditMode ? "Update Program" : "Create New Program"}
           </DialogTitle>
           <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
-              ? "Adjust the session details and save your changes."
-              : "Fill out the fields below to add a new session."}
+              ? "Adjust the program details and save your changes."
+              : "Fill out the fields below to add a new program."}
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +197,7 @@ export default function SessionForm({
 
           <div className="space-y-2">
             <Label htmlFor="programId" style={{ color: '#767014', fontWeight: 600 }}>
-              Program <span style={{ color: '#000000' }}>*</span>
+              Session <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.programId}
@@ -207,7 +207,7 @@ export default function SessionForm({
               required
             >
               <SelectTrigger id="programId">
-                <SelectValue placeholder="Select a program" />
+                <SelectValue placeholder="Select a session" />
               </SelectTrigger>
               <SelectContent>
                 {programs.map((prog) => (
@@ -301,9 +301,9 @@ export default function SessionForm({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={loading} 
+            <Button
+              type="submit"
+              disabled={loading}
               className="flex-1"
               style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff' }}
             >
@@ -312,8 +312,8 @@ export default function SessionForm({
                   ? "Updating..."
                   : "Creating..."
                 : isEditMode
-                ? "Save Changes"
-                : "Create Session"}
+                  ? "Save Changes"
+                  : "Create Program"}
             </Button>
           </div>
         </form>

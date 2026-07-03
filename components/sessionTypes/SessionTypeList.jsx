@@ -101,7 +101,7 @@ export default function SessionTypeList() {
         if (response.ok) {
           setSessionTypes(data.sessionTypes);
         } else if (!silent) {
-          setError(data.error || "Failed to fetch program types");
+          setError(data.error || "Failed to fetch session types");
         }
       } catch (err) {
         const message =
@@ -111,7 +111,7 @@ export default function SessionTypeList() {
         if (!silent) {
           setError(message);
         } else {
-          console.error("Fetch program types error:", err);
+          console.error("Fetch session types error:", err);
         }
       } finally {
         if (!silent) {
@@ -203,7 +203,7 @@ export default function SessionTypeList() {
           </div>
         </div>
         <p className="text-lg font-medium" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          Loading program types...
+          Loading session types...
         </p>
       </div>
     );
@@ -243,7 +243,7 @@ export default function SessionTypeList() {
           <div style={{ color: '#ffffff' }}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-6 w-6 animate-pulse" style={{ color: '#ffffff' }} />
-              <h2 className="text-3xl font-bold">Program Types</h2>
+              <h2 className="text-3xl font-bold">Session Types</h2>
             </div>
             <p className="text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
               {sessionTypes.length} amazing type{sessionTypes.length !== 1 ? "s" : ""} ready for action
@@ -260,7 +260,7 @@ export default function SessionTypeList() {
                 <SelectValue placeholder="Filter by session" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All programs</SelectItem>
+                <SelectItem value="all">All sessions</SelectItem>
                 {sessions.map((session) => (
                   <SelectItem key={session.id} value={String(session.id)}>
                     {session.name}
@@ -279,7 +279,7 @@ export default function SessionTypeList() {
               <RefreshCw className="mr-2 h-5 w-5" />
               Refresh
             </Button>
-            <Protect route={"/session_types"} accessType={"READ_WRITE"}>
+            <Protect route={"/session-types"} accessType={"READ_WRITE"}>
               <Button
                 onClick={handleOpenCreate}
                 size="lg"
@@ -302,10 +302,10 @@ export default function SessionTypeList() {
                 <Layers3 className="h-12 w-12" style={{ color: '#ffffff' }} />
               </div>
               <h3 className="text-2xl font-bold mb-3" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                No program types yet
+                No session types yet
               </h3>
               <p className="mb-6 max-w-md mx-auto" style={{ color: '#000000', opacity: 0.7 }}>
-                Create your first program type to define pricing and variations within your program!
+                Create your first session type to define pricing and variations within your session!
               </p>
               <Button
                 onClick={handleOpenCreate}

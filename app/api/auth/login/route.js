@@ -72,11 +72,13 @@ export async function POST(request) {
 
     const normalizedEmail = user.email.trim().toLowerCase();
 
+    console.log(user.role);
+
     // Generate both tokens up front so we can rotate them atomically.
     const accessToken = generateAccessToken(
       user.id,
       normalizedEmail,
-      user.role
+      user.role || "admin"
     );
     const jti = randomUUID();
     const refreshToken = generateRefreshToken(user.id, jti);

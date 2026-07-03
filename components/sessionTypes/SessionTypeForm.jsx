@@ -84,8 +84,8 @@ export default function SessionTypeForm({
       }
     } catch (err) {
       const message =
-        err instanceof AuthError ? err.message : "Failed to fetch programs";
-      console.error("Failed to fetch programs:", err);
+        err instanceof AuthError ? err.message : "Failed to fetch sessions";
+      console.error("Failed to fetch sessions:", err);
       setError(message);
     }
   }
@@ -120,13 +120,13 @@ export default function SessionTypeForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Failed to save program type");
+        setError(data.error || "Failed to save session type");
         setLoading(false);
         return;
       }
 
       if (!isEditMode) {
-        setSuccess("Program type created successfully!");
+        setSuccess("Session type created successfully!");
         setFormData({ ...DEFAULT_FORM_STATE });
       }
 
@@ -149,12 +149,12 @@ export default function SessionTypeForm({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={{ color: '#767014' }}>
             <DialogIcon className="h-5 w-5" />
-            {isEditMode ? "Update Program Type" : "Create Program Type"}
+            {isEditMode ? "Update Session Type" : "Create Session Type"}
           </DialogTitle>
           <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
             {isEditMode
-              ? "Adjust the program type details to keep information up to date."
-              : "Provide the program information and pricing to add a new type."}
+              ? "Adjust the session type details to keep information up to date."
+              : "Provide the session information and pricing to add a new type."}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,7 +173,7 @@ export default function SessionTypeForm({
 
           <div className="space-y-2">
             <Label htmlFor="sessionId" style={{ color: '#767014', fontWeight: 600 }}>
-              Program <span style={{ color: '#000000' }}>*</span>
+              Session <span style={{ color: '#000000' }}>*</span>
             </Label>
             <Select
               value={formData.sessionId}
@@ -183,13 +183,13 @@ export default function SessionTypeForm({
               required
             >
               <SelectTrigger id="sessionId">
-                <SelectValue placeholder="Select a program" />
+                <SelectValue placeholder="Select a session" />
               </SelectTrigger>
               <SelectContent>
                 {sessions.map((session) => (
                   <SelectItem key={session.id} value={String(session.id)}>
                     {session.name} —{" "}
-                    {session.program?.title || "Untitled program"}
+                    {session.program?.title || "Untitled session"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -259,7 +259,7 @@ export default function SessionTypeForm({
                   : "Creating..."
                 : isEditMode
                   ? "Save Changes"
-                  : "Create Program Type"}
+                  : "Create Session Type"}
             </Button>
           </div>
         </form>

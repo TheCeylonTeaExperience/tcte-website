@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const auth = useAuth();
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -42,6 +45,8 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
+
+      auth.login(data.user, data.accessToken);
 
       // Store access token in localStorage
       localStorage.setItem("accessToken", data.accessToken);

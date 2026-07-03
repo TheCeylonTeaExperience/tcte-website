@@ -45,21 +45,21 @@ const sidebarLinks = [
     icon: MapPin,
   },
   {
-    label: "Program Settings",
+    label: "Session Settings",
     icon: Settings,
     children: [
       {
-        label: "Programs",
+        label: "Sessions",
         href: "/dashboard/sessions",
         icon: BookOpen,
       },
       {
-        label: "Sessions",
+        label: "Programs",
         href: "/dashboard/programs",
         icon: Calendar,
       },
       {
-        label: "Program Types",
+        label: "Session Types",
         href: "/dashboard/session-types",
         icon: Layers3,
       },

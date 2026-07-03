@@ -127,11 +127,11 @@ export default function ProgramList() {
 
       if (response.ok) {
         setPrograms((prev) => prev.filter((p) => p.id !== id));
-        setSuccessMessage("Program deleted successfully!");
+        setSuccessMessage("Session deleted successfully!");
         setSuccessDialogOpen(true);
       } else {
         const data = await response.json();
-        setErrorMessage(data.error || "Failed to delete program");
+        setErrorMessage(data.error || "Failed to delete session");
         setErrorDialogOpen(true);
       }
     } catch (err) {
@@ -179,7 +179,7 @@ export default function ProgramList() {
   function handleProgramSaved() {
     setEditingProgram(null);
     fetchPrograms({ silent: true });
-    setSuccessMessage(editingProgram ? "Program updated successfully!" : "Program created successfully!");
+    setSuccessMessage(editingProgram ? "Session updated successfully!" : "Session created successfully!");
     setSuccessDialogOpen(true);
   }
 
@@ -196,7 +196,7 @@ export default function ProgramList() {
       if (response.ok) {
         setSelectedProgram(data.program);
       } else {
-        setDetailsError(data.error || "Failed to fetch program details");
+        setDetailsError(data.error || "Failed to fetch session details");
       }
     } catch (err) {
       const message =
@@ -228,7 +228,7 @@ export default function ProgramList() {
           </div>
         </div>
         <p className="text-lg font-medium" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          Loading your amazing programs...
+          Loading your amazing session...
         </p>
       </div>
     );
@@ -270,10 +270,10 @@ export default function ProgramList() {
           <div style={{ color: '#ffffff' }}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-6 w-6 animate-pulse" style={{ color: '#ffffff' }} />
-              <h2 className="text-3xl font-bold">Your Programs</h2>
+              <h2 className="text-3xl font-bold">Your Sessions</h2>
             </div>
             <p className="text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
-              {programs.length} awesome program
+              {programs.length} awesome session
               {programs.length !== 1 ? "s" : ""} ready to inspire
             </p>
           </div>
@@ -297,7 +297,7 @@ export default function ProgramList() {
                 style={{ backgroundColor: '#ffffff', color: '#767014' }}
               >
                 <Plus className="mr-2 h-5 w-5" />
-                New Program
+                New Session
               </Button>
             </Protect>
           </div>
@@ -315,7 +315,7 @@ export default function ProgramList() {
                 No sessions yet
               </h3>
               <p className="mb-6 max-w-md mx-auto" style={{ color: '#000000', opacity: 0.7 }}>
-                Create your first amazing training program and start inspiring
+                Create your first amazing training session and start inspiring
                 your audience!
               </p>
               <Button
@@ -376,7 +376,7 @@ export default function ProgramList() {
                             className="border-2"
                             style={{ borderColor: '#767014', backgroundColor: '#ffffff', color: '#767014' }}
                           >
-                            📚 {program._count.sessions} session
+                            📚 {program._count.sessions} program
                             {program._count.sessions !== 1 ? "s" : ""}
                           </Badge>
                         )}
@@ -493,10 +493,10 @@ export default function ProgramList() {
               <AlertTriangle className="h-8 w-8" style={{ color: '#767014' }} />
             </div>
             <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
-              Delete Program?
+              Delete Session?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center" style={{ color: '#000000', opacity: 0.7 }}>
-              Are you want to sure delete this program?
+              Are you want to sure delete this session?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">

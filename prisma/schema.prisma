@@ -12,6 +12,7 @@ model User {
     email           String           @unique
     password        String
     name            String?
+    designation     String?
     createdAt       DateTime         @default(now())
     updatedAt       DateTime         @updatedAt
     refreshTokens   RefreshToken[]

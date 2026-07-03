@@ -40,16 +40,16 @@ export default function ProgramDetails({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle style={{ color: '#767014' }}>{program?.title || "Program Details"}</DialogTitle>
+          <DialogTitle style={{ color: '#767014' }}>{program?.title || "Session Details"}</DialogTitle>
           <DialogDescription style={{ color: '#000000', opacity: 0.7 }}>
-            Review the program schedule, venue, and session lineup in one place.
+            Review the session schedule, venue, and session lineup in one place.
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-4">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#767014' }} />
-            <p className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>Loading program...</p>
+            <p className="text-sm" style={{ color: '#000000', opacity: 0.7 }}>Loading session...</p>
           </div>
         ) : error ? (
           <div className="rounded-md border px-4 py-3" style={{ borderColor: '#C5BF81', backgroundColor: '#C5BF81', color: '#000000', opacity: 0.9 }}>
@@ -59,9 +59,9 @@ export default function ProgramDetails({
           <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-2">
             <section className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge 
+                <Badge
                   variant={program.isActive ? "default" : "secondary"}
-                  style={program.isActive 
+                  style={program.isActive
                     ? { background: 'linear-gradient(to right, #767014, #C5BF81)', color: '#ffffff', border: 'none' }
                     : { backgroundColor: '#C5BF81', color: '#000000', opacity: 0.6 }
                   }
@@ -110,7 +110,7 @@ export default function ProgramDetails({
 
               {!hasSessions ? (
                 <p className="rounded-md border border-dashed border-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-                  No sessions have been scheduled for this program yet.
+                  No sessions have been scheduled for this session yet.
                 </p>
               ) : (
                 <ul className="space-y-3">
@@ -138,11 +138,11 @@ export default function ProgramDetails({
                             )}
                             {typeof session._count?.sessionTypes ===
                               "number" && (
-                              <span>
-                                {session._count.sessionTypes} session type
-                                {session._count.sessionTypes === 1 ? "" : "s"}
-                              </span>
-                            )}
+                                <span>
+                                  {session._count.sessionTypes} session type
+                                  {session._count.sessionTypes === 1 ? "" : "s"}
+                                </span>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -172,7 +172,7 @@ export default function ProgramDetails({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Select a program to view its details.
+            Select a session to view its details.
           </p>
         )}
       </DialogContent>

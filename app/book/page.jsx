@@ -2250,7 +2250,7 @@ export default function BookNow() {
 
                   {/* Section 2: Personal Identification Input Modules */}
                   <div className="space-y-4 pt-4 border-t border-primary/10">
-                    <h2 className="text-xl font-serif font-bold text-primary">Personal Information</h2>
+                    <h2 className="text-xl font-serif font-bold text-primary">Agent Information</h2>
                     <p className="text-xs text-muted-foreground">Optional – if you skip this section we will use the first guest's details instead.</p>
 
                     {verifiedLeader ? (

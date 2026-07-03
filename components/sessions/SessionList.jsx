@@ -117,7 +117,7 @@ export default function SessionList() {
         if (response.ok) {
           setSessions(data.sessions);
         } else if (!silent) {
-          setError(data.error || "Failed to fetch sessions");
+          setError(data.error || "Failed to fetch programs");
         }
       } catch (err) {
         const message =
@@ -127,7 +127,7 @@ export default function SessionList() {
         if (!silent) {
           setError(message);
         } else {
-          console.error("Fetch sessions error:", err);
+          console.error("Fetch programs error:", err);
         }
       } finally {
         if (!silent) {
@@ -205,7 +205,7 @@ export default function SessionList() {
   function handleSessionSaved() {
     setEditingSession(null);
     fetchSessions({ silent: true });
-    setSuccessMessage(editingSession ? "Session updated successfully!" : "Session created successfully!");
+    setSuccessMessage(editingSession ? "Program updated successfully!" : "Program created successfully!");
     setSuccessDialogOpen(true);
   }
 
@@ -219,7 +219,7 @@ export default function SessionList() {
           </div>
         </div>
         <p className="text-lg font-medium" style={{ background: 'linear-gradient(to right, #767014, #C5BF81)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-          Loading amazing sessions...
+          Loading amazing programs...
         </p>
       </div>
     );
@@ -259,10 +259,10 @@ export default function SessionList() {
           <div style={{ color: '#ffffff' }}>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-6 w-6 animate-pulse" style={{ color: '#ffffff' }} />
-              <h2 className="text-3xl font-bold">Your Sessions</h2>
+              <h2 className="text-3xl font-bold">Your Programs</h2>
             </div>
             <p className="text-lg" style={{ color: '#ffffff', opacity: 0.9 }}>
-              {sessions.length} amazing session{sessions.length !== 1 ? "s" : ""} ready to go
+              {sessions.length} amazing program{sessions.length !== 1 ? "s" : ""} ready to go
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -303,7 +303,7 @@ export default function SessionList() {
                 style={{ backgroundColor: '#ffffff', color: '#767014' }}
               >
                 <Plus className="mr-2 h-5 w-5" />
-                New Session
+                New Program
               </Button>
             </Protect>
           </div>
@@ -392,7 +392,7 @@ export default function SessionList() {
 
                 <CardContent className="space-y-4">
                   <CardDescription className="text-base" style={{ color: '#000000', opacity: 0.7 }}>
-                    Scheduled times and pricing details for this session.
+                    Scheduled times and pricing details for this program.
                   </CardDescription>
 
                   <div className="space-y-3">
@@ -455,7 +455,7 @@ export default function SessionList() {
                         Edit
                       </Button>
                     </Protect>
-                    <Protect route={"/sessions"} accessType={"READ_WRITE"}>
+                    <Protect route={"/programs"} accessType={"READ_WRITE"}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -494,10 +494,10 @@ export default function SessionList() {
               <AlertTriangle className="h-8 w-8" style={{ color: '#767014' }} />
             </div>
             <AlertDialogTitle className="text-center text-xl" style={{ color: '#767014' }}>
-              Delete Session?
+              Delete Program?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center" style={{ color: '#000000', opacity: 0.7 }}>
-              Are you want to sure delete this session?
+              Are you want to sure delete this program?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-3">

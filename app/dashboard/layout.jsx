@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DashboardContext = createContext(null);
 
@@ -21,6 +22,8 @@ export default function DashboardLayout({ children }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const auth = useAuth();
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -55,8 +58,8 @@ export default function DashboardLayout({ children }) {
         method: "POST",
         headers: token
           ? {
-              Authorization: `Bearer ${token}`,
-            }
+            Authorization: `Bearer ${token}`,
+          }
           : undefined,
       });
     } catch (err) {
@@ -69,7 +72,7 @@ export default function DashboardLayout({ children }) {
     }
   }
 
-  if (isInitializing || !user) {
+  if (auth.loading || isInitializing || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -26,7 +26,11 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
-    // Login handler
+    /**
+     * Login handler
+     * @param {Object} userData
+     * @param {string} accessToken
+     */
     const login = (userData, accessToken) => {
         setUser(userData);
         localStorage.setItem("user", JSON.stringify(userData));
@@ -36,7 +40,9 @@ export function AuthProvider({ children }) {
         router.push("/dashboard");
     };
 
-    // Logout handler
+    /**
+     * Logout handler
+     */
     const logout = () => {
         setUser(null);
         localStorage.removeItem("user");
@@ -75,7 +81,20 @@ export function AuthProvider({ children }) {
     );
 }
 
-// Custom hook for consuming auth state inside components
+/**
+ * @typedef {Object} AuthState
+ * @property {Object|null} user - The authenticated user data object, or null if logged out.
+ * @property {boolean} loading - Indicates if the authentication state is in progress.
+ * @property {function(Object, string): void} login - Log the user in with user data and an access token.
+ * @property {function(): void} logout - Clear the session and log the user out.
+ * @property {function(string, string=): boolean} hasPermission - Checks if the user holds access for a path.
+ */
+
+/**
+ * Custom hook for consuming auth state inside components.
+ * @returns {AuthState} The complete authentication state and method context.
+ * @throws {Error} If used outside of an AuthProvider.
+ */
 export function useAuth() {
     const context = useContext(AuthContext);
     if (!context) {
